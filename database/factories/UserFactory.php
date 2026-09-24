@@ -34,6 +34,17 @@ class UserFactory extends Factory
         ];
     }
 
+    /**
+     * Akun internal (superadmin, admin, keuangan): login dengan username, tanpa NIK.
+     */
+    public function internal(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'username' => fake()->unique()->lexify('admin????'),
+            'nik' => null,
+        ]);
+    }
+
     public function nonaktif(): static
     {
         return $this->state(fn (array $attributes) => [

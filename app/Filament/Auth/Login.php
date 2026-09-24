@@ -5,22 +5,26 @@ namespace App\Filament\Auth;
 use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse;
 use Filament\Auth\Pages\Login as BaseLogin;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use SensitiveParameter;
 
 /**
- * Login memakai NIK + kata sandi (FR-AUTH-02), dipakai panel admin dan peserta.
+ * Login memakai username + kata sandi (FR-AUTH-02), dipakai panel admin dan peserta.
+ * Isian username dicocokkan ke kolom `username` (akun internal) atau `nik` (peserta).
  */
 class Login extends BaseLogin
 {
     /**
-     * Batas percobaan per NIK + IP per menit (FR-AUTH-03).
+     * Batas percobaan per username + IP per menit (FR-AUTH-03).
      */
-    public const MAKS_PERCOBAAN_PER_NIK = 5;
+    public const MAKS_PERCOBAAN_PER_USERNAME = 5;
 
     /**
      * Batas percobaan per IP per menit. Dibuat longgar karena peserta di
@@ -30,9 +34,9 @@ class Login extends BaseLogin
 
     public function authenticate(): ?LoginResponse
     {
-        $key = $this->getNikRateLimitKey();
+        $key = $this->getUsernameRateLimitKey();
 
-        if (RateLimiter::tooManyAttempts($key, self::MAKS_PERCOBAAN_PER_NIK)) {
+        if (RateLimiter::tooManyAttempts($key, self::MAKS_PERCOBAAN_PER_USERNAME)) {
             $this->getRateLimitedNotification(new TooManyRequestsException(
                 static::class,
                 'authenticate',
@@ -63,33 +67,35 @@ class Login extends BaseLogin
         parent::rateLimit(self::MAKS_PERCOBAAN_PER_IP, $decaySeconds, $method ?? 'authenticate', $component);
     }
 
-    protected function getNikRateLimitKey(): string
+    protected function getUsernameRateLimitKey(): string
     {
-        return 'login-nik:'.sha1(($this->data['nik'] ?? '').'|'.request()->ip());
+        return 'login-username:'.sha1(static::normalisasiUsername($this->data['username'] ?? '').'|'.request()->ip());
+    }
+
+    protected static function normalisasiUsername(?string $username): string
+    {
+        return Str::lower(trim((string) $username));
     }
 
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                $this->getNikFormComponent(),
+                $this->getUsernameFormComponent(),
                 $this->getPasswordFormComponent(),
                 $this->getRememberFormComponent(),
             ]);
     }
 
-    protected function getNikFormComponent(): Component
+    protected function getUsernameFormComponent(): Component
     {
-        return TextInput::make('nik')
-            ->label('NIK')
-            ->helperText('16 digit sesuai KTP.')
+        return TextInput::make('username')
+            ->label('Username')
+            ->placeholder(fn (): ?string => Filament::getCurrentPanel()?->getId() === 'peserta'
+                ? 'Masukkan NIK 16 digit'
+                : null)
             ->required()
-            ->regex('/^\d{16}$/')
-            ->validationMessages([
-                'regex' => 'NIK harus 16 digit angka.',
-            ])
-            ->maxLength(16)
-            ->inputMode('numeric')
+            ->maxLength(50)
             ->autocomplete('username')
             ->autofocus();
     }
@@ -103,12 +109,16 @@ class Login extends BaseLogin
 
     /**
      * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
+     * @return array<string|int, mixed>
      */
     protected function getCredentialsFromFormData(#[SensitiveParameter] array $data): array
     {
+        $username = static::normalisasiUsername($data['username']);
+
         return [
-            'nik' => $data['nik'],
+            fn (Builder $query) => $query->where(fn (Builder $query) => $query
+                ->where('username', $username)
+                ->orWhere('nik', $username)),
             'password' => $data['password'],
         ];
     }
@@ -116,7 +126,7 @@ class Login extends BaseLogin
     protected function throwFailureValidationException(): never
     {
         throw ValidationException::withMessages([
-            'data.nik' => 'NIK atau kata sandi salah.',
+            'data.username' => 'Username atau kata sandi salah.',
         ]);
     }
 }

@@ -15,7 +15,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['nik', 'email', 'password', 'is_aktif'])]
+#[Fillable(['username', 'nik', 'email', 'password', 'is_aktif'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasName
 {
@@ -53,6 +53,6 @@ class User extends Authenticatable implements FilamentUser, HasName
     public function getFilamentName(): string
     {
         // TODO: pakai nama_lengkap dari user_profiles setelah tabel profil dibuat.
-        return Masking::nik($this->nik);
+        return filled($this->nik) ? Masking::nik($this->nik) : (string) $this->username;
     }
 }

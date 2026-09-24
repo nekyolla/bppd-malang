@@ -19,17 +19,22 @@ function masukDi(string $panel): Testable
     return Livewire::test(Login::class);
 }
 
-it('menampilkan halaman login dengan isian NIK', function (string $url) {
+it('menampilkan halaman login dengan isian username', function (string $url) {
     $this->get($url)
         ->assertOk()
-        ->assertSee('NIK');
+        ->assertSee('Username');
 })->with(['/peserta/login', '/admin/login']);
 
-it('peserta dapat masuk dengan NIK dan kata sandi', function () {
+it('menampilkan petunjuk NIK hanya di login peserta', function () {
+    $this->get('/peserta/login')->assertSee('Masukkan NIK 16 digit');
+    $this->get('/admin/login')->assertDontSee('Masukkan NIK 16 digit');
+});
+
+it('peserta dapat masuk dengan NIK sebagai username', function () {
     $user = User::factory()->peran(Peran::Peserta)->create();
 
     masukDi('peserta')
-        ->fillForm(['nik' => $user->nik, 'password' => 'password'])
+        ->fillForm(['username' => $user->nik, 'password' => 'password'])
         ->call('authenticate')
         ->assertHasNoFormErrors()
         ->assertRedirect('/peserta');
@@ -41,62 +46,73 @@ it('menolak kata sandi yang salah', function () {
     $user = User::factory()->peran(Peran::Peserta)->create();
 
     masukDi('peserta')
-        ->fillForm(['nik' => $user->nik, 'password' => 'salah'])
+        ->fillForm(['username' => $user->nik, 'password' => 'salah'])
         ->call('authenticate')
-        ->assertHasFormErrors(['nik']);
+        ->assertHasFormErrors(['username' => ['Username atau kata sandi salah.']]);
 
     $this->assertGuest();
 });
 
-it('menolak NIK yang tidak terdaftar', function () {
+it('menolak username yang tidak terdaftar', function (string $username) {
     masukDi('peserta')
-        ->fillForm(['nik' => '3507010101909999', 'password' => 'password'])
+        ->fillForm(['username' => $username, 'password' => 'password'])
         ->call('authenticate')
-        ->assertHasFormErrors(['nik']);
+        ->assertHasFormErrors(['username']);
 
     $this->assertGuest();
-});
+})->with(['NIK' => '3507010101909999', 'username' => 'tidakada']);
 
 it('menolak akun yang dinonaktifkan', function () {
     $user = User::factory()->nonaktif()->peran(Peran::Peserta)->create();
 
     masukDi('peserta')
-        ->fillForm(['nik' => $user->nik, 'password' => 'password'])
+        ->fillForm(['username' => $user->nik, 'password' => 'password'])
         ->call('authenticate')
-        ->assertHasFormErrors(['nik']);
+        ->assertHasFormErrors(['username']);
 
     $this->assertGuest();
 });
 
-it('role internal dapat masuk panel admin', function (Peran $peran) {
-    $user = User::factory()->peran($peran)->create();
+it('role internal dapat masuk panel admin dengan username', function (Peran $peran) {
+    $user = User::factory()->internal()->peran($peran)->create();
 
     masukDi('admin')
-        ->fillForm(['nik' => $user->nik, 'password' => 'password'])
+        ->fillForm(['username' => $user->username, 'password' => 'password'])
         ->call('authenticate')
         ->assertHasNoFormErrors();
 
     $this->assertAuthenticatedAs($user);
 })->with([Peran::Superadmin, Peran::Admin, Peran::Keuangan]);
 
+it('username internal tidak peka huruf besar dan spasi di tepi', function () {
+    $user = User::factory()->internal()->peran(Peran::Admin)->create(['username' => 'keuangan']);
+
+    masukDi('admin')
+        ->fillForm(['username' => '  Keuangan ', 'password' => 'password'])
+        ->call('authenticate')
+        ->assertHasNoFormErrors();
+
+    $this->assertAuthenticatedAs($user);
+});
+
 it('peserta tidak dapat masuk panel admin', function () {
     $user = User::factory()->peran(Peran::Peserta)->create();
 
     masukDi('admin')
-        ->fillForm(['nik' => $user->nik, 'password' => 'password'])
+        ->fillForm(['username' => $user->nik, 'password' => 'password'])
         ->call('authenticate')
-        ->assertHasFormErrors(['nik']);
+        ->assertHasFormErrors(['username']);
 
     $this->assertGuest();
 });
 
 it('role internal tidak dapat masuk panel peserta', function () {
-    $user = User::factory()->peran(Peran::Admin)->create();
+    $user = User::factory()->internal()->peran(Peran::Admin)->create();
 
     masukDi('peserta')
-        ->fillForm(['nik' => $user->nik, 'password' => 'password'])
+        ->fillForm(['username' => $user->username, 'password' => 'password'])
         ->call('authenticate')
-        ->assertHasFormErrors(['nik']);
+        ->assertHasFormErrors(['username']);
 
     $this->assertGuest();
 });
@@ -111,36 +127,36 @@ it('akun yang dinonaktifkan saat sedang login tidak dapat membuka panel', functi
     $this->actingAs($user)->get('/peserta')->assertForbidden();
 });
 
-it('mengunci login setelah 5 percobaan gagal untuk NIK yang sama', function () {
+it('mengunci login setelah 5 percobaan gagal untuk username yang sama', function () {
     $user = User::factory()->peran(Peran::Peserta)->create();
 
     $halaman = masukDi('peserta');
 
-    foreach (range(1, Login::MAKS_PERCOBAAN_PER_NIK) as $i) {
-        $halaman->fillForm(['nik' => $user->nik, 'password' => 'salah'])
+    foreach (range(1, Login::MAKS_PERCOBAAN_PER_USERNAME) as $i) {
+        $halaman->fillForm(['username' => $user->nik, 'password' => 'salah'])
             ->call('authenticate')
-            ->assertHasFormErrors(['nik']);
+            ->assertHasFormErrors(['username']);
     }
 
-    $halaman->fillForm(['nik' => $user->nik, 'password' => 'password'])
+    $halaman->fillForm(['username' => $user->nik, 'password' => 'password'])
         ->call('authenticate')
         ->assertNotified();
 
     $this->assertGuest();
 });
 
-it('penguncian satu NIK tidak memblokir NIK lain dari IP yang sama', function () {
+it('penguncian satu username tidak memblokir username lain dari IP yang sama', function () {
     $dikunci = User::factory()->peran(Peran::Peserta)->create();
     $lain = User::factory()->peran(Peran::Peserta)->create();
 
     $halaman = masukDi('peserta');
 
-    foreach (range(1, Login::MAKS_PERCOBAAN_PER_NIK) as $i) {
-        $halaman->fillForm(['nik' => $dikunci->nik, 'password' => 'salah'])->call('authenticate');
+    foreach (range(1, Login::MAKS_PERCOBAAN_PER_USERNAME) as $i) {
+        $halaman->fillForm(['username' => $dikunci->nik, 'password' => 'salah'])->call('authenticate');
     }
 
     masukDi('peserta')
-        ->fillForm(['nik' => $lain->nik, 'password' => 'password'])
+        ->fillForm(['username' => $lain->nik, 'password' => 'password'])
         ->call('authenticate')
         ->assertHasNoFormErrors();
 

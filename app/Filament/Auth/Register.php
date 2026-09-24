@@ -42,7 +42,7 @@ class Register extends BaseRegister
     {
         return TextInput::make('nik')
             ->label('NIK')
-            ->helperText('16 digit sesuai KTP. NIK dipakai untuk masuk ke aplikasi.')
+            ->helperText('16 digit sesuai KTP. NIK dipakai sebagai username untuk masuk.')
             ->required()
             ->regex('/^\d{16}$/')
             ->maxLength(16)

@@ -41,6 +41,7 @@ it('mendaftarkan peserta dengan NIK tanpa email', function () {
     $user = User::where('nik', '3507010101900001')->firstOrFail();
 
     expect($user->email)->toBeNull()
+        ->and($user->username)->toBeNull()
         ->and($user->is_aktif)->toBeTrue()
         ->and($user->hasRole(Peran::Peserta))->toBeTrue()
         ->and($user->hasRole(Peran::Admin))->toBeFalse();

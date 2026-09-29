@@ -92,7 +92,7 @@ it('mencantumkan atribusi dan data peta 38 provinsi yang kodenya unik', function
     expect($kode)->toHaveCount(38)
         ->and(array_unique($kode))->toHaveCount(38)
         ->and($kode)->toContain('35', '91', '92', '93', '94', '95', '96')
-        ->and(file_get_contents(resource_path('js/peta-provinsi.js')))->toContain('CC BY 4.0');
+        ->and(file_get_contents(resource_path('js/peta-wilayah.js')))->toContain('CC BY 4.0');
 });
 
 it('menampilkan tabel provinsi sebagai alternatif peta', function () {
@@ -136,4 +136,28 @@ it('menyaring rincian wilayah per tahun', function () {
     Livewire::withQueryParams(['provinsi' => $this->jatim->id, 'kab_kota' => $this->malang->id, 'tahun' => 2025])
         ->test(RincianWilayah::class)
         ->assertSee('Kedungsalam');
+});
+
+it('menampilkan peta provinsi lalu peta kab/kota di rincian wilayah, tanpa peta di tingkat desa', function () {
+    $provinsi = Livewire::test(RincianWilayah::class)->instance()->peta();
+
+    expect($provinsi['geo'])->toBe('provinsi')
+        ->and(array_keys($provinsi['data']))->toBe([35])
+        ->and($provinsi['data'][35]['url'])->toContain("provinsi={$this->jatim->id}");
+
+    $kabKota = Livewire::withQueryParams(['provinsi' => $this->jatim->id])->test(RincianWilayah::class)
+        ->assertSee('Peta kab/kota di Jawa Timur')
+        ->instance()
+        ->peta();
+
+    expect($kabKota['geo'])->toBe('kab-kota/35')
+        ->and($kabKota['data'][$this->malang->kode]['desa_terlatih'])->toBe(1)
+        ->and($kabKota['data'][$this->malang->kode]['url'])->toContain("kab_kota={$this->malang->id}");
+
+    Livewire::withQueryParams(['provinsi' => $this->jatim->id, 'kab_kota' => $this->malang->id])
+        ->test(RincianWilayah::class)
+        ->assertDontSee('Peta kab/kota');
+
+    expect(Livewire::withQueryParams(['provinsi' => $this->jatim->id, 'kab_kota' => $this->malang->id])
+        ->test(RincianWilayah::class)->instance()->peta())->toBeNull();
 });

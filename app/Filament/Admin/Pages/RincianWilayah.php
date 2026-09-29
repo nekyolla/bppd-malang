@@ -111,6 +111,42 @@ class RincianWilayah extends Page implements HasTable
     }
 
     /**
+     * Data peta di atas tabel: provinsi (tingkat awal) atau kab/kota dalam satu provinsi.
+     * Tingkat desa tanpa peta (batas desa terlalu berat untuk browser).
+     *
+     * @return array{judul: string, data: array<string, array<string, mixed>>, geo: string, labelKosong: string, kunci: string, label: string}|null
+     */
+    public function peta(): ?array
+    {
+        $tahun = $this->tahunTerpilih();
+        $service = app(StatistikService::class);
+
+        return match ($this->tingkat()) {
+            'provinsi' => [
+                'judul' => 'Peta provinsi',
+                'data' => $service->perProvinsi($tahun)
+                    ->mapWithKeys(fn (array $p): array => [$p['kode'] => [...$p, 'url' => self::getUrl(['provinsi' => $p['id'], 'tahun' => $tahun])]])
+                    ->all(),
+                'geo' => 'provinsi',
+                'labelKosong' => 'Di luar wilayah kerja',
+                'kunci' => 'provinsi-'.($tahun ?? 'semua'),
+                'label' => 'Peta Indonesia per provinsi, diwarnai menurut jumlah desa terlatih',
+            ],
+            'kab_kota' => ($provinsi = Provinsi::find($this->provinsi)) ? [
+                'judul' => "Peta kab/kota di {$provinsi->nama}",
+                'data' => $service->perKabKota($provinsi->id, $tahun)
+                    ->mapWithKeys(fn (array $k): array => [$k['kode'] => [...$k, 'url' => self::getUrl(['provinsi' => $provinsi->id, 'kab_kota' => $k['id'], 'tahun' => $tahun])]])
+                    ->all(),
+                'geo' => "kab-kota/{$provinsi->kode}",
+                'labelKosong' => 'Tanpa data desa',
+                'kunci' => "kab-kota-{$provinsi->kode}-".($tahun ?? 'semua'),
+                'label' => "Peta kab/kota di {$provinsi->nama}, diwarnai menurut jumlah desa terlatih",
+            ] : null,
+            default => null,
+        };
+    }
+
+    /**
      * Jejak navigasi: Semua provinsi › Provinsi › Kab/kota.
      *
      * @return array<string, string>

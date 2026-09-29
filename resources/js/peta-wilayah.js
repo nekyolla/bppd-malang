@@ -3,10 +3,10 @@ import 'leaflet/dist/leaflet.css';
 import provinsi from '../geo/provinsi.json';
 
 /*
- * Peta dashboard admin (PRD FR-DSB-03, DESIGN_SYSTEM §5.3).
- * Skala berurutan satu hue (biru primer): terang → gelap untuk sedikit → banyak
- * desa terlatih; di mode gelap arahnya dibalik. Provinsi di luar data wilayah
- * tampil kosong dengan garis putus-putus (bukan 0).
+ * Peta wilayah untuk dashboard dan halaman Rincian Wilayah (PRD FR-DSB-03/04,
+ * DESIGN_SYSTEM §5.3). Skala berurutan satu hue (biru primer): terang → gelap
+ * untuk sedikit → banyak desa terlatih; di mode gelap arahnya dibalik. Wilayah
+ * tanpa data tampil kosong dengan garis putus-putus (berbeda dari 0).
  */
 const WARNA = {
     light: {
@@ -25,31 +25,57 @@ const WARNA = {
     },
 };
 
-const ATRIBUSI =
-    'Batas provinsi: <a href="https://github.com/denyherianto/indonesia-geojson-topojson-maps-with-38-provinces" target="_blank" rel="noopener">denyherianto</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (diubah)';
+const ATRIBUSI = {
+    provinsi:
+        'Batas provinsi: <a href="https://github.com/denyherianto/indonesia-geojson-topojson-maps-with-38-provinces" target="_blank" rel="noopener">denyherianto</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (diubah)',
+    kabKota:
+        'Batas kab/kota: BIG via <a href="https://github.com/ardian28/GeoJson-Indonesia-38-Provinsi" target="_blank" rel="noopener">ardian28</a> (MIT, diubah)',
+};
+
+// Satu chunk per provinsi, hanya diunduh saat provinsi itu dibuka.
+const KAB_KOTA = import.meta.glob('../geo/kab-kota/*.json', { import: 'default' });
 
 const angka = (n) => new Intl.NumberFormat('id-ID').format(n);
 
-window.petaProvinsi = ({ data, urlRincian }) => ({
+async function muatGeo(geo) {
+    if (geo === 'provinsi') return provinsi;
+
+    const muat = KAB_KOTA[`../geo/kab-kota/${geo.replace('kab-kota/', '')}.json`];
+
+    return muat ? muat() : { type: 'FeatureCollection', features: [] };
+}
+
+/**
+ * @param {object} opsi
+ * @param {object} opsi.data        Statistik per kode wilayah: desa_terlatih, url, dll.
+ * @param {string} opsi.geo         'provinsi' atau 'kab-kota/{kode provinsi}'.
+ * @param {'panel'|'buka'} opsi.klik 'panel' menampilkan rincian di samping peta; 'buka' pindah ke url wilayah.
+ * @param {string} opsi.labelKosong  Keterangan wilayah tanpa data di legenda & tooltip.
+ */
+window.petaWilayah = ({ data, geo = 'provinsi', klik = 'panel', labelKosong = 'Di luar wilayah kerja' }) => ({
     data,
-    urlRincian,
+    klik,
+    labelKosong,
     terpilih: null,
-    // Disimpan sebagai state agar legenda ikut berganti warna saat tema berubah.
     modeAktif: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+    memuat: true,
     peta: null,
     lapisan: null,
     pengamat: null,
     pengamatUkuran: null,
 
-    init() {
-        this.$nextTick(() => this.gambar());
-
+    async init() {
         // Filament mengganti kelas `dark` di <html> saat tema diubah.
         this.pengamat = new MutationObserver(() => {
             this.modeAktif = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
             this.warnai();
         });
         this.pengamat.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+        const fitur = await muatGeo(geo);
+        this.memuat = false;
+        await this.$nextTick();
+        this.gambar(fitur);
     },
 
     destroy() {
@@ -95,28 +121,31 @@ window.petaProvinsi = ({ data, urlRincian }) => ({
         };
     },
 
-    gambar() {
+    gambar(geojson) {
         this.peta = L.map(this.$refs.peta, {
             zoomSnap: 0.25,
             scrollWheelZoom: false,
             attributionControl: true,
         });
-        this.peta.attributionControl.setPrefix(false).addAttribution(ATRIBUSI);
+        this.peta.attributionControl
+            .setPrefix(false)
+            .addAttribution(geo === 'provinsi' ? ATRIBUSI.provinsi : ATRIBUSI.kabKota);
 
-        this.lapisan = L.geoJSON(provinsi, {
+        this.lapisan = L.geoJSON(geojson, {
             style: (fitur) => this.gaya(fitur),
             onEachFeature: (fitur, layer) => {
-                const d = this.data[fitur.properties.kode];
+                const { kode, nama, keterangan } = fitur.properties;
+                const d = this.data[kode];
 
                 layer.bindTooltip(
                     d
-                        ? `<strong>${fitur.properties.nama}</strong><br>${angka(d.desa_terlatih)} desa terlatih`
-                        : `<strong>${fitur.properties.nama}</strong><br>Di luar wilayah kerja`,
+                        ? `<strong>${nama}</strong><br>${angka(d.desa_terlatih)} desa terlatih`
+                        : `<strong>${nama}</strong><br>${keterangan ?? this.labelKosong}`,
                     { sticky: true, direction: 'top' },
                 );
 
                 layer.on({
-                    mouseover: () => layer.setStyle({ weight: 2.5, color: WARNA[this.mode()].sorot }),
+                    mouseover: () => d && layer.setStyle({ weight: 2.5, color: WARNA[this.mode()].sorot }),
                     mouseout: () => this.lapisan.resetStyle(layer),
                     click: () => this.pilih(fitur.properties),
                 });
@@ -132,6 +161,8 @@ window.petaProvinsi = ({ data, urlRincian }) => ({
     },
 
     pasKan() {
+        if (!this.lapisan?.getLayers().length) return;
+
         this.peta.invalidateSize();
         this.peta.fitBounds(this.lapisan.getBounds(), { padding: [8, 8] });
     },
@@ -145,6 +176,12 @@ window.petaProvinsi = ({ data, urlRincian }) => ({
 
     pilih({ kode, nama }) {
         const d = this.data[kode];
+
+        if (this.klik === 'buka') {
+            if (d?.url) window.location.href = d.url;
+
+            return;
+        }
 
         this.terpilih = d ? { ...d, kode } : { kode, nama, kosong: true };
         this.warnai();

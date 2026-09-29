@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Admin\Pages\Dashboard;
+use App\Filament\Admin\Pages\RincianWilayah;
 use App\Filament\Auth\Login;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -44,11 +45,11 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
             ])
-            // Leaflet + GeoJSON hanya dimuat di dashboard (widget PetaProvinsi).
+            // Leaflet + GeoJSON hanya dimuat di halaman yang menampilkan peta.
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
-                fn (): string => Blade::render("@vite('resources/js/peta-provinsi.js')"),
-                scopes: Dashboard::class,
+                fn (): string => Blade::render("@vite('resources/js/peta-wilayah.js')"),
+                scopes: [Dashboard::class, RincianWilayah::class],
             )
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')
             ->middleware([

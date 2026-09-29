@@ -3,8 +3,8 @@
 namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 
 use App\Filament\Admin\Actions\UbahStatusPelatihanAction;
-use App\Filament\Admin\Concerns\MemetakanGalatService;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
+use App\Filament\Concerns\MemetakanGalatService;
 use App\Services\PelatihanService;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;

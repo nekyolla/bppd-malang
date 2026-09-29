@@ -25,6 +25,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class Peserta extends Model
 {
+    public const AGAMA = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Kepercayaan terhadap Tuhan YME'];
+
+    public const JENJANG_PENDIDIKAN = ['SD/Sederajat', 'SMP/Sederajat', 'SMA/Sederajat', 'D1', 'D2', 'D3', 'D4', 'S1', 'S2', 'S3'];
+
     use Diaudit;
 
     /** @use HasFactory<PesertaFactory> */

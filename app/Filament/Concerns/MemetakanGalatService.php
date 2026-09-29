@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Admin\Concerns;
+namespace App\Filament\Concerns;
 
 use Closure;
 use Illuminate\Validation\ValidationException;

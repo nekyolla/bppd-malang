@@ -16,6 +16,11 @@ use Illuminate\Validation\ValidationException;
  */
 class PendaftaranService
 {
+    public function __construct(
+        private readonly PenggantiService $pengganti,
+        private readonly AsramaService $asrama,
+    ) {}
+
     /**
      * Isian yang ditampilkan di form verifikasi: isian terbaru dari pendaftaran ini,
      * dilengkapi data peserta untuk kolom yang tidak ada di isian.
@@ -49,12 +54,13 @@ class PendaftaranService
      * (jika ada), memakai KTP & foto terbaru, lalu mengisi snapshot (CLAUDE.md aturan 6).
      *
      * @param  array<string, mixed>|null  $dataPeserta  Data peserta hasil pemeriksaan admin; null = data peserta tidak diubah.
+     * @param  int|null  $menggantikanId  Pendaftaran batal yang digantikan (FR-BTL-04).
      *
      * @throws ValidationException
      */
-    public function verifikasi(PelatihanPeserta $pendaftaran, User $oleh, ?array $dataPeserta = null, ?string $catatan = null): void
+    public function verifikasi(PelatihanPeserta $pendaftaran, User $oleh, ?array $dataPeserta = null, ?string $catatan = null, ?int $menggantikanId = null): void
     {
-        DB::transaction(function () use ($pendaftaran, $oleh, $dataPeserta, $catatan): void {
+        DB::transaction(function () use ($pendaftaran, $oleh, $dataPeserta, $catatan, $menggantikanId): void {
             $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             if (! $terkunci->status->bisaMenjadi(StatusPendaftaran::Terverifikasi)) {
@@ -91,6 +97,46 @@ class PendaftaranService
                 'diverifikasi_pada' => now(),
                 'catatan_panitia' => filled($catatan) ? trim($catatan) : $terkunci->catatan_panitia,
             ])->save();
+
+            if ($menggantikanId !== null) {
+                $this->pengganti->tetapkan($terkunci, PelatihanPeserta::query()->findOrFail($menggantikanId));
+            }
+        });
+
+        $pendaftaran->refresh();
+    }
+
+    /**
+     * Membatalkan peserta: alasan wajib, jatah kamar dilepas, presensi yang sudah
+     * tercatat tidak dihapus (ARCHITECTURE §7.5, CLAUDE.md aturan 7).
+     *
+     * @throws ValidationException
+     */
+    public function batalkan(PelatihanPeserta $pendaftaran, User $oleh, string $alasan): void
+    {
+        if (blank($alasan)) {
+            throw ValidationException::withMessages(['alasan_batal' => 'Alasan pembatalan wajib diisi.']);
+        }
+
+        DB::transaction(function () use ($pendaftaran, $oleh, $alasan): void {
+            $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
+
+            if (! $terkunci->status->bisaMenjadi(StatusPendaftaran::Batal)) {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya peserta yang menunggu verifikasi atau terverifikasi yang dapat dibatalkan.',
+                ]);
+            }
+
+            $terkunci->forceFill([
+                'status' => StatusPendaftaran::Batal,
+                'alasan_batal' => trim($alasan),
+                'dibatalkan_oleh' => $oleh->getKey(),
+                'dibatalkan_pada' => now(),
+            ])->save();
+
+            if ($penempatan = $terkunci->penempatanKamar) {
+                $this->asrama->keluarkan($penempatan);
+            }
         });
 
         $pendaftaran->refresh();

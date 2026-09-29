@@ -13,6 +13,7 @@ use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -164,4 +165,58 @@ it('menampilkan detail, tautan berkas, dan isian yang berbeda', function () {
         ->assertDontSee('Isian berbeda dari data lama')
         ->assertSee('Snapshot saat pelatihan')
         ->assertActionHidden('verifikasi');
+});
+
+it('membatalkan peserta dengan alasan wajib', function () {
+    $pendaftaran = PelatihanPeserta::factory()->terverifikasi()->create();
+
+    Livewire::test(ListPendaftaran::class)
+        ->callAction(TestAction::make('batalkan')->table($pendaftaran), data: ['alasan_batal' => ''])
+        ->assertHasFormErrors(['alasan_batal' => 'required']);
+
+    expect($pendaftaran->fresh()->status)->toBe(StatusPendaftaran::Terverifikasi);
+
+    Livewire::test(ListPendaftaran::class)
+        ->callAction(TestAction::make('batalkan')->table($pendaftaran), data: ['alasan_batal' => 'Sakit'])
+        ->assertNotified('Peserta dibatalkan');
+
+    expect($pendaftaran->fresh()->status)->toBe(StatusPendaftaran::Batal)
+        ->and($pendaftaran->fresh()->alasan_batal)->toBe('Sakit');
+
+    Livewire::test(ListPendaftaran::class)
+        ->filterTable('status', StatusPendaftaran::Batal->value)
+        ->assertActionHidden(TestAction::make('batalkan')->table($pendaftaran));
+});
+
+it('menetapkan pengganti dari panel verifikasi', function () {
+    Carbon::setTestNow('2026-10-01 09:00');
+    $pelatihan = Pelatihan::factory()->dibuka()->tanggal('2026-10-05', '2026-10-08')->create();
+    $batal = PelatihanPeserta::factory()->batal()->for($pelatihan)->create();
+    $calon = PelatihanPeserta::factory()->for($pelatihan)
+        ->for(Peserta::factory()->state(['desa_id' => $batal->peserta->desa_id]))
+        ->create();
+
+    Livewire::test(ListPendaftaran::class)
+        ->mountAction(TestAction::make('verifikasi')->table($calon))
+        ->assertFormFieldExists('menggantikan_id')
+        ->fillForm(['menggantikan_id' => $batal->id])
+        ->callMountedAction()
+        ->assertNotified('Pendaftaran terverifikasi');
+
+    expect($calon->fresh()->menggantikan_id)->toBe($batal->id);
+
+    Livewire::test(ViewPendaftaran::class, ['record' => $batal->getRouteKey()])
+        ->assertSee('Digantikan oleh')
+        ->assertSee($calon->peserta->nama_lengkap);
+});
+
+it('tidak menawarkan pengganti jika tidak ada peserta batal dari desa yang sama', function () {
+    Carbon::setTestNow('2026-10-01 09:00');
+    $pelatihan = Pelatihan::factory()->dibuka()->tanggal('2026-10-05', '2026-10-08')->create();
+    PelatihanPeserta::factory()->batal()->for($pelatihan)->create();
+    $calon = PelatihanPeserta::factory()->for($pelatihan)->create();
+
+    Livewire::test(ListPendaftaran::class)
+        ->mountAction(TestAction::make('verifikasi')->table($calon))
+        ->assertFormFieldHidden('menggantikan_id');
 });

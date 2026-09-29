@@ -54,4 +54,9 @@ class PelatihanPesertaPolicy
     {
         return $this->viewAny($user);
     }
+
+    public function batalkan(User $user, PelatihanPeserta $pelatihanPeserta): bool
+    {
+        return $this->viewAny($user);
+    }
 }

@@ -10,6 +10,7 @@ use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
 use App\Models\StatusPtkp;
 use App\Services\PendaftaranService;
+use App\Services\PenggantiService;
 use App\Support\IsianPeserta;
 use Closure;
 use Filament\Actions\Action;
@@ -63,6 +64,7 @@ class VerifikasiAction extends Action
                         auth()->user(),
                         Arr::only($data, IsianPeserta::KOLOM),
                         $data['catatan_panitia'] ?? null,
+                        filled($data['menggantikan_id'] ?? null) ? (int) $data['menggantikan_id'] : null,
                     );
                 } catch (ValidationException $exception) {
                     Notification::make()
@@ -134,6 +136,7 @@ class VerifikasiAction extends Action
                             ->all())
                         ->getOptionLabelUsing(fn (mixed $value): string => IsianPeserta::tampilkan('desa_id', $value))
                         ->required()
+                        ->live()
                         ->columnSpanFull()
                         ->hint($dataLama('desa_id'))->hintColor('warning'),
                     Textarea::make('alamat_kantor_desa')->label('Alamat kantor desa')->required()->rows(2)->columnSpanFull()->hint($dataLama('alamat_kantor_desa'))->hintColor('warning'),
@@ -144,11 +147,33 @@ class VerifikasiAction extends Action
                         ->required()
                         ->hint($dataLama('status_ptkp_id'))->hintColor('warning'),
                 ]),
+            Section::make('Pengganti')
+                ->description('Peserta batal dari desa yang sama di pelatihan ini. Kosongkan jika peserta ini bukan pengganti.')
+                ->visible(fn (Get $get): bool => $this->kandidatPengganti($record, $get('desa_id')) !== [])
+                ->schema([
+                    Select::make('menggantikan_id')
+                        ->label('Menggantikan')
+                        ->options(fn (Get $get): array => $this->kandidatPengganti($record, $get('desa_id')))
+                        ->helperText('Pengganti otomatis masuk kelas peserta yang digantikan.'),
+                ]),
             Textarea::make('catatan_panitia')
                 ->label('Catatan panitia')
                 ->helperText('Opsional, misal data yang dirapikan.')
                 ->rows(2),
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function kandidatPengganti(PelatihanPeserta $record, mixed $desaId): array
+    {
+        return app(PenggantiService::class)
+            ->kandidat($record, filled($desaId) ? (int) $desaId : null)
+            ->mapWithKeys(fn (PelatihanPeserta $batal): array => [
+                $batal->id => "{$batal->peserta->nama_lengkap} — batal: {$batal->alasan_batal}",
+            ])
+            ->all();
     }
 
     private function tautanBerkas(PelatihanPeserta $record): string

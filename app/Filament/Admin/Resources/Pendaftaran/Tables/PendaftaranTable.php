@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Pendaftaran\Tables;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Actions\BatalkanAction;
 use App\Filament\Admin\Actions\VerifikasiAction;
 use App\Filament\Admin\Actions\VerifikasiMassalAction;
 use App\Models\Desa;
@@ -30,6 +31,8 @@ class PendaftaranTable
                 'peserta.desa.kecamatan.kabKota',
                 'desaSaatPelatihan.kecamatan.kabKota',
                 'pelatihan.judulPelatihan',
+                'menggantikan.peserta',
+                'pengganti.peserta',
             ]))
             ->columns([
                 TextColumn::make('created_at')
@@ -52,10 +55,12 @@ class PendaftaranTable
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->description(fn (PelatihanPeserta $record): ?string => $record->status === StatusPendaftaran::Terdaftar
-                        && app(PendaftaranService::class)->perbedaanIsian($record) !== []
-                            ? 'Isian berbeda dari data lama'
-                            : null),
+                    ->description(fn (PelatihanPeserta $record): ?string => match (true) {
+                        $record->status === StatusPendaftaran::Terdaftar && app(PendaftaranService::class)->perbedaanIsian($record) !== [] => 'Isian berbeda dari data lama',
+                        $record->pengganti !== null => "Digantikan {$record->pengganti->peserta->nama_lengkap}",
+                        $record->menggantikan !== null => "Pengganti {$record->menggantikan->peserta->nama_lengkap}",
+                        default => null,
+                    }),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -91,6 +96,7 @@ class PendaftaranTable
             ->recordActions([
                 VerifikasiAction::make(),
                 ViewAction::make(),
+                BatalkanAction::make(),
             ])
             ->toolbarActions([
                 VerifikasiMassalAction::make(),

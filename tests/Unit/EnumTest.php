@@ -46,6 +46,13 @@ it('menjalankan status pelatihan berurutan sampai selesai', function () {
         ->and(StatusPelatihan::Selesai->berikutnya())->toBeNull();
 });
 
+it('menerima pendaftaran saat pelatihan dibuka atau berjalan', function () {
+    expect(StatusPelatihan::Draft->menerimaPendaftaran())->toBeFalse()
+        ->and(StatusPelatihan::Dibuka->menerimaPendaftaran())->toBeTrue()
+        ->and(StatusPelatihan::Berjalan->menerimaPendaftaran())->toBeTrue()
+        ->and(StatusPelatihan::Selesai->menerimaPendaftaran())->toBeFalse();
+});
+
 it('memakai singkatan H/I/S/A untuk presensi', function () {
     expect(array_map(fn (StatusPresensi $status) => $status->singkatan(), StatusPresensi::cases()))
         ->toBe(['H', 'I', 'S', 'A']);

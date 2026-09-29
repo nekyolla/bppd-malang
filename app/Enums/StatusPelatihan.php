@@ -36,6 +36,23 @@ enum StatusPelatihan: string implements HasColor, HasLabel
     }
 
     /**
+     * Form registrasi publik menerima pendaftaran saat pelatihan dibuka
+     * atau sedang berjalan (PF-02).
+     */
+    public function menerimaPendaftaran(): bool
+    {
+        return in_array($this, self::yangMenerimaPendaftaran(), true);
+    }
+
+    /**
+     * @return list<self>
+     */
+    public static function yangMenerimaPendaftaran(): array
+    {
+        return [self::Dibuka, self::Berjalan];
+    }
+
+    /**
      * Status berikutnya pada alur draft → dibuka → berjalan → selesai.
      */
     public function berikutnya(): ?self

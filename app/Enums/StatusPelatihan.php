@@ -53,6 +53,19 @@ enum StatusPelatihan: string implements HasColor, HasLabel
     }
 
     /**
+     * Label tombol untuk berpindah ke status ini (DESIGN_SYSTEM §6.6).
+     */
+    public function labelAksi(): string
+    {
+        return match ($this) {
+            self::Draft => 'Jadikan draft',
+            self::Dibuka => 'Buka pendaftaran',
+            self::Berjalan => 'Mulai pelatihan',
+            self::Selesai => 'Selesaikan pelatihan',
+        };
+    }
+
+    /**
      * Status berikutnya pada alur draft → dibuka → berjalan → selesai.
      */
     public function berikutnya(): ?self

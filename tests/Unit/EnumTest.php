@@ -46,6 +46,12 @@ it('menjalankan status pelatihan berurutan sampai selesai', function () {
         ->and(StatusPelatihan::Selesai->berikutnya())->toBeNull();
 });
 
+it('memberi label tombol untuk setiap status tujuan pelatihan', function () {
+    expect(StatusPelatihan::Dibuka->labelAksi())->toBe('Buka pendaftaran')
+        ->and(StatusPelatihan::Berjalan->labelAksi())->toBe('Mulai pelatihan')
+        ->and(StatusPelatihan::Selesai->labelAksi())->toBe('Selesaikan pelatihan');
+});
+
 it('menerima pendaftaran saat pelatihan dibuka atau berjalan', function () {
     expect(StatusPelatihan::Draft->menerimaPendaftaran())->toBeFalse()
         ->and(StatusPelatihan::Dibuka->menerimaPendaftaran())->toBeTrue()

@@ -26,23 +26,12 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'nik' => fake()->unique()->numerify('35##############'),
+            'username' => fake()->unique()->lexify('admin????'),
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
             'is_aktif' => true,
             'remember_token' => Str::random(10),
         ];
-    }
-
-    /**
-     * Akun internal (superadmin, admin, keuangan): login dengan username, tanpa NIK.
-     */
-    public function internal(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'username' => fake()->unique()->lexify('admin????'),
-            'nik' => null,
-        ]);
     }
 
     public function nonaktif(): static

@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\Peran;
-use App\Support\Masking;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
@@ -15,8 +14,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['username', 'nik', 'email', 'password', 'is_aktif'])]
+#[Fillable(['username', 'email', 'password', 'is_aktif'])]
 #[Hidden(['password', 'remember_token'])]
+/**
+ * Akun internal BBPD (superadmin, admin). Peserta tidak memiliki akun (PF-01).
+ */
 class User extends Authenticatable implements FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
@@ -43,16 +45,11 @@ class User extends Authenticatable implements FilamentUser, HasName
             return false;
         }
 
-        return match ($panel->getId()) {
-            'admin' => $this->hasAnyRole(Peran::panelAdmin()),
-            'peserta' => $this->hasRole(Peran::Peserta),
-            default => false,
-        };
+        return $panel->getId() === 'admin' && $this->hasAnyRole(Peran::panelAdmin());
     }
 
     public function getFilamentName(): string
     {
-        // TODO: pakai nama_lengkap dari user_profiles setelah tabel profil dibuat.
-        return filled($this->nik) ? Masking::nik($this->nik) : (string) $this->username;
+        return $this->username;
     }
 }

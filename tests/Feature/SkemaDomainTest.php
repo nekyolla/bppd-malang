@@ -169,7 +169,7 @@ it('mencegah data master yang dipakai terhapus', function () {
 });
 
 it('mencatat satu lembar presensi per kelas per tanggal dan satu status per peserta', function () {
-    $admin = User::factory()->internal()->create()->id;
+    $admin = User::factory()->create()->id;
     $pelatihan = barisPelatihan($this->master);
     $kelas = DB::table('kelas_pelatihan')->insertGetId(['pelatihan_id' => $pelatihan, 'nama_kelas' => 'A']);
     $pendaftaran = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master));
@@ -183,7 +183,7 @@ it('mencatat satu lembar presensi per kelas per tanggal dan satu status per pese
 });
 
 it('mempertahankan presensi saat pendaftaran dibatalkan', function () {
-    $admin = User::factory()->internal()->create()->id;
+    $admin = User::factory()->create()->id;
     $pelatihan = barisPelatihan($this->master);
     $kelas = DB::table('kelas_pelatihan')->insertGetId(['pelatihan_id' => $pelatihan, 'nama_kelas' => 'A']);
     $pendaftaran = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master));
@@ -198,7 +198,7 @@ it('mempertahankan presensi saat pendaftaran dibatalkan', function () {
 });
 
 it('menerbitkan satu sertifikat per pendaftaran dengan nomor unik', function () {
-    $admin = User::factory()->internal()->create()->id;
+    $admin = User::factory()->create()->id;
     $pelatihan = barisPelatihan($this->master);
     $pertama = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master));
     $kedua = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master, '3507010101900002'));
@@ -217,7 +217,7 @@ it('menerbitkan satu sertifikat per pendaftaran dengan nomor unik', function () 
 });
 
 it('mencatat satu penggunaan per kamar per pelatihan dan satu kamar per peserta', function () {
-    $admin = User::factory()->internal()->create()->id;
+    $admin = User::factory()->create()->id;
     $pelatihan = barisPelatihan($this->master);
     $asrama = DB::table('asrama')->insertGetId(['nama_asrama' => 'Anggrek']);
     $kamar = DB::table('kamar_asrama')->insertGetId(['asrama_id' => $asrama, 'no_kamar' => '01', 'kapasitas' => 4]);
@@ -234,7 +234,7 @@ it('mencatat satu penggunaan per kamar per pelatihan dan satu kamar per peserta'
 });
 
 it('mewajibkan persetujuan untuk kamar pasutri', function () {
-    $admin = User::factory()->internal()->create()->id;
+    $admin = User::factory()->create()->id;
     $pelatihan = barisPelatihan($this->master);
     $asrama = DB::table('asrama')->insertGetId(['nama_asrama' => 'Anggrek']);
     $kamar = DB::table('kamar_asrama')->insertGetId(['asrama_id' => $asrama, 'no_kamar' => '01', 'kapasitas' => 2]);

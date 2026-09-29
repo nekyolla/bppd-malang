@@ -28,7 +28,7 @@ use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
-    $this->admin = User::factory()->internal()->create();
+    $this->admin = User::factory()->create();
     $this->jabatan = Jabatan::create(['nama_jabatan' => 'Sekretaris Desa']);
     $this->ptkp = StatusPtkp::create(['kode' => 'K/1', 'nama' => 'Kawin, 1 tanggungan']);
     $this->sumberDana = SumberDana::create(['nama' => 'APBN']);

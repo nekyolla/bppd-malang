@@ -5,19 +5,16 @@ namespace App\Filament\Auth;
 use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse;
 use Filament\Auth\Pages\Login as BaseLogin;
-use Filament\Facades\Filament;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use SensitiveParameter;
 
 /**
- * Login memakai username + kata sandi (FR-AUTH-02), dipakai panel admin dan peserta.
- * Isian username dicocokkan ke kolom `username` (akun internal) atau `nik` (peserta).
+ * Login akun internal memakai username + kata sandi (FR-AUTH-01, FR-AUTH-02).
  */
 class Login extends BaseLogin
 {
@@ -27,8 +24,8 @@ class Login extends BaseLogin
     public const MAKS_PERCOBAAN_PER_USERNAME = 5;
 
     /**
-     * Batas percobaan per IP per menit. Dibuat longgar karena peserta di
-     * lokasi pelatihan memakai jaringan yang sama (satu IP publik).
+     * Batas percobaan per IP per menit. Dibuat longgar karena pegawai BBPD
+     * memakai jaringan kantor yang sama (satu IP publik).
      */
     public const MAKS_PERCOBAAN_PER_IP = 60;
 
@@ -91,9 +88,6 @@ class Login extends BaseLogin
     {
         return TextInput::make('username')
             ->label('Username')
-            ->placeholder(fn (): ?string => Filament::getCurrentPanel()?->getId() === 'peserta'
-                ? 'Masukkan NIK 16 digit'
-                : null)
             ->required()
             ->maxLength(50)
             ->autocomplete('username')
@@ -116,9 +110,7 @@ class Login extends BaseLogin
         $username = static::normalisasiUsername($data['username']);
 
         return [
-            fn (Builder $query) => $query->where(fn (Builder $query) => $query
-                ->where('username', $username)
-                ->orWhere('nik', $username)),
+            'username' => $username,
             'password' => $data['password'],
         ];
     }

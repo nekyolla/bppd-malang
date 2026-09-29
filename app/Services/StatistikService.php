@@ -70,7 +70,7 @@ class StatistikService
      */
     public function perProvinsi(?int $tahun = null): Collection
     {
-        return $this->ingat("provinsi:{$tahun}", function () use ($tahun): Collection {
+        return collect($this->ingat("provinsi:{$tahun}", function () use ($tahun): array {
             $total = DB::table('provinsi as pr')
                 ->leftJoin('kab_kota as kk', 'kk.provinsi_id', '=', 'pr.id')
                 ->leftJoin('kecamatan as kc', 'kc.kab_kota_id', '=', 'kk.id')
@@ -84,8 +84,8 @@ class StatistikService
             return $total->map(fn (object $baris): array => $this->baris($baris, $terlatih[$baris->id] ?? null) + [
                 'total_kab_kota' => (int) $baris->total_kab_kota,
                 'kab_kota_terlatih' => (int) ($terlatih[$baris->id]->kab_kota ?? 0),
-            ]);
-        });
+            ])->all();
+        }));
     }
 
     /**
@@ -93,7 +93,7 @@ class StatistikService
      */
     public function perKabKota(int $provinsiId, ?int $tahun = null): Collection
     {
-        return $this->ingat("kab-kota:{$provinsiId}:{$tahun}", function () use ($provinsiId, $tahun): Collection {
+        return collect($this->ingat("kab-kota:{$provinsiId}:{$tahun}", function () use ($provinsiId, $tahun): array {
             $total = DB::table('kab_kota as kk')
                 ->leftJoin('kecamatan as kc', 'kc.kab_kota_id', '=', 'kk.id')
                 ->leftJoin('desa as d', 'd.kecamatan_id', '=', 'kc.id')
@@ -104,8 +104,8 @@ class StatistikService
 
             $terlatih = $this->terlatihPer('kk.id', $tahun, fn (Builder $q) => $q->where('kk.provinsi_id', $provinsiId));
 
-            return $total->map(fn (object $baris): array => $this->baris($baris, $terlatih[$baris->id] ?? null));
-        });
+            return $total->map(fn (object $baris): array => $this->baris($baris, $terlatih[$baris->id] ?? null))->all();
+        }));
     }
 
     /**
@@ -115,7 +115,7 @@ class StatistikService
      */
     public function desaTerlatih(int $kabKotaId, ?int $tahun = null): Collection
     {
-        return $this->ingat("desa:{$kabKotaId}:{$tahun}", fn (): Collection => $this->selesai($tahun)
+        return collect($this->ingat("desa:{$kabKotaId}:{$tahun}", fn (): array => $this->selesai($tahun)
             ->join('desa as d', 'd.id', '=', 'pp.desa_id_saat_pelatihan')
             ->join('kecamatan as kc', 'kc.id', '=', 'd.kecamatan_id')
             ->where('kc.kab_kota_id', $kabKotaId)
@@ -129,7 +129,8 @@ class StatistikService
                 'nama' => $baris->nama,
                 'kecamatan' => $baris->kecamatan,
                 'peserta_terlatih' => (int) $baris->peserta,
-            ]));
+            ])
+            ->all()));
     }
 
     /**
@@ -203,12 +204,13 @@ class StatistikService
     }
 
     /**
-     * @template T
+     * Hanya array skalar yang disimpan: cache database tidak membangun ulang objek
+     * (`cache.serializable_classes = false`), sehingga Collection akan rusak saat dibaca.
      *
-     * @param  Closure(): T  $hitung
-     * @return T
+     * @param  Closure(): array<mixed>  $hitung
+     * @return array<mixed>
      */
-    private function ingat(string $kunci, Closure $hitung): mixed
+    private function ingat(string $kunci, Closure $hitung): array
     {
         $versi = (int) Cache::get(self::KUNCI_VERSI, 0);
 

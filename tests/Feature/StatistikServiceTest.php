@@ -8,6 +8,7 @@ use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
 use App\Models\Provinsi;
 use App\Services\StatistikService;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
     $this->service = app(StatistikService::class);
@@ -117,4 +118,20 @@ it('menghitung ulang setelah pendaftaran berubah', function () {
 
     expect($this->service->ringkasan()['desa_terlatih'])->toBe(3)
         ->and($this->service->perProvinsi()->keyBy('kode')['51']['kab_kota_terlatih'])->toBe(1);
+});
+
+it('tetap berfungsi saat hasil dibaca kembali dari cache database', function () {
+    // Cache database menyerialisasi nilai dan tidak membangun ulang objek (cache.serializable_classes = false).
+    config(['cache.default' => 'database']);
+
+    foreach (range(1, 2) as $putaran) {
+        $service = app(StatistikService::class);
+
+        expect($service->ringkasan()['desa_terlatih'])->toBe(2)
+            ->and($service->perProvinsi()->keyBy('kode')['35']['desa_terlatih'])->toBe(2)
+            ->and($service->perKabKota($this->jatim->id)->keyBy('nama')['Kab. Malang']['desa_terlatih'])->toBe(1)
+            ->and($service->desaTerlatih($this->malang->id)->pluck('nama')->all())->toBe(['Kedungsalam']);
+    }
+
+    expect(DB::table('cache')->where('key', 'like', '%statistik:%provinsi:%')->exists())->toBeTrue();
 });

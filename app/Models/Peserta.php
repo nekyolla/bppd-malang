@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\JenisKelamin;
 use App\Models\Concerns\Diaudit;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
@@ -41,9 +42,14 @@ class Peserta extends Model
     /**
      * Tahun menjabat per tahun kalender: tahun − tahun pelantikan + 1 (BR-08).
      */
+    public static function hitungTahunMenjabat(CarbonInterface $waktuPelantikan, int $tahun): int
+    {
+        return $tahun - $waktuPelantikan->year + 1;
+    }
+
     public function tahunMenjabatPada(int $tahun): int
     {
-        return $tahun - $this->waktu_pelantikan->year + 1;
+        return self::hitungTahunMenjabat($this->waktu_pelantikan, $tahun);
     }
 
     /**

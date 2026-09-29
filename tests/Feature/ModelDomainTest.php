@@ -103,6 +103,16 @@ describe('tahun menjabat', function () {
             ->and($this->peserta->tahunMenjabatPada(2022))->toBe(1);
     });
 
+    it('memakai snapshot pelantikan setelah verifikasi walau peserta dilantik ulang', function () {
+        $this->pendaftaran->forceFill(['waktu_pelantikan_saat_pelatihan' => '2022-03-01'])->save();
+        $this->peserta->update(['waktu_pelantikan' => '2028-01-10']);
+
+        $pendaftaran = $this->pendaftaran->fresh();
+
+        expect($pendaftaran->tahun_menjabat)->toBe(5)
+            ->and($pendaftaran->waktu_pelantikan_saat_pelatihan->toDateString())->toBe('2022-03-01');
+    });
+
     it('memakai tahun berjalan di data peserta', function () {
         Carbon::setTestNow('2027-01-15');
 
@@ -175,6 +185,7 @@ it('mengabaikan status, snapshot, dan pengganti dari mass assignment', function 
     $this->pendaftaran->update([
         'status' => StatusPendaftaran::Selesai,
         'desa_id_saat_pelatihan' => $this->desa->id,
+        'waktu_pelantikan_saat_pelatihan' => '2020-01-01',
         'menggantikan_id' => $this->pendaftaran->id,
     ]);
     $pendaftaran = $this->pendaftaran->fresh();
@@ -182,6 +193,7 @@ it('mengabaikan status, snapshot, dan pengganti dari mass assignment', function 
     expect($pelatihan->fresh()->status)->toBe(StatusPelatihan::Draft)
         ->and($pendaftaran->status)->toBe(StatusPendaftaran::Terdaftar)
         ->and($pendaftaran->desa_id_saat_pelatihan)->toBeNull()
+        ->and($pendaftaran->waktu_pelantikan_saat_pelatihan)->toBeNull()
         ->and($pendaftaran->menggantikan_id)->toBeNull();
 });
 

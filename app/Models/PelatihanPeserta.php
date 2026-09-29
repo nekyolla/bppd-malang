@@ -40,6 +40,7 @@ class PelatihanPeserta extends Model
     {
         return [
             'data_isian' => 'array',
+            'waktu_pelantikan_saat_pelatihan' => 'date',
             'status' => StatusPendaftaran::class,
             'diverifikasi_pada' => 'datetime',
             'dibatalkan_pada' => 'datetime',
@@ -59,12 +60,16 @@ class PelatihanPeserta extends Model
 
     /**
      * Tahun menjabat saat pelatihan: tahun mulai pelatihan − tahun pelantikan + 1 (ARCHITECTURE §6).
+     * Memakai snapshot pelantikan; sebelum verifikasi memakai data peserta terkini.
      *
      * @return Attribute<int, never>
      */
     protected function tahunMenjabat(): Attribute
     {
-        return Attribute::get(fn (): int => $this->peserta->tahunMenjabatPada($this->pelatihan->tanggal_mulai->year));
+        return Attribute::get(fn (): int => Peserta::hitungTahunMenjabat(
+            $this->waktu_pelantikan_saat_pelatihan ?? $this->peserta->waktu_pelantikan,
+            $this->pelatihan->tanggal_mulai->year,
+        ));
     }
 
     /**

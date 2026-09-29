@@ -78,7 +78,7 @@ it('membuat seluruh tabel domain', function () {
     expect(Schema::hasTable('user_profiles'))->toBeFalse()
         ->and(Schema::hasColumns('pelatihan_peserta', [
             'peserta_id', 'data_isian', 'jabatan_id_saat_pelatihan', 'desa_id_saat_pelatihan',
-            'status_ptkp_id_saat_pelatihan', 'menggantikan_id',
+            'status_ptkp_id_saat_pelatihan', 'waktu_pelantikan_saat_pelatihan', 'menggantikan_id',
         ]))->toBeTrue()
         ->and(Schema::hasColumn('peserta', 'sumber_dana_default_id'))->toBeFalse();
 

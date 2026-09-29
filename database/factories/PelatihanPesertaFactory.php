@@ -8,6 +8,7 @@ use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
 use App\Models\SumberDana;
 use App\Models\User;
+use App\Support\IsianPeserta;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -25,8 +26,8 @@ class PelatihanPesertaFactory extends Factory
         return [
             'pelatihan_id' => Pelatihan::factory()->dibuka(),
             'peserta_id' => Peserta::factory(),
-            'data_isian' => fn (array $attributes) => Peserta::findOrFail($attributes['peserta_id'])
-                ->only((new Peserta)->getFillable()),
+            // Sama dengan isian form registrasi untuk peserta ini (tidak ada perbedaan).
+            'data_isian' => fn (array $attributes) => IsianPeserta::dariPeserta(Peserta::findOrFail($attributes['peserta_id'])),
             'file_surat_tugas' => null,
             'sumber_dana_id' => SumberDana::factory(),
             'sumber_dana_keterangan' => null,

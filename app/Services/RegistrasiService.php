@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Enums\JenisKelamin;
 use App\Enums\StatusPelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
 use App\Models\SumberDana;
+use App\Support\IsianPeserta;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -33,15 +33,6 @@ class RegistrasiService
     public const MAKS_UKURAN_BERKAS_KB = 2048;
 
     /**
-     * Kolom `peserta` yang diisi dari form.
-     */
-    public const KOLOM_PESERTA = [
-        'nik', 'nama_lengkap', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'agama',
-        'alamat_domisili', 'no_hp', 'email', 'jenjang_pendidikan', 'jurusan_pendidikan',
-        'jabatan_id', 'waktu_pelantikan', 'desa_id', 'alamat_kantor_desa', 'npwp', 'status_ptkp_id',
-    ];
-
-    /**
      * Nama isian berkas => nama file tersimpan.
      */
     public const BERKAS = [
@@ -64,7 +55,7 @@ class RegistrasiService
 
         try {
             return DB::transaction(function () use ($data, &$folder): PelatihanPeserta {
-                $isianPeserta = Arr::only($data, self::KOLOM_PESERTA);
+                $isianPeserta = Arr::only($data, IsianPeserta::KOLOM);
                 $peserta = Peserta::query()->where('nik', $data['nik'])->lockForUpdate()->first();
                 $pesertaBaru = $peserta === null;
 
@@ -118,18 +109,10 @@ class RegistrasiService
      */
     private function normalisasi(array $data): array
     {
-        $teks = fn (mixed $nilai): mixed => is_string($nilai) ? (trim($nilai) === '' ? null : trim($nilai)) : $nilai;
-        $angka = fn (mixed $nilai): ?string => is_string($nilai) && filled($nilai) ? preg_replace('/\D/', '', $nilai) : null;
-
-        foreach (['nama_lengkap', 'tempat_lahir', 'alamat_domisili', 'jurusan_pendidikan', 'alamat_kantor_desa', 'sumber_dana_keterangan'] as $kolom) {
-            $data[$kolom] = $teks($data[$kolom] ?? null);
-        }
-
-        $data['nik'] = $angka($data['nik'] ?? null);
-        $data['no_hp'] = $angka($data['no_hp'] ?? null);
-        $data['npwp'] = $angka($data['npwp'] ?? null) ?: null;
-        $data['email'] = filled($data['email'] ?? null) ? strtolower(trim($data['email'])) : null;
-        $data['jenis_kelamin'] = ($data['jenis_kelamin'] ?? null) instanceof JenisKelamin ? $data['jenis_kelamin']->value : ($data['jenis_kelamin'] ?? null);
+        $data = IsianPeserta::normalisasi($data);
+        $data['sumber_dana_keterangan'] = is_string($data['sumber_dana_keterangan'] ?? null) && trim($data['sumber_dana_keterangan']) !== ''
+            ? trim($data['sumber_dana_keterangan'])
+            : null;
 
         foreach (array_keys(self::BERKAS) as $isian) {
             // FileUpload Filament dapat mengirim array; string path dari klien tidak diterima.
@@ -154,23 +137,7 @@ class RegistrasiService
                 fn (StatusPelatihan $status): string => $status->value,
                 StatusPelatihan::yangMenerimaPendaftaran(),
             ))],
-            'nik' => ['required', 'digits:16'],
-            'nama_lengkap' => ['required', 'string', 'max:255'],
-            'jenis_kelamin' => ['required', Rule::enum(JenisKelamin::class)],
-            'tempat_lahir' => ['required', 'string', 'max:255'],
-            'tanggal_lahir' => ['required', 'date', 'before:-17 years'],
-            'agama' => ['required', Rule::in(Peserta::AGAMA)],
-            'alamat_domisili' => ['required', 'string', 'max:1000'],
-            'no_hp' => ['required', 'regex:/^08\d{8,12}$/'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'jenjang_pendidikan' => ['required', Rule::in(Peserta::JENJANG_PENDIDIKAN)],
-            'jurusan_pendidikan' => ['nullable', 'string', 'max:255'],
-            'jabatan_id' => ['required', 'integer', Rule::exists('jabatan', 'id')->where('is_aktif', true)],
-            'waktu_pelantikan' => ['required', 'date', 'before_or_equal:today', 'after:tanggal_lahir'],
-            'desa_id' => ['required', 'integer', Rule::exists('desa', 'id')],
-            'alamat_kantor_desa' => ['required', 'string', 'max:1000'],
-            'npwp' => ['nullable', 'regex:/^(\d{15}|\d{16})$/'],
-            'status_ptkp_id' => ['required', 'integer', Rule::exists('status_ptkp', 'id')->where('is_aktif', true)],
+            ...IsianPeserta::aturan(),
             'sumber_dana_id' => ['required', 'integer', Rule::exists('sumber_dana', 'id')->where('is_aktif', true)],
             // Wajib jika sumber dana bertanda `butuh_keterangan`, misal "Lainnya" (FR-REG-04).
             'sumber_dana_keterangan' => [
@@ -181,34 +148,17 @@ class RegistrasiService
             'foto' => ['required', 'file', 'mimetypes:image/jpeg', 'max:'.self::MAKS_UKURAN_BERKAS_KB],
             'surat_tugas' => $berkasPdf,
         ], [
+            // Pesan spesifik harus di atas pola `*.` karena Laravel memakai pola pertama yang cocok.
             'pelatihan_id.exists' => 'Pelatihan ini tidak sedang menerima pendaftaran.',
             'sumber_dana_keterangan.required' => 'Keterangan sumber dana wajib diisi.',
-            'tanggal_lahir.before' => 'Peserta minimal berusia 17 tahun.',
-            'no_hp.regex' => 'Nomor HP diawali 08 dan terdiri dari 10–14 angka.',
-            'npwp.regex' => 'NPWP terdiri dari 15 atau 16 angka.',
-            'waktu_pelantikan.after' => 'Tanggal pelantikan harus setelah tanggal lahir.',
-            '*.exists' => 'Pilihan :attribute tidak tersedia.',
             'ktp.mimetypes' => 'KTP harus berupa berkas PDF.',
             'surat_tugas.mimetypes' => 'Surat tugas harus berupa berkas PDF.',
             'foto.mimetypes' => 'Pas foto harus berupa berkas JPG.',
+            ...IsianPeserta::pesan(),
             '*.max' => ':attribute maksimal 2 MB. Kompres berkas lalu unggah ulang.',
         ], [
+            ...IsianPeserta::LABEL,
             'pelatihan_id' => 'pelatihan',
-            'nik' => 'NIK',
-            'nama_lengkap' => 'nama lengkap',
-            'jenis_kelamin' => 'jenis kelamin',
-            'tempat_lahir' => 'tempat lahir',
-            'tanggal_lahir' => 'tanggal lahir',
-            'alamat_domisili' => 'alamat domisili',
-            'no_hp' => 'nomor HP',
-            'jenjang_pendidikan' => 'jenjang pendidikan',
-            'jurusan_pendidikan' => 'jurusan',
-            'jabatan_id' => 'jabatan',
-            'waktu_pelantikan' => 'tanggal pelantikan',
-            'desa_id' => 'desa',
-            'alamat_kantor_desa' => 'alamat kantor desa',
-            'npwp' => 'NPWP',
-            'status_ptkp_id' => 'status PTKP',
             'sumber_dana_id' => 'sumber dana',
             'sumber_dana_keterangan' => 'keterangan sumber dana',
             'ktp' => 'KTP',

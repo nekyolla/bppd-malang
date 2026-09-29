@@ -1,11 +1,15 @@
 <?php
 
 use App\Models\Asrama;
+use App\Models\Desa;
 use App\Models\Jabatan;
 use App\Models\JudulPelatihan;
 use App\Models\KamarAsrama;
+use App\Models\Pelatihan;
+use App\Models\PelatihanPeserta;
 use App\Models\StatusPtkp;
 use App\Models\SumberDana;
+use App\Models\User;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\StatusPtkpSeeder;
 use Database\Seeders\SumberDanaSeeder;
@@ -46,4 +50,18 @@ it('mengisi data contoh lokal secara idempoten', function () {
         ->and(Asrama::count())->toBe(2)
         ->and(KamarAsrama::count())->toBe(16)
         ->and(KamarAsrama::whereHas('asrama', fn ($q) => $q->where('nama_asrama', 'Melati'))->value('kapasitas'))->toBe(2);
+});
+
+it('membuat pelatihan dan pendaftar contoh sekali saja jika data wilayah ada', function () {
+    $admin = User::factory()->create();
+    Desa::factory()->count(3)->create();
+
+    $this->seed(DemoSeeder::class);
+    $this->seed(DemoSeeder::class);
+
+    expect(Pelatihan::count())->toBe(2)
+        ->and(PelatihanPeserta::count())->toBe(3)
+        ->and(PelatihanPeserta::where('status', 'selesai')->count())->toBeGreaterThan(0)
+        ->and(User::count())->toBe(1)
+        ->and(PelatihanPeserta::whereNotNull('diverifikasi_oleh')->pluck('diverifikasi_oleh')->unique()->all())->toBe([$admin->id]);
 });

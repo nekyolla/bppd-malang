@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\StatusPendaftaran;
 use App\Enums\StatusPresensi;
 use App\Models\Concerns\Diaudit;
+use App\Services\StatistikService;
 use Database\Factories\PelatihanPesertaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -33,6 +34,15 @@ class PelatihanPeserta extends Model
     use HasFactory;
 
     protected $table = 'pelatihan_peserta';
+
+    /**
+     * Angka dashboard dihitung ulang setelah data berubah (StatistikService).
+     */
+    protected static function booted(): void
+    {
+        static::saved(fn () => StatistikService::bersihkanCache());
+        static::deleted(fn () => StatistikService::bersihkanCache());
+    }
 
     protected $attributes = [
         'status' => 'terdaftar',

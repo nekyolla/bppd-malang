@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\StatusPelatihan;
 use App\Enums\TipeLokasi;
+use App\Services\StatistikService;
 use Database\Factories\PelatihanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -30,6 +31,15 @@ class Pelatihan extends Model
     use HasFactory;
 
     protected $table = 'pelatihan';
+
+    /**
+     * Angka dashboard dihitung ulang setelah data berubah (StatistikService).
+     */
+    protected static function booted(): void
+    {
+        static::saved(fn () => StatistikService::bersihkanCache());
+        static::deleted(fn () => StatistikService::bersihkanCache());
+    }
 
     protected $attributes = [
         'status' => 'draft',

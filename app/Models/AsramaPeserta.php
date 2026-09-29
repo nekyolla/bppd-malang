@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Models\Concerns\Diaudit;
+use Database\Factories\AsramaPesertaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -14,6 +16,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AsramaPeserta extends Model
 {
     use Diaudit;
+
+    /** @use HasFactory<AsramaPesertaFactory> */
+    use HasFactory;
 
     protected $table = 'asrama_peserta';
 

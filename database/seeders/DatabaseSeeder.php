@@ -18,6 +18,12 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             SuperadminSeeder::class,
             WilayahSeeder::class,
+            StatusPtkpSeeder::class,
+            SumberDanaSeeder::class,
         ]);
+
+        if (app()->isLocal()) {
+            $this->call(DemoSeeder::class);
+        }
     }
 }

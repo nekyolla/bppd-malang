@@ -5,10 +5,12 @@ namespace App\Models;
 use App\Enums\StatusPendaftaran;
 use App\Enums\StatusPresensi;
 use App\Models\Concerns\Diaudit;
+use Database\Factories\PelatihanPesertaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +28,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class PelatihanPeserta extends Model
 {
     use Diaudit;
+
+    /** @use HasFactory<PelatihanPesertaFactory> */
+    use HasFactory;
 
     protected $table = 'pelatihan_peserta';
 

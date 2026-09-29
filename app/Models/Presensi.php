@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Enums\StatusPresensi;
 use App\Models\Concerns\Diaudit;
+use Database\Factories\PresensiFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -12,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Presensi extends Model
 {
     use Diaudit;
+
+    /** @use HasFactory<PresensiFactory> */
+    use HasFactory;
 
     protected $table = 'presensi';
 

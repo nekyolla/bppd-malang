@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Models\Concerns\Diaudit;
+use Database\Factories\SertifikatPesertaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -11,6 +13,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SertifikatPeserta extends Model
 {
     use Diaudit;
+
+    /** @use HasFactory<SertifikatPesertaFactory> */
+    use HasFactory;
 
     protected $table = 'sertifikat_peserta';
 

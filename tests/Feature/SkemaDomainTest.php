@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Desa;
+use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -69,7 +70,7 @@ beforeEach(function () {
     $this->master = barisMaster();
 });
 
-it('membuat seluruh tabel master, peserta, pelatihan, dan pendaftaran', function () {
+it('membuat seluruh tabel domain', function () {
     foreach (['jabatan', 'status_ptkp', 'sumber_dana', 'kategori_pelatihan', 'judul_pelatihan', 'asrama', 'kamar_asrama'] as $tabel) {
         expect(Schema::hasColumn($tabel, 'is_aktif'))->toBeTrue("{$tabel}.is_aktif");
     }
@@ -80,6 +81,10 @@ it('membuat seluruh tabel master, peserta, pelatihan, dan pendaftaran', function
             'status_ptkp_id_saat_pelatihan', 'menggantikan_id',
         ]))->toBeTrue()
         ->and(Schema::hasColumn('peserta', 'sumber_dana_default_id'))->toBeFalse();
+
+    foreach (['lembar_presensi', 'presensi', 'sertifikat_peserta', 'penggunaan_kamar', 'asrama_peserta'] as $tabel) {
+        expect(Schema::hasTable($tabel))->toBeTrue($tabel);
+    }
 });
 
 it('mengisi nilai bawaan status dan is_aktif', function () {
@@ -161,4 +166,83 @@ it('mencegah data master yang dipakai terhapus', function () {
 
     expect(fn () => DB::table('jabatan')->where('id', $this->master['jabatan'])->delete())
         ->toThrow(QueryException::class);
+});
+
+it('mencatat satu lembar presensi per kelas per tanggal dan satu status per peserta', function () {
+    $admin = User::factory()->internal()->create()->id;
+    $pelatihan = barisPelatihan($this->master);
+    $kelas = DB::table('kelas_pelatihan')->insertGetId(['pelatihan_id' => $pelatihan, 'nama_kelas' => 'A']);
+    $pendaftaran = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master));
+    $lembar = DB::table('lembar_presensi')->insertGetId(['kelas_pelatihan_id' => $kelas, 'tanggal' => '2026-10-05', 'diinput_oleh' => $admin]);
+    DB::table('presensi')->insert(['lembar_presensi_id' => $lembar, 'pelatihan_peserta_id' => $pendaftaran, 'status' => 'hadir']);
+
+    expect(fn () => DB::table('lembar_presensi')->insert(['kelas_pelatihan_id' => $kelas, 'tanggal' => '2026-10-05', 'diinput_oleh' => $admin]))
+        ->toThrow(QueryException::class)
+        ->and(fn () => DB::table('presensi')->insert(['lembar_presensi_id' => $lembar, 'pelatihan_peserta_id' => $pendaftaran, 'status' => 'alpa']))
+        ->toThrow(QueryException::class);
+});
+
+it('mempertahankan presensi saat pendaftaran dibatalkan', function () {
+    $admin = User::factory()->internal()->create()->id;
+    $pelatihan = barisPelatihan($this->master);
+    $kelas = DB::table('kelas_pelatihan')->insertGetId(['pelatihan_id' => $pelatihan, 'nama_kelas' => 'A']);
+    $pendaftaran = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master));
+    $lembar = DB::table('lembar_presensi')->insertGetId(['kelas_pelatihan_id' => $kelas, 'tanggal' => '2026-10-05', 'diinput_oleh' => $admin]);
+    DB::table('presensi')->insert(['lembar_presensi_id' => $lembar, 'pelatihan_peserta_id' => $pendaftaran, 'status' => 'hadir']);
+
+    DB::table('pelatihan_peserta')->where('id', $pendaftaran)->update(['status' => 'batal']);
+
+    expect(DB::table('presensi')->count())->toBe(1)
+        ->and(fn () => DB::table('pelatihan_peserta')->where('id', $pendaftaran)->delete())
+        ->toThrow(QueryException::class);
+});
+
+it('menerbitkan satu sertifikat per pendaftaran dengan nomor unik', function () {
+    $admin = User::factory()->internal()->create()->id;
+    $pelatihan = barisPelatihan($this->master);
+    $pertama = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master));
+    $kedua = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master, '3507010101900002'));
+    $sertifikat = fn (int $pendaftaran, string $nomor) => DB::table('sertifikat_peserta')->insert([
+        'pelatihan_peserta_id' => $pendaftaran,
+        'nomor_sertifikat' => $nomor,
+        'tanggal_terbit' => '2026-10-08',
+        'file_sertifikat' => "sertifikat/{$pelatihan}/{$pendaftaran}.pdf",
+        'diupload_oleh' => $admin,
+    ]);
+
+    $sertifikat($pertama, 'BBPD/001');
+
+    expect(fn () => $sertifikat($pertama, 'BBPD/002'))->toThrow(QueryException::class)
+        ->and(fn () => $sertifikat($kedua, 'BBPD/001'))->toThrow(QueryException::class);
+});
+
+it('mencatat satu penggunaan per kamar per pelatihan dan satu kamar per peserta', function () {
+    $admin = User::factory()->internal()->create()->id;
+    $pelatihan = barisPelatihan($this->master);
+    $asrama = DB::table('asrama')->insertGetId(['nama_asrama' => 'Anggrek']);
+    $kamar = DB::table('kamar_asrama')->insertGetId(['asrama_id' => $asrama, 'no_kamar' => '01', 'kapasitas' => 4]);
+    $kamarLain = DB::table('kamar_asrama')->insertGetId(['asrama_id' => $asrama, 'no_kamar' => '02', 'kapasitas' => 4]);
+    $penggunaan = DB::table('penggunaan_kamar')->insertGetId(['pelatihan_id' => $pelatihan, 'kamar_asrama_id' => $kamar, 'tipe' => 'P']);
+    $penggunaanLain = DB::table('penggunaan_kamar')->insertGetId(['pelatihan_id' => $pelatihan, 'kamar_asrama_id' => $kamarLain, 'tipe' => 'P']);
+    $pendaftaran = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master));
+    DB::table('asrama_peserta')->insert(['pelatihan_peserta_id' => $pendaftaran, 'penggunaan_kamar_id' => $penggunaan, 'ditempatkan_oleh' => $admin]);
+
+    expect(fn () => DB::table('penggunaan_kamar')->insert(['pelatihan_id' => $pelatihan, 'kamar_asrama_id' => $kamar, 'tipe' => 'L']))
+        ->toThrow(QueryException::class)
+        ->and(fn () => DB::table('asrama_peserta')->insert(['pelatihan_peserta_id' => $pendaftaran, 'penggunaan_kamar_id' => $penggunaanLain, 'ditempatkan_oleh' => $admin]))
+        ->toThrow(QueryException::class);
+});
+
+it('mewajibkan persetujuan untuk kamar pasutri', function () {
+    $admin = User::factory()->internal()->create()->id;
+    $pelatihan = barisPelatihan($this->master);
+    $asrama = DB::table('asrama')->insertGetId(['nama_asrama' => 'Anggrek']);
+    $kamar = DB::table('kamar_asrama')->insertGetId(['asrama_id' => $asrama, 'no_kamar' => '01', 'kapasitas' => 2]);
+
+    expect(fn () => DB::table('penggunaan_kamar')->insert(['pelatihan_id' => $pelatihan, 'kamar_asrama_id' => $kamar, 'tipe' => 'PASUTRI']))
+        ->toThrow(QueryException::class);
+
+    DB::table('penggunaan_kamar')->insert(['pelatihan_id' => $pelatihan, 'kamar_asrama_id' => $kamar, 'tipe' => 'PASUTRI', 'disetujui_oleh' => $admin]);
+
+    expect(DB::table('penggunaan_kamar')->count())->toBe(1);
 });

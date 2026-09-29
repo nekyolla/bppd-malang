@@ -38,6 +38,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -60,6 +61,13 @@ class Registrasi extends Component implements HasActions, HasSchemas
     public ?array $data = [];
 
     public bool $terkirim = false;
+
+    /**
+     * Honeypot: tidak terlihat oleh manusia, biasanya diisi bot (FR-REG-11).
+     */
+    public string $website = '';
+
+    public ?string $galatUmum = null;
 
     public function mount(): void
     {
@@ -253,12 +261,40 @@ class Registrasi extends Component implements HasActions, HasSchemas
 
     public function daftar(): void
     {
+        $this->galatUmum = null;
+        $kunci = $this->kunciBatasKiriman();
+
+        if (RateLimiter::tooManyAttempts($kunci, config('bbpd.registrasi.maks_per_jam'))) {
+            $this->galatUmum = 'Terlalu banyak pendaftaran dari perangkat ini. Coba lagi dalam 1 jam.';
+
+            return;
+        }
+
         $data = $this->form->getState();
+        RateLimiter::hit($kunci, 3600);
+
+        // Bot yang mengisi honeypot melihat halaman sukses, tetapi tidak ada yang disimpan.
+        if (filled($this->website)) {
+            $this->selesai();
+
+            return;
+        }
 
         $this->jalankanService(fn () => app(RegistrasiService::class)->daftar($data));
 
+        $this->selesai();
+    }
+
+    private function selesai(): void
+    {
         $this->terkirim = true;
         $this->data = [];
+        $this->website = '';
+    }
+
+    private function kunciBatasKiriman(): string
+    {
+        return 'registrasi:'.request()->ip();
     }
 
     public function render(): View

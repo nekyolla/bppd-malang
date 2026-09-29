@@ -17,7 +17,19 @@
             Isi data Anda sesuai KTP dan surat tugas dari desa. Siapkan scan KTP, pas foto, dan surat tugas.
         </p>
 
+        @if ($galatUmum)
+            <div class="mt-6 rounded-xl border border-danger-200 bg-danger-50 p-4 text-danger-700" role="alert">
+                {{ $galatUmum }}
+            </div>
+        @endif
+
         <form wire:submit="daftar" class="mt-6">
+            {{-- Honeypot: disembunyikan dari manusia dan pembaca layar. --}}
+            <div aria-hidden="true" style="position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden;">
+                <label for="website">Website</label>
+                <input id="website" type="text" wire:model="website" tabindex="-1" autocomplete="off">
+            </div>
+
             {{ $this->form }}
         </form>
 

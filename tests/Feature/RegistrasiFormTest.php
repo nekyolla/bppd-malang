@@ -12,6 +12,7 @@ use App\Services\RegistrasiService;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -154,4 +155,55 @@ it('hanya menampilkan desa di kecamatan yang dipilih', function () {
         ->assertFormFieldExists('desa_id', fn (Select $field): bool => array_keys($field->getOptions()) === [$this->desa->id]);
 
     expect($desaLain->kecamatan_id)->not->toBe($this->desa->kecamatan_id);
+});
+
+it('pura-pura berhasil tetapi tidak menyimpan apa pun jika honeypot terisi', function () {
+    Livewire::test(Registrasi::class)
+        ->fillForm(($this->isian)())
+        ->set('website', 'https://spam.example')
+        ->call('daftar')
+        ->assertSet('terkirim', true);
+
+    expect(PelatihanPeserta::count())->toBe(0)
+        ->and(Storage::disk('local')->allFiles())->toBeEmpty();
+});
+
+it('membatasi jumlah kiriman per IP per jam', function () {
+    config(['bbpd.registrasi.maks_per_jam' => 2]);
+
+    foreach (['3507010101900001', '3507010101900002'] as $nik) {
+        Livewire::test(Registrasi::class)
+            ->fillForm(($this->isian)(['nik' => $nik]))
+            ->call('daftar')
+            ->assertSet('terkirim', true);
+    }
+
+    Livewire::test(Registrasi::class)
+        ->fillForm(($this->isian)(['nik' => '3507010101900003']))
+        ->call('daftar')
+        ->assertSet('terkirim', false)
+        ->assertSee('Terlalu banyak pendaftaran dari perangkat ini. Coba lagi dalam 1 jam.');
+
+    expect(PelatihanPeserta::count())->toBe(2);
+
+    RateLimiter::clear('registrasi:127.0.0.1');
+
+    Livewire::test(Registrasi::class)
+        ->fillForm(($this->isian)(['nik' => '3507010101900003']))
+        ->call('daftar')
+        ->assertSet('terkirim', true);
+});
+
+it('tidak menghitung kiriman yang gagal validasi form', function () {
+    config(['bbpd.registrasi.maks_per_jam' => 1]);
+
+    Livewire::test(Registrasi::class)
+        ->fillForm(($this->isian)(['nik' => '123']))
+        ->call('daftar')
+        ->assertHasFormErrors(['nik']);
+
+    Livewire::test(Registrasi::class)
+        ->fillForm(($this->isian)())
+        ->call('daftar')
+        ->assertSet('terkirim', true);
 });

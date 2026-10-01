@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Pendaftaran\Pages;
 
+use App\Filament\Admin\Actions\AturKelasAction;
 use App\Filament\Admin\Actions\BatalkanAction;
 use App\Filament\Admin\Actions\VerifikasiAction;
 use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
@@ -15,6 +16,7 @@ class ViewPendaftaran extends ViewRecord
     {
         return [
             VerifikasiAction::make(),
+            AturKelasAction::make(),
             BatalkanAction::make(),
         ];
     }

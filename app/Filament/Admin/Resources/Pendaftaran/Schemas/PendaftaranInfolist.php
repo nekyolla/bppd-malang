@@ -41,6 +41,9 @@ class PendaftaranInfolist
                                 ? $record->diverifikasi_pada->translatedFormat('j F Y, H:i').' oleh '.$record->diverifikasiOleh?->username
                                 : null)
                             ->placeholder('Belum'),
+                        TextEntry::make('kelasPelatihan.nama_kelas')
+                            ->label('Kelas')
+                            ->placeholder('Belum dibagi'),
                         TextEntry::make('catatan_panitia')
                             ->label('Catatan panitia')
                             ->placeholder('–')

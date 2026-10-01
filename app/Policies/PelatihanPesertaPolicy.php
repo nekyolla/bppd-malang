@@ -59,4 +59,9 @@ class PelatihanPesertaPolicy
     {
         return $this->viewAny($user);
     }
+
+    public function aturKelas(User $user, PelatihanPeserta $pelatihanPeserta): bool
+    {
+        return $this->viewAny($user);
+    }
 }

@@ -19,11 +19,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Pendaftaran satu peserta di satu pelatihan (ARCHITECTURE §5.5).
- * Status, snapshot `*_saat_pelatihan`, data verifikasi/pembatalan, dan
- * `menggantikan_id` tidak fillable: hanya diisi lewat service.
+ * Status, snapshot `*_saat_pelatihan`, data verifikasi/pembatalan, `menggantikan_id`,
+ * dan `kelas_pelatihan_id` tidak fillable: hanya diisi lewat service.
  */
 #[Fillable([
-    'pelatihan_id', 'peserta_id', 'kelas_pelatihan_id', 'data_isian', 'file_surat_tugas',
+    'pelatihan_id', 'peserta_id', 'data_isian', 'file_surat_tugas',
     'sumber_dana_id', 'sumber_dana_keterangan', 'catatan_panitia', 'nilai_pretest', 'nilai_posttest',
 ])]
 class PelatihanPeserta extends Model

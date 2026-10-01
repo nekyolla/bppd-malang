@@ -5,6 +5,8 @@ namespace App\Filament\Admin\Resources\Pelatihan;
 use App\Filament\Admin\Resources\Pelatihan\Pages\CreatePelatihan;
 use App\Filament\Admin\Resources\Pelatihan\Pages\EditPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\Pages\ListPelatihan;
+use App\Filament\Admin\Resources\Pelatihan\RelationManagers\KelasRelationManager;
+use App\Filament\Admin\Resources\Pelatihan\RelationManagers\PesertaKelasRelationManager;
 use App\Filament\Admin\Resources\Pelatihan\Schemas\PelatihanForm;
 use App\Filament\Admin\Resources\Pelatihan\Tables\PelatihanTable;
 use App\Models\Pelatihan;
@@ -47,6 +49,14 @@ class PelatihanResource extends Resource
     public static function table(Table $table): Table
     {
         return PelatihanTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            KelasRelationManager::class,
+            PesertaKelasRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

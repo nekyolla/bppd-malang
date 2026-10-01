@@ -31,6 +31,7 @@ class PendaftaranTable
                 'peserta.desa.kecamatan.kabKota',
                 'desaSaatPelatihan.kecamatan.kabKota',
                 'pelatihan.judulPelatihan',
+                'kelasPelatihan',
                 'menggantikan.peserta',
                 'pengganti.peserta',
             ]))
@@ -52,6 +53,10 @@ class PendaftaranTable
                 TextColumn::make('pelatihan.nama_tampilan')
                     ->label('Pelatihan')
                     ->wrap(),
+                TextColumn::make('kelasPelatihan.nama_kelas')
+                    ->label('Kelas')
+                    ->placeholder('–')
+                    ->toggleable(),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()

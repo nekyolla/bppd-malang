@@ -3,18 +3,14 @@
 namespace App\Filament\Admin\Resources\Pendaftaran;
 
 use App\Enums\StatusPendaftaran;
-use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ListPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ViewPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Schemas\PendaftaranInfolist;
-use App\Filament\Admin\Resources\Pendaftaran\Tables\PendaftaranTable;
-use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
@@ -64,22 +60,9 @@ class PendaftaranResource extends Resource
         return 'Menunggu verifikasi';
     }
 
-    /**
-     * Daftar pendaftar suatu pelatihan yang masih menunggu verifikasi (PF-15).
-     */
-    public static function urlMenunggu(Pelatihan $pelatihan): string
-    {
-        return ManagePendaftar::urlMenunggu($pelatihan);
-    }
-
     public static function infolist(Schema $schema): Schema
     {
         return PendaftaranInfolist::configure($schema);
-    }
-
-    public static function table(Table $table): Table
-    {
-        return PendaftaranTable::configure($table);
     }
 
     public static function getPages(): array

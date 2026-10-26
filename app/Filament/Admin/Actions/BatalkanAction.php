@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Support\GalatService;
 use App\Models\PelatihanPeserta;
 use App\Services\PendaftaranService;
 use App\Services\PenggantiService;
@@ -10,8 +11,6 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Arr;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Membatalkan peserta dengan alasan wajib (FR-BTL-01–02, DESIGN_SYSTEM §6.6).
@@ -45,17 +44,7 @@ class BatalkanAction extends Action
             ->authorize('batalkan')
             ->visible(fn (PelatihanPeserta $record): bool => $record->status->bisaMenjadi(StatusPendaftaran::Batal))
             ->action(function (PelatihanPeserta $record, array $data): void {
-                try {
-                    app(PendaftaranService::class)->batalkan($record, auth()->user(), $data['alasan_batal']);
-                } catch (ValidationException $exception) {
-                    Notification::make()
-                        ->title('Peserta tidak dapat dibatalkan')
-                        ->body(Arr::first(Arr::flatten($exception->errors())))
-                        ->danger()
-                        ->send();
-
-                    $this->halt();
-                }
+                GalatService::jalankan($this, 'Peserta tidak dapat dibatalkan', fn () => app(PendaftaranService::class)->batalkan($record, auth()->user(), $data['alasan_batal']));
 
                 Notification::make()->title('Peserta dibatalkan')->success()->send();
             });

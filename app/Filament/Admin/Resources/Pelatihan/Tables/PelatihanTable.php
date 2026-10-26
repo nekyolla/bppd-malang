@@ -6,6 +6,7 @@ use App\Enums\StatusPelatihan;
 use App\Enums\StatusPendaftaran;
 use App\Enums\TipeLokasi;
 use App\Filament\Admin\Actions\UbahStatusPelatihanAction;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
 use App\Models\KategoriPelatihan;
 use App\Models\Pelatihan;
 use App\Support\FormatTanggal;
@@ -68,6 +69,8 @@ class PelatihanTable
                     ->label('Lokasi')
                     ->options(TipeLokasi::class),
             ])
+            // Pekerjaan harian panitia ada di pendaftar; form ubah lewat tombol Ubah.
+            ->recordUrl(fn (Pelatihan $record): string => ManagePendaftar::getUrl(['record' => $record]))
             ->recordActions([
                 UbahStatusPelatihanAction::make(),
                 EditAction::make(),

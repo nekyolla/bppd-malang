@@ -5,6 +5,7 @@ use App\Models\KelasPelatihan;
 use App\Models\LembarPresensi;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
+use App\Models\Presensi;
 use App\Services\KelasService;
 use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
@@ -238,5 +239,40 @@ describe('bagi acak', function () {
 
         expect(galatKelas(fn () => $this->service->bagiAcak($this->pelatihan))['kelas'][0])
             ->toBe('Buat kelas terlebih dahulu sebelum membagi peserta.');
+    });
+});
+
+describe('kelas terkunci setelah presensi', function () {
+    beforeEach(function () {
+        $this->kelasA = $this->service->simpan($this->pelatihan, 'A');
+        $this->kelasB = $this->service->simpan($this->pelatihan, 'B');
+        $this->berpresensi = PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create(['kelas_pelatihan_id' => $this->kelasA->id]);
+        Presensi::factory()->create([
+            'lembar_presensi_id' => LembarPresensi::factory()->for($this->kelasA, 'kelasPelatihan'),
+            'pelatihan_peserta_id' => $this->berpresensi->id,
+        ]);
+    });
+
+    it('menolak memindahkan atau melepas kelas peserta yang sudah punya presensi', function () {
+        $pesan = 'Kelas tidak dapat diubah karena peserta sudah memiliki presensi.';
+
+        expect($this->service->kelasTerkunci($this->berpresensi))->toBeTrue()
+            ->and(galatKelas(fn () => $this->service->tetapkan($this->berpresensi, $this->kelasB))['kelas_pelatihan_id'][0])->toBe($pesan)
+            ->and(galatKelas(fn () => $this->service->tetapkan($this->berpresensi, null))['kelas_pelatihan_id'][0])->toBe($pesan)
+            ->and($this->berpresensi->fresh()->kelas_pelatihan_id)->toBe($this->kelasA->id);
+    });
+
+    it('tetap membolehkan menetapkan ulang ke kelas yang sama', function () {
+        $this->service->tetapkan($this->berpresensi, $this->kelasA);
+
+        expect($this->berpresensi->fresh()->kelas_pelatihan_id)->toBe($this->kelasA->id);
+    });
+
+    it('tidak memindahkan peserta berpresensi saat membagi ulang semua', function () {
+        PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->count(3)->create(['kelas_pelatihan_id' => $this->kelasA->id]);
+
+        expect($this->service->bagiAcak($this->pelatihan, ulangSemua: true))->toBe(3)
+            ->and($this->berpresensi->fresh()->kelas_pelatihan_id)->toBe($this->kelasA->id)
+            ->and(isiKelas($this->pelatihan))->toBe(['A' => 2, 'B' => 2]);
     });
 });

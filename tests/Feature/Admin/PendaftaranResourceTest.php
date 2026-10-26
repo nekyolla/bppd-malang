@@ -81,7 +81,7 @@ describe('pendaftar per pelatihan', function () {
             ->assertCanNotSeeTableRecords([$lain])
             ->assertSee(substr($nik, 0, 4).'********'.substr($nik, -4))
             ->assertDontSee($nik)
-            ->assertTableFilterHidden('pelatihan_id')
+            ->assertTableColumnDoesNotExist('pelatihan.nama_tampilan')
             ->assertActionExists('kembali');
     });
 
@@ -111,7 +111,7 @@ describe('pendaftar per pelatihan', function () {
         $menunggu = PelatihanPeserta::factory()->for($this->pelatihan)->create();
         $terverifikasi = PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create();
 
-        $this->get(PendaftaranResource::urlMenunggu($this->pelatihan))
+        $this->get(ManagePendaftar::urlMenunggu($this->pelatihan))
             ->assertOk()
             ->assertSee($menunggu->peserta->nama_lengkap)
             ->assertDontSee($terverifikasi->peserta->nama_lengkap);
@@ -153,6 +153,20 @@ describe('verifikasi', function () {
             ->and($pendaftaran->diverifikasiOleh->is($this->admin))->toBeTrue()
             ->and($pendaftaran->desa_id_saat_pelatihan)->toBe($pendaftaran->peserta->desa_id);
     });
+
+    it('menampilkan pratinjau KTP dan pas foto di modal verifikasi', function (string $ktp, string $tag) {
+        $pendaftaran = PelatihanPeserta::factory()->for($this->pelatihan)->create();
+        $pendaftaran->update(['data_isian' => [...$pendaftaran->data_isian, 'file_ktp' => "pendaftaran/{$pendaftaran->id}/{$ktp}", 'foto' => "pendaftaran/{$pendaftaran->id}/foto.jpg"]]);
+
+        halamanPendaftar($this->pelatihan)
+            ->mountAction(TestAction::make('verifikasi')->table($pendaftaran))
+            ->assertMountedActionModalSeeHtml(e(route('berkas.pendaftaran', [$pendaftaran, 'ktp'])))
+            ->assertMountedActionModalSeeHtml(e(route('berkas.pendaftaran', [$pendaftaran, 'foto'])))
+            ->assertMountedActionModalSeeHtml($tag);
+    })->with([
+        'KTP PDF' => ['ktp.pdf', '<iframe'],
+        'KTP JPG' => ['ktp.jpg', 'alt="KTP"'],
+    ]);
 
     it('membiarkan modal terbuka dan memberi tahu jika koreksi ditolak service', function () {
         $pendaftaran = PelatihanPeserta::factory()->for($this->pelatihan)->create();

@@ -36,8 +36,7 @@ class ManagePendaftar extends ManageRelatedRecords
 
     public function table(Table $table): Table
     {
-        return PendaftaranTable::configure($table, dalamPelatihan: true)
-            ->recordTitle(fn ($record): string => $record->peserta->nama_lengkap);
+        return PendaftaranTable::configure($table);
     }
 
     protected function getHeaderActions(): array

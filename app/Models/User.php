@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Peran;
+use App\Models\Concerns\Diaudit;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
@@ -22,9 +23,19 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable;
+    use Diaudit, HasFactory, HasRoles, Notifiable;
 
     protected $table = 'users';
+
+    /**
+     * Perubahan akun tercatat di audit log (FR-AUD-01), tanpa hash kata sandi.
+     *
+     * @return list<string>
+     */
+    protected function kolomTidakDiaudit(): array
+    {
+        return ['password', 'remember_token'];
+    }
 
     /**
      * Get the attributes that should be cast.

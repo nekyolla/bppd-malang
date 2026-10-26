@@ -7,6 +7,7 @@ use App\Enums\StatusPendaftaran;
 use App\Models\KelasPelatihan;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
+use App\Services\Concerns\MenolakAturan;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +17,8 @@ use Illuminate\Validation\ValidationException;
  */
 class KelasService
 {
+    use MenolakAturan;
+
     public const MAKS_NAMA = 10;
 
     /**
@@ -30,11 +33,11 @@ class KelasService
         $this->pastikanBelumSelesai($pelatihan);
 
         if ($nama === '') {
-            throw ValidationException::withMessages(['nama_kelas' => 'Nama kelas wajib diisi.']);
+            $this->tolak('nama_kelas', 'Nama kelas wajib diisi.');
         }
 
         if (mb_strlen($nama) > self::MAKS_NAMA) {
-            throw ValidationException::withMessages(['nama_kelas' => 'Nama kelas maksimal '.self::MAKS_NAMA.' karakter.']);
+            $this->tolak('nama_kelas', 'Nama kelas maksimal '.self::MAKS_NAMA.' karakter.');
         }
 
         $sudahAda = $pelatihan->kelas()
@@ -72,15 +75,11 @@ class KelasService
             $jumlah = $kelas->pendaftaran()->where('status', '!=', StatusPendaftaran::Batal)->count();
 
             if ($jumlah > 0) {
-                throw ValidationException::withMessages([
-                    'kelas' => "Kelas {$kelas->nama_kelas} masih berisi {$jumlah} peserta. Pindahkan pesertanya ke kelas lain terlebih dahulu.",
-                ]);
+                $this->tolak('kelas', "Kelas {$kelas->nama_kelas} masih berisi {$jumlah} peserta. Pindahkan pesertanya ke kelas lain terlebih dahulu.");
             }
 
             if ($kelas->lembarPresensi()->exists()) {
-                throw ValidationException::withMessages([
-                    'kelas' => "Kelas {$kelas->nama_kelas} sudah memiliki presensi, sehingga tidak dapat dihapus.",
-                ]);
+                $this->tolak('kelas', "Kelas {$kelas->nama_kelas} sudah memiliki presensi, sehingga tidak dapat dihapus.");
             }
 
             $kelas->pendaftaran()->get()
@@ -102,15 +101,15 @@ class KelasService
             $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             if ($terkunci->status !== StatusPendaftaran::Terverifikasi) {
-                throw ValidationException::withMessages([
-                    'status' => 'Hanya peserta terverifikasi yang dapat ditetapkan kelasnya.',
-                ]);
+                $this->tolak('status', 'Hanya peserta terverifikasi yang dapat ditetapkan kelasnya.');
             }
 
             if ($kelas !== null && $kelas->pelatihan_id !== $terkunci->pelatihan_id) {
-                throw ValidationException::withMessages([
-                    'kelas_pelatihan_id' => 'Kelas harus milik pelatihan yang sama dengan pendaftaran peserta.',
-                ]);
+                $this->tolak('kelas_pelatihan_id', 'Kelas harus milik pelatihan yang sama dengan pendaftaran peserta.');
+            }
+
+            if ($terkunci->kelas_pelatihan_id !== $kelas?->getKey() && $this->kelasTerkunci($terkunci)) {
+                $this->tolak('kelas_pelatihan_id', 'Kelas tidak dapat diubah karena peserta sudah memiliki presensi.');
             }
 
             $terkunci->forceFill(['kelas_pelatihan_id' => $kelas?->getKey()])->save();
@@ -145,7 +144,7 @@ class KelasService
     /**
      * Membagi peserta terverifikasi secara acak dan rata ke semua kelas pelatihan (FR-KLS-03).
      * Bawaan: hanya peserta yang belum punya kelas, dengan memperhitungkan isi kelas saat ini.
-     * `$ulangSemua` membagi ulang seluruh peserta terverifikasi dari awal.
+     * `$ulangSemua` membagi ulang seluruh peserta terverifikasi, kecuali yang sudah punya presensi.
      *
      * @return int Jumlah peserta yang dibagi.
      *
@@ -162,25 +161,29 @@ class KelasService
             $isi = $terkunci->kelas()->orderBy('nama_kelas')->pluck('id')->mapWithKeys(fn (int $id): array => [$id => 0])->all();
 
             if ($isi === []) {
-                throw ValidationException::withMessages(['kelas' => 'Buat kelas terlebih dahulu sebelum membagi peserta.']);
+                $this->tolak('kelas', 'Buat kelas terlebih dahulu sebelum membagi peserta.');
             }
 
             $terverifikasi = fn () => $terkunci->pendaftaran()->where('status', StatusPendaftaran::Terverifikasi);
+            // Peserta yang kelasnya tidak diubah: yang sudah punya kelas (bawaan), atau
+            // yang sudah punya presensi (selalu, termasuk saat membagi ulang semua).
+            $kelasnyaTetap = fn ($query) => $ulangSemua
+                ? $query->whereHas('presensi')
+                : $query->whereNotNull('kelas_pelatihan_id');
 
-            if (! $ulangSemua) {
-                $terverifikasi()
-                    ->whereIn('kelas_pelatihan_id', array_keys($isi))
-                    ->toBase()
-                    ->selectRaw('kelas_pelatihan_id, count(*) as jumlah')
-                    ->groupBy('kelas_pelatihan_id')
-                    ->pluck('jumlah', 'kelas_pelatihan_id')
-                    ->each(function (int $jumlah, int $kelasId) use (&$isi): void {
-                        $isi[$kelasId] = $jumlah;
-                    });
-            }
+            $terverifikasi()
+                ->where($kelasnyaTetap)
+                ->whereIn('kelas_pelatihan_id', array_keys($isi))
+                ->toBase()
+                ->selectRaw('kelas_pelatihan_id, count(*) as jumlah')
+                ->groupBy('kelas_pelatihan_id')
+                ->pluck('jumlah', 'kelas_pelatihan_id')
+                ->each(function (int $jumlah, int $kelasId) use (&$isi): void {
+                    $isi[$kelasId] = $jumlah;
+                });
 
             $peserta = $terverifikasi()
-                ->when(! $ulangSemua, fn ($query) => $query->whereNull('kelas_pelatihan_id'))
+                ->whereNot($kelasnyaTetap)
                 ->lockForUpdate()
                 ->get()
                 ->shuffle();
@@ -196,6 +199,15 @@ class KelasService
 
             return $peserta->count();
         });
+    }
+
+    /**
+     * Kelas peserta terkunci begitu presensinya tercatat: peserta tidak berpindah kelas
+     * selama pelatihan (keputusan pemilik repo, 26 Okt 2026).
+     */
+    public function kelasTerkunci(PelatihanPeserta $pendaftaran): bool
+    {
+        return $pendaftaran->presensi()->exists();
     }
 
     /**
@@ -216,7 +228,7 @@ class KelasService
     private function pastikanBelumSelesai(Pelatihan $pelatihan): void
     {
         if ($pelatihan->status === StatusPelatihan::Selesai) {
-            throw ValidationException::withMessages(['kelas' => 'Kelas tidak dapat diubah karena pelatihan sudah selesai.']);
+            $this->tolak('kelas', 'Kelas tidak dapat diubah karena pelatihan sudah selesai.');
         }
     }
 
@@ -225,6 +237,6 @@ class KelasService
      */
     private function tolakDuplikat(string $nama): never
     {
-        throw ValidationException::withMessages(['nama_kelas' => "Kelas {$nama} sudah ada di pelatihan ini. Gunakan nama lain."]);
+        $this->tolak('nama_kelas', "Kelas {$nama} sudah ada di pelatihan ini. Gunakan nama lain.");
     }
 }

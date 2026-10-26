@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Support\GalatService;
 use App\Models\KelasPelatihan;
 use App\Models\PelatihanPeserta;
 use App\Services\KelasService;
@@ -10,8 +11,6 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Arr;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Menetapkan atau memindahkan kelas satu peserta terverifikasi (FR-KLS-02).
@@ -45,21 +44,12 @@ class AturKelasAction extends Action
                         : 'Kosongkan untuk melepas peserta dari kelas.'),
             ])
             ->authorize('aturKelas')
-            ->visible(fn (PelatihanPeserta $record): bool => $record->status === StatusPendaftaran::Terverifikasi)
+            ->visible(fn (PelatihanPeserta $record): bool => $record->status === StatusPendaftaran::Terverifikasi
+                && ! app(KelasService::class)->kelasTerkunci($record))
             ->action(function (PelatihanPeserta $record, array $data): void {
                 $kelas = filled($data['kelas_pelatihan_id'] ?? null) ? KelasPelatihan::query()->findOrFail($data['kelas_pelatihan_id']) : null;
 
-                try {
-                    app(KelasService::class)->tetapkan($record, $kelas);
-                } catch (ValidationException $exception) {
-                    Notification::make()
-                        ->title('Kelas tidak dapat ditetapkan')
-                        ->body(Arr::first(Arr::flatten($exception->errors())))
-                        ->danger()
-                        ->send();
-
-                    $this->halt();
-                }
+                GalatService::jalankan($this, 'Kelas tidak dapat ditetapkan', fn () => app(KelasService::class)->tetapkan($record, $kelas));
 
                 Notification::make()
                     ->title($kelas ? "{$record->peserta->nama_lengkap} masuk kelas {$kelas->nama_kelas}" : "{$record->peserta->nama_lengkap} dilepas dari kelas")

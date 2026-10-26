@@ -7,6 +7,7 @@ use App\Enums\StatusPendaftaran;
 use App\Models\PelatihanPeserta;
 use App\Models\SumberDana;
 use App\Models\User;
+use App\Services\Concerns\MenolakAturan;
 use App\Support\IsianPeserta;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,8 @@ use Illuminate\Validation\ValidationException;
  */
 class PendaftaranService
 {
+    use MenolakAturan;
+
     public function __construct(
         private readonly PenggantiService $pengganti,
         private readonly AsramaService $asrama,
@@ -69,9 +72,7 @@ class PendaftaranService
             $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             if (! $terkunci->status->bisaMenjadi(StatusPendaftaran::Terverifikasi)) {
-                throw ValidationException::withMessages([
-                    'status' => 'Hanya pendaftaran yang menunggu verifikasi yang dapat diverifikasi.',
-                ]);
+                $this->tolak('status', 'Hanya pendaftaran yang menunggu verifikasi yang dapat diverifikasi.');
             }
 
             $peserta = $terkunci->peserta()->lockForUpdate()->firstOrFail();
@@ -140,7 +141,7 @@ class PendaftaranService
         $butuhKeterangan = (bool) SumberDana::query()->whereKey($data['sumber_dana_id'])->value('butuh_keterangan');
 
         if ($butuhKeterangan && $data['sumber_dana_keterangan'] === null) {
-            throw ValidationException::withMessages(['sumber_dana_keterangan' => 'Keterangan sumber dana wajib diisi.']);
+            $this->tolak('sumber_dana_keterangan', 'Keterangan sumber dana wajib diisi.');
         }
 
         return [
@@ -158,16 +159,14 @@ class PendaftaranService
     public function batalkan(PelatihanPeserta $pendaftaran, User $oleh, string $alasan): void
     {
         if (blank($alasan)) {
-            throw ValidationException::withMessages(['alasan_batal' => 'Alasan pembatalan wajib diisi.']);
+            $this->tolak('alasan_batal', 'Alasan pembatalan wajib diisi.');
         }
 
         DB::transaction(function () use ($pendaftaran, $oleh, $alasan): void {
             $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             if (! $terkunci->status->bisaMenjadi(StatusPendaftaran::Batal)) {
-                throw ValidationException::withMessages([
-                    'status' => 'Hanya peserta yang menunggu verifikasi atau terverifikasi yang dapat dibatalkan.',
-                ]);
+                $this->tolak('status', 'Hanya peserta yang menunggu verifikasi atau terverifikasi yang dapat dibatalkan.');
             }
 
             $terkunci->forceFill([
@@ -254,14 +253,6 @@ class PendaftaranService
 
         // Berkas dihapus setelah transaksi berhasil agar tidak hilang bila penghapusan dibatalkan.
         Storage::disk(RegistrasiService::DISK)->deleteDirectory($folder);
-    }
-
-    /**
-     * @throws ValidationException
-     */
-    private function tolak(string $kolom, string $pesan): never
-    {
-        throw ValidationException::withMessages([$kolom => $pesan]);
     }
 
     /**

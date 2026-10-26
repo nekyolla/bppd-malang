@@ -3,14 +3,13 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPelatihan;
+use App\Filament\Admin\Support\GalatService;
 use App\Services\KelasService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Radio;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Arr;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Bantuan "bagi acak otomatis" (FR-KLS-03). Dipakai di sub-halaman milik
@@ -51,17 +50,7 @@ class BagiAcakKelasAction extends Action
             ->authorize(fn (ManageRelatedRecords $livewire): bool => auth()->user()->can('update', $livewire->getOwnerRecord()))
             ->visible(fn (ManageRelatedRecords $livewire): bool => $livewire->getOwnerRecord()->status !== StatusPelatihan::Selesai)
             ->action(function (ManageRelatedRecords $livewire, array $data): void {
-                try {
-                    $jumlah = app(KelasService::class)->bagiAcak($livewire->getOwnerRecord(), $data['cakupan'] === 'semua');
-                } catch (ValidationException $exception) {
-                    Notification::make()
-                        ->title('Peserta belum dapat dibagi')
-                        ->body(Arr::first(Arr::flatten($exception->errors())))
-                        ->danger()
-                        ->send();
-
-                    $this->halt();
-                }
+                $jumlah = GalatService::jalankan($this, 'Peserta belum dapat dibagi', fn () => app(KelasService::class)->bagiAcak($livewire->getOwnerRecord(), $data['cakupan'] === 'semua'));
 
                 $jumlah > 0
                     ? Notification::make()->title("{$jumlah} peserta dibagi ke kelas")->success()->send()

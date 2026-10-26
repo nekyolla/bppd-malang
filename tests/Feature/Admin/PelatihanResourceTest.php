@@ -5,7 +5,7 @@ use App\Enums\StatusPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\Pages\CreatePelatihan;
 use App\Filament\Admin\Resources\Pelatihan\Pages\EditPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\Pages\ListPelatihan;
-use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
 use App\Models\JudulPelatihan;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
@@ -156,7 +156,7 @@ it('mengingatkan peserta yang menunggu verifikasi saat memulai pelatihan tanpa m
     Livewire::test(ListPelatihan::class)
         ->mountAction(TestAction::make('ubahStatus')->table($pelatihan))
         ->assertMountedActionModalSee('Masih ada 2 peserta yang menunggu verifikasi.')
-        ->assertMountedActionModalSeeHtml(e(PendaftaranResource::urlMenunggu($pelatihan)))
+        ->assertMountedActionModalSeeHtml(e(ManagePendaftar::urlMenunggu($pelatihan)))
         ->callMountedAction()
         ->assertNotified('Status pelatihan: Sedang berjalan');
 
@@ -178,9 +178,17 @@ it('membuka daftar pendaftar yang menunggu verifikasi dari tautan peringatan', f
     $terverifikasi = PelatihanPeserta::factory()->terverifikasi()->for($pelatihan)->create();
     $lain = PelatihanPeserta::factory()->create();
 
-    $this->get(PendaftaranResource::urlMenunggu($pelatihan))
+    $this->get(ManagePendaftar::urlMenunggu($pelatihan))
         ->assertOk()
         ->assertSee($menunggu->peserta->nama_lengkap)
         ->assertDontSee($terverifikasi->peserta->nama_lengkap)
         ->assertDontSee($lain->peserta->nama_lengkap);
+});
+
+it('membuka pendaftar saat baris pelatihan diklik, dengan tombol ubah tetap tersedia', function () {
+    $pelatihan = Pelatihan::factory()->dibuka()->create();
+
+    Livewire::test(ListPelatihan::class)
+        ->assertSee(ManagePendaftar::getUrl(['record' => $pelatihan]), escape: false)
+        ->assertActionVisible(TestAction::make('edit')->table($pelatihan));
 });

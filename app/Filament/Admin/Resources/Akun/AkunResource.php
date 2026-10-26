@@ -4,10 +4,10 @@ namespace App\Filament\Admin\Resources\Akun;
 
 use App\Enums\Peran;
 use App\Filament\Admin\Resources\Akun\Pages\ManageAkun;
+use App\Filament\Admin\Support\GalatService;
 use App\Models\User;
 use App\Services\AkunService;
 use BackedEnum;
-use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -19,8 +19,6 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Arr;
-use Illuminate\Validation\ValidationException;
 use UnitEnum;
 
 /**
@@ -119,7 +117,7 @@ class AkunResource extends Resource
                         'email' => $record->email,
                         'peran' => self::peran($record),
                     ])
-                    ->using(fn (User $record, array $data, Action $action) => self::jalankan($action, fn () => app(AkunService::class)->ubah($record, auth()->user(), $data))),
+                    ->using(fn (User $record, array $data, Action $action) => GalatService::jalankan($action, 'Perubahan akun ditolak', fn () => app(AkunService::class)->ubah($record, auth()->user(), $data))),
                 Action::make('aturUlangKataSandi')
                     ->label('Atur ulang kata sandi')
                     ->icon(Heroicon::OutlinedKey)
@@ -131,7 +129,7 @@ class AkunResource extends Resource
                     ])
                     ->authorize('update')
                     ->action(function (User $record, array $data, Action $action): void {
-                        self::jalankan($action, fn () => app(AkunService::class)->aturUlangKataSandi($record, $data['password']));
+                        GalatService::jalankan($action, 'Perubahan akun ditolak', fn () => app(AkunService::class)->aturUlangKataSandi($record, $data['password']));
                         Notification::make()->title('Kata sandi diperbarui')->success()->send();
                     }),
                 Action::make('nonaktifkan')
@@ -143,7 +141,7 @@ class AkunResource extends Resource
                     ->authorize('update')
                     ->visible(fn (User $record): bool => $record->is_aktif && ! $record->is(auth()->user()))
                     ->action(function (User $record, Action $action): void {
-                        self::jalankan($action, fn () => app(AkunService::class)->nonaktifkan($record, auth()->user()));
+                        GalatService::jalankan($action, 'Perubahan akun ditolak', fn () => app(AkunService::class)->nonaktifkan($record, auth()->user()));
                         Notification::make()->title('Akun dinonaktifkan')->success()->send();
                     }),
                 Action::make('aktifkan')
@@ -171,26 +169,5 @@ class AkunResource extends Resource
     public static function peran(User $user): ?Peran
     {
         return Peran::tryFrom((string) $user->roles->first()?->name);
-    }
-
-    /**
-     * Menjalankan AkunService; aturan yang ditolak service ditampilkan sebagai
-     * notifikasi dan modal tetap terbuka.
-     */
-    public static function jalankan(Action $action, Closure $callback): mixed
-    {
-        try {
-            return $callback();
-        } catch (ValidationException $exception) {
-            Notification::make()
-                ->title('Perubahan akun ditolak')
-                ->body(Arr::first(Arr::flatten($exception->errors())))
-                ->danger()
-                ->send();
-
-            $action->halt();
-        }
-
-        return null;
     }
 }

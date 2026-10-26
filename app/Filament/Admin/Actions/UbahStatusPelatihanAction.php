@@ -3,7 +3,8 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPelatihan;
-use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
+use App\Filament\Admin\Support\GalatService;
 use App\Models\Pelatihan;
 use App\Services\PelatihanService;
 use Filament\Actions\Action;
@@ -11,7 +12,6 @@ use Filament\Actions\Action as TombolNotifikasi;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Support\Arr;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
@@ -47,14 +47,12 @@ class UbahStatusPelatihanAction extends Action
                 try {
                     app(PelatihanService::class)->ubahStatus($record, $tujuan);
                 } catch (ValidationException $exception) {
-                    Notification::make()
-                        ->title('Status tidak dapat diubah')
-                        ->body(Arr::first(Arr::flatten($exception->errors())))
-                        ->danger()
+                    // Modal konfirmasi ditutup; tautan ke pendaftar yang menunggu ada di notifikasi.
+                    GalatService::notifikasi('Status tidak dapat diubah', $exception)
                         ->actions(app(PelatihanService::class)->jumlahMenunggu($record) > 0 ? [
                             TombolNotifikasi::make('lihatMenunggu')
                                 ->label('Lihat pendaftar yang menunggu')
-                                ->url(PendaftaranResource::urlMenunggu($record))
+                                ->url(ManagePendaftar::urlMenunggu($record))
                                 ->button(),
                         ] : [])
                         ->persistent()
@@ -88,7 +86,7 @@ class UbahStatusPelatihanAction extends Action
             $teks .= sprintf(
                 '<br><br><strong>Masih ada %d peserta yang menunggu verifikasi.</strong> Pelatihan tetap dapat dimulai, tetapi sebaiknya mereka diverifikasi atau dibatalkan terlebih dahulu. <a href="%s" class="underline">Lihat daftarnya</a>',
                 $jumlah,
-                e(PendaftaranResource::urlMenunggu($pelatihan)),
+                e(ManagePendaftar::urlMenunggu($pelatihan)),
             );
         }
 

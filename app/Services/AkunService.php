@@ -87,6 +87,9 @@ class AkunService
         Validator::make(['password' => $password], ['password' => ['required', 'string', Password::min(8)]])->validate();
 
         $user->update(['password' => $password]);
+
+        // Kata sandi tidak masuk audit log, jadi kejadiannya dicatat tersendiri.
+        activity('akun')->performedOn($user)->causedBy(auth()->user())->event('atur-ulang-sandi')->log('Mengatur ulang kata sandi');
     }
 
     /**

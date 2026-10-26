@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Pages;
 use App\Enums\StatusPelatihan;
 use App\Enums\TipeKamar;
 use App\Enums\TipeLokasi;
+use App\Filament\Admin\Support\GalatService;
 use App\Models\AsramaPeserta;
 use App\Models\KamarAsrama;
 use App\Models\Pelatihan;
@@ -20,8 +21,6 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Arr;
-use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use UnitEnum;
@@ -180,17 +179,7 @@ class PenempatanKamar extends Page
                     ->whereIn('id', $data['peserta'])
                     ->get();
 
-                try {
-                    $jumlah = app(AsramaService::class)->tempatkanBanyak($daftar, $kamar, auth()->user(), (bool) ($data['pasutri'] ?? false));
-                } catch (ValidationException $exception) {
-                    Notification::make()
-                        ->title('Peserta belum dapat ditempatkan')
-                        ->body(Arr::first(Arr::flatten($exception->errors())))
-                        ->danger()
-                        ->send();
-
-                    $action->halt();
-                }
+                $jumlah = GalatService::jalankan($action, 'Peserta belum dapat ditempatkan', fn () => app(AsramaService::class)->tempatkanBanyak($daftar, $kamar, auth()->user(), (bool) ($data['pasutri'] ?? false)));
 
                 unset($this->denah);
                 Notification::make()->title("{$jumlah} peserta ditempatkan di kamar {$kamar->nama_tampilan}")->success()->send();
@@ -212,17 +201,7 @@ class PenempatanKamar extends Page
             ->authorize(fn (array $arguments): bool => auth()->user()->can('delete', $this->penempatan($arguments)))
             ->visible(fn (): bool => $this->bisaDiubah())
             ->action(function (array $arguments, Action $action): void {
-                try {
-                    app(AsramaService::class)->keluarkan($this->penempatan($arguments));
-                } catch (ValidationException $exception) {
-                    Notification::make()
-                        ->title('Peserta tidak dapat dikeluarkan')
-                        ->body(Arr::first(Arr::flatten($exception->errors())))
-                        ->danger()
-                        ->send();
-
-                    $action->halt();
-                }
+                GalatService::jalankan($action, 'Peserta tidak dapat dikeluarkan', fn () => app(AsramaService::class)->keluarkan($this->penempatan($arguments)));
 
                 unset($this->denah);
                 Notification::make()->title('Peserta dikeluarkan dari kamar')->success()->send();

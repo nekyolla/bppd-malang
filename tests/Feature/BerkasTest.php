@@ -63,3 +63,32 @@ it('mengembalikan 404 untuk jenis berkas yang tidak dikenal atau berkas yang hil
     $tanpaBerkas = PelatihanPeserta::factory()->create();
     $this->actingAs($admin)->get(route('berkas.pendaftaran', [$tanpaBerkas, 'surat-tugas']))->assertNotFound();
 });
+
+describe('berkas peserta', function () {
+    beforeEach(function () {
+        $this->peserta = $this->pendaftaran->peserta;
+        $this->peserta->update(['file_ktp' => "pendaftaran/{$this->pendaftaran->id}/ktp.pdf", 'foto' => "pendaftaran/{$this->pendaftaran->id}/foto.jpg"]);
+    });
+
+    it('membuka KTP dan pas foto terbaru peserta untuk akun internal', function (string $jenis, string $isi) {
+        $response = $this->actingAs(User::factory()->peran(Peran::Admin)->create())
+            ->get(route('berkas.peserta', [$this->peserta, $jenis]))
+            ->assertOk()
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        expect($response->streamedContent())->toBe($isi);
+    })->with([['ktp', '%PDF-ktp'], ['foto', 'jpeg-foto']]);
+
+    it('menolak pengunjung dan akun tanpa role internal', function () {
+        $this->get(route('berkas.peserta', [$this->peserta, 'ktp']))->assertRedirect('/admin/login');
+        $this->actingAs(User::factory()->create())->get(route('berkas.peserta', [$this->peserta, 'ktp']))->assertForbidden();
+    });
+
+    it('memberi 404 bila peserta belum punya berkas', function () {
+        $this->peserta->update(['file_ktp' => null]);
+
+        $this->actingAs(User::factory()->peran(Peran::Admin)->create())
+            ->get(route('berkas.peserta', [$this->peserta, 'ktp']))
+            ->assertNotFound();
+    });
+});

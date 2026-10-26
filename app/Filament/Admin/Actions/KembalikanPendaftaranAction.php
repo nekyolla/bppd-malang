@@ -4,13 +4,12 @@ namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPelatihan;
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Support\GalatService;
 use App\Models\PelatihanPeserta;
 use App\Services\PendaftaranService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Arr;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Mengembalikan pendaftaran yang salah dibatalkan (PF-14).
@@ -40,17 +39,7 @@ class KembalikanPendaftaranAction extends Action
                 && $record->pelatihan->status !== StatusPelatihan::Selesai
                 && $record->pengganti === null)
             ->action(function (PelatihanPeserta $record): void {
-                try {
-                    $status = app(PendaftaranService::class)->kembalikan($record);
-                } catch (ValidationException $exception) {
-                    Notification::make()
-                        ->title('Pembatalan tidak dapat dikembalikan')
-                        ->body(Arr::first(Arr::flatten($exception->errors())))
-                        ->danger()
-                        ->send();
-
-                    $this->halt();
-                }
+                $status = GalatService::jalankan($this, 'Pembatalan tidak dapat dikembalikan', fn () => app(PendaftaranService::class)->kembalikan($record));
 
                 Notification::make()->title("Pendaftaran dikembalikan: {$status->getLabel()}")->success()->send();
             });

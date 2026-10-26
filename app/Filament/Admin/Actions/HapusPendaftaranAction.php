@@ -3,13 +3,12 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Support\GalatService;
 use App\Models\PelatihanPeserta;
 use App\Services\PendaftaranService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Arr;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Menghapus pendaftaran tidak sah yang belum pernah diverifikasi, misal data iseng (PF-14).
@@ -36,17 +35,7 @@ class HapusPendaftaranAction extends Action
             ->visible(fn (PelatihanPeserta $record): bool => $record->diverifikasi_pada === null
                 && in_array($record->status, [StatusPendaftaran::Terdaftar, StatusPendaftaran::Batal], true))
             ->action(function (PelatihanPeserta $record): void {
-                try {
-                    app(PendaftaranService::class)->hapus($record);
-                } catch (ValidationException $exception) {
-                    Notification::make()
-                        ->title('Pendaftaran tidak dapat dihapus')
-                        ->body(Arr::first(Arr::flatten($exception->errors())))
-                        ->danger()
-                        ->send();
-
-                    $this->halt();
-                }
+                GalatService::jalankan($this, 'Pendaftaran tidak dapat dihapus', fn () => app(PendaftaranService::class)->hapus($record));
 
                 Notification::make()->title('Pendaftaran dihapus')->success()->send();
             });

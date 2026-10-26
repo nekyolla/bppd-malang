@@ -10,32 +10,27 @@ use App\Filament\Admin\Actions\KembalikanPendaftaranAction;
 use App\Filament\Admin\Actions\VerifikasiAction;
 use App\Filament\Admin\Actions\VerifikasiMassalAction;
 use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
+use App\Filament\Admin\Support\FilterWilayah;
 use App\Models\Desa;
-use App\Models\KabKota;
-use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
-use App\Models\Provinsi;
 use App\Services\PendaftaranService;
 use App\Support\Masking;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
-use Filament\Forms\Components\Select;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Tabel pendaftar. Dipakai di sub-halaman Pendaftar milik satu pelatihan (PF-17),
- * sehingga kolom dan filter pelatihan disembunyikan di sana.
+ * Tabel pendaftar satu pelatihan, dipakai sub-halaman Pendaftar (PF-17).
  */
 class PendaftaranTable
 {
-    public static function configure(Table $table, bool $dalamPelatihan = false): Table
+    public static function configure(Table $table): Table
     {
         return $table
+            ->recordTitle(fn (PelatihanPeserta $record): string => $record->peserta->nama_lengkap)
             ->modifyQueryUsing(fn (Builder $query) => $query->with([
                 'peserta.desa.kecamatan.kabKota',
                 'desaSaatPelatihan.kecamatan.kabKota',
@@ -59,10 +54,6 @@ class PendaftaranTable
                     ->label('Desa')
                     ->state(fn (PelatihanPeserta $record): string => self::desa($record)->nama)
                     ->description(fn (PelatihanPeserta $record): string => self::desa($record)->kecamatan->kabKota->nama),
-                TextColumn::make('pelatihan.nama_tampilan')
-                    ->label('Pelatihan')
-                    ->wrap()
-                    ->hidden($dalamPelatihan),
                 TextColumn::make('kelasPelatihan.nama_kelas')
                     ->label('Kelas')
                     ->placeholder('–')
@@ -79,35 +70,10 @@ class PendaftaranTable
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                SelectFilter::make('pelatihan_id')
-                    ->label('Pelatihan')
-                    ->options(fn (): array => Pelatihan::query()->with('judulPelatihan')->orderByDesc('tanggal_mulai')->get()
-                        ->mapWithKeys(fn (Pelatihan $p): array => [$p->id => $p->nama_tampilan])->all())
-                    ->searchable()
-                    ->hidden($dalamPelatihan),
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options(StatusPendaftaran::class),
-                Filter::make('wilayah')
-                    ->schema([
-                        Select::make('provinsi_id')
-                            ->label('Provinsi')
-                            ->options(fn (): array => Provinsi::query()->orderBy('nama')->pluck('nama', 'id')->all())
-                            ->searchable()
-                            ->live(),
-                        Select::make('kab_kota_id')
-                            ->label('Kabupaten/kota')
-                            ->options(fn (Get $get): array => KabKota::query()->where('provinsi_id', $get('provinsi_id'))->orderBy('nama')->pluck('nama', 'id')->all())
-                            ->searchable(),
-                    ])
-                    ->query(fn (Builder $query, array $data): Builder => $query
-                        ->when($data['kab_kota_id'] ?? null, fn (Builder $q, $kabKota) => $q->whereHas('peserta.desa.kecamatan', fn (Builder $q) => $q->where('kab_kota_id', $kabKota)))
-                        ->when(! ($data['kab_kota_id'] ?? null) && ($data['provinsi_id'] ?? null), fn (Builder $q) => $q->whereHas('peserta.desa.kecamatan.kabKota', fn (Builder $q) => $q->where('provinsi_id', $data['provinsi_id']))))
-                    ->indicateUsing(fn (array $data): ?string => match (true) {
-                        filled($data['kab_kota_id'] ?? null) => KabKota::find($data['kab_kota_id'])?->nama,
-                        filled($data['provinsi_id'] ?? null) => Provinsi::find($data['provinsi_id'])?->nama,
-                        default => null,
-                    }),
+                FilterWilayah::make('peserta.desa'),
             ])
             ->recordUrl(fn (PelatihanPeserta $record): string => PendaftaranResource::getUrl('view', ['record' => $record]))
             ->recordActions([

@@ -7,16 +7,15 @@ use App\Enums\StatusPendaftaran;
 use App\Filament\Admin\Actions\BagiAcakKelasAction;
 use App\Filament\Admin\Actions\KembaliAction;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
+use App\Filament\Admin\Support\GalatService;
 use App\Models\KelasPelatihan;
 use App\Services\KelasService;
 use BackedEnum;
-use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -24,9 +23,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Arr;
 use Illuminate\Validation\Rules\Unique;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Kelas dalam satu pelatihan (FR-KLS-01, PF-17). Simpan dan hapus lewat KelasService;
@@ -82,7 +79,7 @@ class ManageKelas extends ManageRelatedRecords
                     ->modalWidth('md')
                     ->createAnother(false)
                     ->visible(fn (): bool => $this->belumSelesai())
-                    ->using(fn (array $data, Action $action): KelasPelatihan => $this->jalankan($action, fn () => app(KelasService::class)
+                    ->using(fn (array $data, Action $action): KelasPelatihan => GalatService::jalankan($action, 'Kelas tidak dapat disimpan', fn () => app(KelasService::class)
                         ->simpan($this->getOwnerRecord(), $data['nama_kelas']))),
             ])
             ->recordUrl(fn (KelasPelatihan $record): string => PesertaKelas::getUrl(['record' => $this->getOwnerRecord(), 'kelas' => $record]))
@@ -95,13 +92,13 @@ class ManageKelas extends ManageRelatedRecords
                 EditAction::make()
                     ->modalWidth('md')
                     ->visible(fn (): bool => $this->belumSelesai())
-                    ->using(fn (KelasPelatihan $record, array $data, Action $action): KelasPelatihan => $this->jalankan($action, fn () => app(KelasService::class)
+                    ->using(fn (KelasPelatihan $record, array $data, Action $action): KelasPelatihan => GalatService::jalankan($action, 'Kelas tidak dapat disimpan', fn () => app(KelasService::class)
                         ->simpan($this->getOwnerRecord(), $data['nama_kelas'], $record))),
                 DeleteAction::make()
                     ->modalDescription('Hanya kelas yang belum berisi peserta dan belum memiliki presensi yang dapat dihapus.')
                     ->visible(fn (): bool => $this->belumSelesai())
                     ->using(function (KelasPelatihan $record, Action $action): bool {
-                        $this->jalankan($action, fn () => app(KelasService::class)->hapus($record));
+                        GalatService::jalankan($action, 'Kelas tidak dapat disimpan', fn () => app(KelasService::class)->hapus($record));
 
                         return true;
                     }),
@@ -137,23 +134,5 @@ class ManageKelas extends ManageRelatedRecords
     private function belumSelesai(): bool
     {
         return $this->getOwnerRecord()->status !== StatusPelatihan::Selesai;
-    }
-
-    /**
-     * Aturan yang ditolak KelasService ditampilkan sebagai notifikasi dan modal tetap terbuka.
-     */
-    private function jalankan(Action $action, Closure $callback): mixed
-    {
-        try {
-            return $callback();
-        } catch (ValidationException $exception) {
-            Notification::make()
-                ->title('Kelas tidak dapat disimpan')
-                ->body(Arr::first(Arr::flatten($exception->errors())))
-                ->danger()
-                ->send();
-
-            $action->halt();
-        }
     }
 }

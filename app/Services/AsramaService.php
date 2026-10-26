@@ -14,6 +14,7 @@ use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\PenggunaanKamar;
 use App\Models\User;
+use App\Services\Concerns\MenolakAturan;
 use App\Support\FormatTanggal;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,6 +28,8 @@ use Illuminate\Validation\ValidationException;
  */
 class AsramaService
 {
+    use MenolakAturan;
+
     public const MAKS_PASUTRI = 2;
 
     /**
@@ -41,55 +44,16 @@ class AsramaService
             $terkunci = PelatihanPeserta::query()->with(['peserta', 'pelatihan.judulPelatihan'])->lockForUpdate()->findOrFail($pendaftaran->getKey());
             // Kunci baris kamar: penempatan bersamaan ke kamar yang sama dijalankan bergiliran.
             $kamar = KamarAsrama::query()->with('asrama')->lockForUpdate()->findOrFail($kamar->getKey());
-            $pelatihan = $terkunci->pelatihan;
-            $peserta = $terkunci->peserta;
-            $nama = $kamar->nama_tampilan;
 
-            if ($pelatihan->tipe_lokasi !== TipeLokasi::Bbpd) {
-                $this->tolak('pelatihan_peserta_id', 'Asrama hanya untuk pelatihan di BBPD Malang.');
-            }
+            $this->pastikanPesertaBolehDitempatkan($terkunci);
+            $this->pastikanKamarTersedia($kamar, $terkunci->pelatihan);
 
-            if ($terkunci->status !== StatusPendaftaran::Terverifikasi) {
-                $this->tolak('pelatihan_peserta_id', 'Hanya peserta terverifikasi yang dapat ditempatkan di kamar.');
-            }
-
-            if ($sekarang = $terkunci->penempatanKamar()->with('penggunaanKamar.kamarAsrama.asrama')->first()) {
-                $this->tolak('pelatihan_peserta_id', "{$peserta->nama_lengkap} sudah ditempatkan di kamar {$sekarang->penggunaanKamar->kamarAsrama->nama_tampilan}. Keluarkan dulu sebelum memindahkan.");
-            }
-
-            if (! $kamar->is_aktif || ! $kamar->asrama->is_aktif) {
-                $this->tolak('kamar_asrama_id', "Kamar {$nama} tidak tersedia karena sudah dinonaktifkan.");
-            }
-
-            if ($bentrok = $this->pemakaianBentrok($kamar->getKey(), $pelatihan->getKey(), $pelatihan->tanggal_mulai, $pelatihan->tanggal_selesai)) {
-                $this->tolak('kamar_asrama_id', $this->pesanBentrok($nama, $bentrok->pelatihan));
-            }
-
-            $penggunaan = PenggunaanKamar::query()
-                ->where('pelatihan_id', $pelatihan->getKey())
-                ->where('kamar_asrama_id', $kamar->getKey())
-                ->first();
-            $penghuni = $penggunaan?->penghuni()->with('pelatihanPeserta.peserta')->get() ?? new Collection;
-
-            if ($penggunaan === null) {
-                if ($pasutri && $kamar->kapasitas < self::MAKS_PASUTRI) {
-                    $this->tolak('kamar_asrama_id', "Kamar {$nama} hanya untuk 1 orang, sehingga tidak dapat dijadikan kamar pasutri.");
-                }
-
-                $penggunaan = new PenggunaanKamar([
-                    'pelatihan_id' => $pelatihan->getKey(),
-                    'kamar_asrama_id' => $kamar->getKey(),
-                    'disetujui_oleh' => $pasutri ? $oleh->getKey() : null,
-                ]);
-                $penggunaan->forceFill(['tipe' => $pasutri ? TipeKamar::Pasutri : TipeKamar::dariJenisKelamin($peserta->jenis_kelamin)])->save();
-            } else {
-                $this->pastikanCocok($penggunaan, $penghuni, $peserta->jenis_kelamin, $nama, $pasutri);
-            }
-
+            $penggunaan = $this->pemakaianUntuk($kamar, $terkunci, $oleh, $pasutri);
+            $jumlahPenghuni = $penggunaan->penghuni()->count();
             $kapasitas = $this->kapasitasEfektif($kamar, $penggunaan->tipe);
 
-            if ($penghuni->count() >= $kapasitas) {
-                $this->tolak('kamar_asrama_id', "Kamar {$nama} sudah penuh ({$penghuni->count()}/{$kapasitas}).");
+            if ($jumlahPenghuni >= $kapasitas) {
+                $this->tolak('kamar_asrama_id', "Kamar {$kamar->nama_tampilan} sudah penuh ({$jumlahPenghuni}/{$kapasitas}).");
             }
 
             try {
@@ -99,13 +63,84 @@ class AsramaService
                     'ditempatkan_oleh' => $oleh->getKey(),
                 ]);
             } catch (UniqueConstraintViolationException) {
-                $this->tolak('pelatihan_peserta_id', "{$peserta->nama_lengkap} sudah ditempatkan di kamar lain.");
+                $this->tolak('pelatihan_peserta_id', "{$terkunci->peserta->nama_lengkap} sudah ditempatkan di kamar lain.");
             }
         });
 
         $pendaftaran->unsetRelation('penempatanKamar');
 
         return $penempatan;
+    }
+
+    /**
+     * Pelatihan di BBPD, peserta terverifikasi, dan belum punya kamar (FR-ASR-01, -02, -08).
+     *
+     * @throws ValidationException
+     */
+    private function pastikanPesertaBolehDitempatkan(PelatihanPeserta $pendaftaran): void
+    {
+        if ($pendaftaran->pelatihan->tipe_lokasi !== TipeLokasi::Bbpd) {
+            $this->tolak('pelatihan_peserta_id', 'Asrama hanya untuk pelatihan di BBPD Malang.');
+        }
+
+        if ($pendaftaran->status !== StatusPendaftaran::Terverifikasi) {
+            $this->tolak('pelatihan_peserta_id', 'Hanya peserta terverifikasi yang dapat ditempatkan di kamar.');
+        }
+
+        if ($sekarang = $pendaftaran->penempatanKamar()->with('penggunaanKamar.kamarAsrama.asrama')->first()) {
+            $this->tolak('pelatihan_peserta_id', "{$pendaftaran->peserta->nama_lengkap} sudah ditempatkan di kamar {$sekarang->penggunaanKamar->kamarAsrama->nama_tampilan}. Keluarkan dulu sebelum memindahkan.");
+        }
+    }
+
+    /**
+     * Kamar & asramanya aktif, dan tidak dipakai pelatihan lain pada tanggal yang sama (FR-ASR-07).
+     *
+     * @throws ValidationException
+     */
+    private function pastikanKamarTersedia(KamarAsrama $kamar, Pelatihan $pelatihan): void
+    {
+        if (! $kamar->is_aktif || ! $kamar->asrama->is_aktif) {
+            $this->tolak('kamar_asrama_id', "Kamar {$kamar->nama_tampilan} tidak tersedia karena sudah dinonaktifkan.");
+        }
+
+        if ($bentrok = $this->pemakaianBentrok($kamar->getKey(), $pelatihan->getKey(), $pelatihan->tanggal_mulai, $pelatihan->tanggal_selesai)) {
+            $this->tolak('kamar_asrama_id', $this->pesanBentrok($kamar->nama_tampilan, $bentrok->pelatihan));
+        }
+    }
+
+    /**
+     * Pemakaian kamar oleh pelatihan peserta ini. Kamar kosong bersifat netral: pemakaian
+     * baru bertipe gender penghuni pertama, atau pasutri bila admin memilihnya (FR-ASR-03, -05).
+     * Pemakaian yang sudah ada harus cocok dengan gender peserta (FR-ASR-04).
+     *
+     * @throws ValidationException
+     */
+    private function pemakaianUntuk(KamarAsrama $kamar, PelatihanPeserta $pendaftaran, User $oleh, bool $pasutri): PenggunaanKamar
+    {
+        $penggunaan = PenggunaanKamar::query()
+            ->where('pelatihan_id', $pendaftaran->pelatihan_id)
+            ->where('kamar_asrama_id', $kamar->getKey())
+            ->first();
+
+        if ($penggunaan !== null) {
+            $penghuni = $penggunaan->penghuni()->with('pelatihanPeserta.peserta')->get();
+            $this->pastikanCocok($penggunaan, $penghuni, $pendaftaran->peserta->jenis_kelamin, $kamar->nama_tampilan, $pasutri);
+
+            return $penggunaan;
+        }
+
+        if ($pasutri && $kamar->kapasitas < self::MAKS_PASUTRI) {
+            $this->tolak('kamar_asrama_id', "Kamar {$kamar->nama_tampilan} hanya untuk 1 orang, sehingga tidak dapat dijadikan kamar pasutri.");
+        }
+
+        $penggunaan = new PenggunaanKamar([
+            'pelatihan_id' => $pendaftaran->pelatihan_id,
+            'kamar_asrama_id' => $kamar->getKey(),
+            'disetujui_oleh' => $pasutri ? $oleh->getKey() : null,
+        ]);
+        $penggunaan->forceFill(['tipe' => $pasutri ? TipeKamar::Pasutri : TipeKamar::dariJenisKelamin($pendaftaran->peserta->jenis_kelamin)])->save();
+
+        return $penggunaan;
     }
 
     /**
@@ -415,13 +450,5 @@ class AsramaService
     private function pesanBentrok(string $namaKamar, Pelatihan $lain): string
     {
         return "Kamar {$namaKamar} sedang dipakai {$lain->nama_tampilan} (".FormatTanggal::rentang($lain->tanggal_mulai, $lain->tanggal_selesai).').';
-    }
-
-    /**
-     * @throws ValidationException
-     */
-    private function tolak(string $kolom, string $pesan): never
-    {
-        throw ValidationException::withMessages([$kolom => $pesan]);
     }
 }

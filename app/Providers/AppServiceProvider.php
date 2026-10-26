@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Policies\ActivityPolicy;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentColor;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Model Activity milik package, jadi policy-nya tidak ditemukan otomatis.
+        Gate::policy(Activity::class, ActivityPolicy::class);
+
         // Warna untuk komponen Filament di luar panel (form registrasi publik),
         // sama dengan panel admin (DESIGN_SYSTEM §2.1).
         FilamentColor::register([

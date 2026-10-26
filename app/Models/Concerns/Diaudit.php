@@ -17,8 +17,18 @@ trait Diaudit
     {
         return LogOptions::defaults()
             ->logAll()
-            ->logExcept(['created_at', 'updated_at'])
+            ->logExcept(['created_at', 'updated_at', ...$this->kolomTidakDiaudit()])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
+    }
+
+    /**
+     * Kolom rahasia yang tidak boleh masuk audit log, mis. hash kata sandi.
+     *
+     * @return list<string>
+     */
+    protected function kolomTidakDiaudit(): array
+    {
+        return [];
     }
 }

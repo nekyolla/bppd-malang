@@ -196,9 +196,3 @@ it('menampilkan kamar di detail pendaftaran', function () {
 
     Livewire::test(ViewPendaftaran::class, ['record' => $pendaftaran->getRouteKey()])->assertSee('Anggrek-01');
 });
-
-it('menautkan halaman pelatihan BBPD ke penempatan kamar', function () {
-    $this->get("/admin/pelatihan/{$this->pelatihan->id}/edit")
-        ->assertOk()
-        ->assertSee(PenempatanKamar::getUrl(['pelatihan' => $this->pelatihan->id]), escape: false);
-});

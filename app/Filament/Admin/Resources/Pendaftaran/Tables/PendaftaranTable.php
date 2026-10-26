@@ -3,9 +3,13 @@
 namespace App\Filament\Admin\Resources\Pendaftaran\Tables;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Actions\AturKelasAction;
 use App\Filament\Admin\Actions\BatalkanAction;
+use App\Filament\Admin\Actions\HapusPendaftaranAction;
+use App\Filament\Admin\Actions\KembalikanPendaftaranAction;
 use App\Filament\Admin\Actions\VerifikasiAction;
 use App\Filament\Admin\Actions\VerifikasiMassalAction;
+use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
 use App\Models\Desa;
 use App\Models\KabKota;
 use App\Models\Pelatihan;
@@ -13,6 +17,7 @@ use App\Models\PelatihanPeserta;
 use App\Models\Provinsi;
 use App\Services\PendaftaranService;
 use App\Support\Masking;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Utilities\Get;
@@ -22,9 +27,13 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
+/**
+ * Tabel pendaftar. Dipakai di sub-halaman Pendaftar milik satu pelatihan (PF-17),
+ * sehingga kolom dan filter pelatihan disembunyikan di sana.
+ */
 class PendaftaranTable
 {
-    public static function configure(Table $table): Table
+    public static function configure(Table $table, bool $dalamPelatihan = false): Table
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with([
@@ -52,7 +61,8 @@ class PendaftaranTable
                     ->description(fn (PelatihanPeserta $record): string => self::desa($record)->kecamatan->kabKota->nama),
                 TextColumn::make('pelatihan.nama_tampilan')
                     ->label('Pelatihan')
-                    ->wrap(),
+                    ->wrap()
+                    ->hidden($dalamPelatihan),
                 TextColumn::make('kelasPelatihan.nama_kelas')
                     ->label('Kelas')
                     ->placeholder('–')
@@ -73,7 +83,8 @@ class PendaftaranTable
                     ->label('Pelatihan')
                     ->options(fn (): array => Pelatihan::query()->with('judulPelatihan')->orderByDesc('tanggal_mulai')->get()
                         ->mapWithKeys(fn (Pelatihan $p): array => [$p->id => $p->nama_tampilan])->all())
-                    ->searchable(),
+                    ->searchable()
+                    ->hidden($dalamPelatihan),
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options(StatusPendaftaran::class),
@@ -98,16 +109,22 @@ class PendaftaranTable
                         default => null,
                     }),
             ])
+            ->recordUrl(fn (PelatihanPeserta $record): string => PendaftaranResource::getUrl('view', ['record' => $record]))
             ->recordActions([
                 VerifikasiAction::make(),
-                ViewAction::make(),
-                BatalkanAction::make(),
+                ActionGroup::make([
+                    ViewAction::make()->url(fn (PelatihanPeserta $record): string => PendaftaranResource::getUrl('view', ['record' => $record])),
+                    AturKelasAction::make(),
+                    KembalikanPendaftaranAction::make(),
+                    BatalkanAction::make(),
+                    HapusPendaftaranAction::make(),
+                ]),
             ])
             ->toolbarActions([
                 VerifikasiMassalAction::make(),
             ])
             ->emptyStateHeading('Belum ada pendaftar')
-            ->emptyStateDescription('Pendaftar akan muncul di sini setelah mengisi form registrasi di /daftar.');
+            ->emptyStateDescription('Belum ada peserta yang mendaftar di pelatihan ini. Pendaftar muncul setelah mengisi form registrasi di /daftar.');
     }
 
     /**

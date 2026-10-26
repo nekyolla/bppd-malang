@@ -1,12 +1,15 @@
 <?php
 
-namespace App\Filament\Admin\Resources\Pelatihan\RelationManagers;
+namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 
 use App\Enums\StatusPelatihan;
 use App\Enums\StatusPendaftaran;
 use App\Filament\Admin\Actions\BagiAcakKelasAction;
+use App\Filament\Admin\Actions\KembaliAction;
+use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Models\KelasPelatihan;
 use App\Services\KelasService;
+use BackedEnum;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -14,23 +17,32 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rules\Unique;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Kelas dalam satu pelatihan (FR-KLS-01). Simpan dan hapus lewat KelasService.
+ * Kelas dalam satu pelatihan (FR-KLS-01, PF-17). Simpan dan hapus lewat KelasService;
+ * setiap kelas dapat dibuka untuk melihat pesertanya dan mencetak daftar hadir (PF-18).
  */
-class KelasRelationManager extends RelationManager
+class ManageKelas extends ManageRelatedRecords
 {
+    protected static string $resource = PelatihanResource::class;
+
     protected static string $relationship = 'kelas';
 
-    protected static ?string $title = 'Kelas';
+    protected static ?string $navigationLabel = 'Kelas';
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleGroup;
+
+    protected static ?string $breadcrumb = 'Kelas';
 
     protected static ?string $modelLabel = 'kelas';
 
@@ -73,7 +85,13 @@ class KelasRelationManager extends RelationManager
                     ->using(fn (array $data, Action $action): KelasPelatihan => $this->jalankan($action, fn () => app(KelasService::class)
                         ->simpan($this->getOwnerRecord(), $data['nama_kelas']))),
             ])
+            ->recordUrl(fn (KelasPelatihan $record): string => PesertaKelas::getUrl(['record' => $this->getOwnerRecord(), 'kelas' => $record]))
             ->recordActions([
+                Action::make('peserta')
+                    ->label('Lihat peserta')
+                    ->icon(Heroicon::OutlinedUsers)
+                    ->color('gray')
+                    ->url(fn (KelasPelatihan $record): string => PesertaKelas::getUrl(['record' => $this->getOwnerRecord(), 'kelas' => $record])),
                 EditAction::make()
                     ->modalWidth('md')
                     ->visible(fn (): bool => $this->belumSelesai())
@@ -94,9 +112,26 @@ class KelasRelationManager extends RelationManager
             ->emptyStateDescription('Buat kelas terlebih dahulu sebelum membagi peserta.');
     }
 
-    public function isReadOnly(): bool
+    /**
+     * Sub-menu Kelas tetap aktif saat membuka peserta satu kelas.
+     *
+     * @return array<string>
+     */
+    public static function getNavigationItemActiveRoutePattern(): string|array
     {
-        return false;
+        return [static::getRouteName(), PesertaKelas::getRouteName()];
+    }
+
+    public function getTitle(): string|Htmlable
+    {
+        return "Kelas {$this->getOwnerRecord()->nama_tampilan}";
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            KembaliAction::ke(PelatihanResource::getUrl('index'), 'Kembali ke daftar pelatihan'),
+        ];
     }
 
     private function belumSelesai(): bool

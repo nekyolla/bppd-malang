@@ -3,12 +3,14 @@
 use App\Enums\StatusPendaftaran;
 use App\Models\Desa;
 use App\Models\Jabatan;
+use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
 use App\Models\SumberDana;
 use App\Models\User;
 use App\Services\PendaftaranService;
 use App\Support\IsianPeserta;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
 
@@ -181,5 +183,75 @@ describe('sumber dana saat verifikasi', function () {
         $this->service->verifikasi($pendaftaran, $this->admin, sumberDana: ['sumber_dana_id' => $pendaftaran->sumber_dana_id]);
 
         expect($pendaftaran->status)->toBe(StatusPendaftaran::Terverifikasi);
+    });
+});
+
+describe('kembalikan pembatalan', function () {
+    it('mengembalikan ke status sebelum batal', function (string $asal, StatusPendaftaran $tujuan) {
+        $factory = $asal === 'terverifikasi' ? PelatihanPeserta::factory()->terverifikasi() : PelatihanPeserta::factory();
+        $pendaftaran = $factory->create();
+        $this->service->batalkan($pendaftaran, $this->admin, 'Salah klik');
+
+        expect($this->service->kembalikan($pendaftaran))->toBe($tujuan)
+            ->and($pendaftaran->status)->toBe($tujuan)
+            ->and($pendaftaran->alasan_batal)->toBeNull()
+            ->and($pendaftaran->dibatalkan_pada)->toBeNull();
+    })->with([
+        'pernah diverifikasi' => ['terverifikasi', StatusPendaftaran::Terverifikasi],
+        'belum diverifikasi' => ['terdaftar', StatusPendaftaran::Terdaftar],
+    ]);
+
+    it('menolak pendaftaran yang tidak batal, sudah digantikan, atau pelatihannya selesai', function () {
+        $aktif = PelatihanPeserta::factory()->create();
+        $digantikan = PelatihanPeserta::factory()->batal()->create();
+        PelatihanPeserta::factory()->terverifikasi()->for($digantikan->pelatihan)->create(['menggantikan_id' => $digantikan->id]);
+        $selesai = PelatihanPeserta::factory()->batal()->for(Pelatihan::factory()->selesai())->create();
+
+        expect(galatVerifikasi(fn () => $this->service->kembalikan($aktif)))->toHaveKey('status')
+            ->and(galatVerifikasi(fn () => $this->service->kembalikan($digantikan))['status'][0])->toContain('sudah digantikan')
+            ->and(galatVerifikasi(fn () => $this->service->kembalikan($selesai))['status'][0])->toContain('sudah selesai');
+    });
+});
+
+describe('hapus pendaftaran tidak sah', function () {
+    it('menghapus pendaftaran, berkas, dan peserta baru tanpa pendaftaran lain', function () {
+        Storage::fake('local');
+        $pendaftaran = PelatihanPeserta::factory()->create();
+        Storage::disk('local')->put("pendaftaran/{$pendaftaran->id}/ktp.pdf", 'x');
+
+        $this->service->hapus($pendaftaran);
+
+        expect(PelatihanPeserta::find($pendaftaran->id))->toBeNull()
+            ->and(Peserta::find($pendaftaran->peserta_id))->toBeNull();
+        Storage::disk('local')->assertMissing("pendaftaran/{$pendaftaran->id}");
+    });
+
+    it('mempertahankan peserta yang punya pendaftaran lain', function () {
+        $lama = PelatihanPeserta::factory()->selesai()->create();
+        $iseng = PelatihanPeserta::factory()->for($lama->peserta)->create();
+
+        $this->service->hapus($iseng);
+
+        expect(Peserta::find($lama->peserta_id))->not->toBeNull();
+    });
+
+    it('menolak pendaftaran yang pernah diverifikasi atau sudah punya pengganti', function () {
+        $terverifikasi = PelatihanPeserta::factory()->terverifikasi()->create();
+        $batalTerverifikasi = PelatihanPeserta::factory()->terverifikasi()->batal()->create();
+        $punyaPengganti = PelatihanPeserta::factory()->batal()->create();
+        PelatihanPeserta::factory()->terverifikasi()->for($punyaPengganti->pelatihan)->create(['menggantikan_id' => $punyaPengganti->id]);
+
+        expect(galatVerifikasi(fn () => $this->service->hapus($terverifikasi)))->toHaveKey('status')
+            ->and(galatVerifikasi(fn () => $this->service->hapus($batalTerverifikasi)))->toHaveKey('status')
+            ->and(galatVerifikasi(fn () => $this->service->hapus($punyaPengganti))['status'][0])->toContain('pengganti')
+            ->and(PelatihanPeserta::count())->toBe(4);
+    });
+
+    it('mencatat penghapusan di audit log', function () {
+        $pendaftaran = PelatihanPeserta::factory()->create();
+
+        $this->service->hapus($pendaftaran);
+
+        expect(Activity::query()->where('subject_type', $pendaftaran->getMorphClass())->where('subject_id', $pendaftaran->id)->where('event', 'deleted')->exists())->toBeTrue();
     });
 });

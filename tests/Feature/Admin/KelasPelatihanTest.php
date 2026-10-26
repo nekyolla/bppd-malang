@@ -1,10 +1,10 @@
 <?php
 
 use App\Enums\Peran;
-use App\Filament\Admin\Resources\Pelatihan\Pages\EditPelatihan;
-use App\Filament\Admin\Resources\Pelatihan\RelationManagers\KelasRelationManager;
-use App\Filament\Admin\Resources\Pelatihan\RelationManagers\PesertaKelasRelationManager;
-use App\Filament\Admin\Resources\Pendaftaran\Pages\ListPendaftaran;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManageKelas;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePembagianKelas;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
+use App\Filament\Admin\Resources\Pelatihan\Pages\PesertaKelas;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ViewPendaftaran;
 use App\Models\KelasPelatihan;
 use App\Models\Pelatihan;
@@ -20,15 +20,20 @@ beforeEach(function () {
     Filament::setCurrentPanel(Filament::getPanel('admin'));
     $this->actingAs(User::factory()->peran(Peran::Admin)->create());
     $this->pelatihan = Pelatihan::factory()->dibuka()->tanggal('2026-10-05', '2026-10-08')->create();
-    $this->kelas = fn (?Pelatihan $pelatihan = null) => Livewire::test(KelasRelationManager::class, ['ownerRecord' => $pelatihan ?? $this->pelatihan, 'pageClass' => EditPelatihan::class]);
-    $this->pembagian = fn (?Pelatihan $pelatihan = null) => Livewire::test(PesertaKelasRelationManager::class, ['ownerRecord' => $pelatihan ?? $this->pelatihan, 'pageClass' => EditPelatihan::class]);
+    $this->kelas = fn (?Pelatihan $pelatihan = null) => Livewire::test(ManageKelas::class, ['record' => ($pelatihan ?? $this->pelatihan)->getRouteKey()]);
+    $this->pembagian = fn (?Pelatihan $pelatihan = null) => Livewire::test(ManagePembagianKelas::class, ['record' => ($pelatihan ?? $this->pelatihan)->getRouteKey()]);
 });
 
-it('menampilkan tab kelas dan pembagian kelas di halaman pelatihan', function () {
+it('menampilkan sub-menu pelatihan: data, pendaftar, kelas, pembagian kelas', function () {
     $this->get("/admin/pelatihan/{$this->pelatihan->id}/edit")
         ->assertOk()
-        ->assertSee('Kelas')
-        ->assertSee('Pembagian Kelas');
+        ->assertSee('Data pelatihan')
+        ->assertSee(ManageKelas::getUrl(['record' => $this->pelatihan]), escape: false)
+        ->assertSee(ManagePembagianKelas::getUrl(['record' => $this->pelatihan]), escape: false)
+        ->assertSee("/admin/pelatihan/{$this->pelatihan->id}/pendaftar", escape: false);
+
+    $this->get(ManageKelas::getUrl(['record' => $this->pelatihan]))->assertOk();
+    $this->get(ManagePembagianKelas::getUrl(['record' => $this->pelatihan]))->assertOk();
 });
 
 it('membuat kelas dengan usulan nama berikutnya dan menolak nama yang sama', function () {
@@ -198,6 +203,50 @@ it('menampilkan kelas di daftar dan detail pendaftaran, dan dapat mengaturnya da
         ->assertHasNoActionErrors()
         ->assertSee('Pagi');
 
-    Livewire::test(ListPendaftaran::class)
+    Livewire::test(ManagePendaftar::class, ['record' => $this->pelatihan->getRouteKey()])
         ->assertTableColumnStateSet('kelasPelatihan.nama_kelas', 'Pagi', $pendaftaran);
+});
+
+describe('peserta per kelas', function () {
+    beforeEach(function () {
+        $this->kelasA = KelasPelatihan::factory()->for($this->pelatihan)->create(['nama_kelas' => 'A']);
+        $this->halamanKelas = fn () => Livewire::test(PesertaKelas::class, ['record' => $this->pelatihan->getRouteKey(), 'kelas' => $this->kelasA->getKey()]);
+    });
+
+    it('menampilkan peserta aktif kelas ini saja, tanpa NIK, dan tombol kembali ke kelas', function () {
+        $anggota = PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create(['kelas_pelatihan_id' => $this->kelasA->id]);
+        $batal = PelatihanPeserta::factory()->batal()->for($this->pelatihan)->create(['kelas_pelatihan_id' => $this->kelasA->id]);
+        $kelasLain = PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)
+            ->create(['kelas_pelatihan_id' => KelasPelatihan::factory()->for($this->pelatihan)->create(['nama_kelas' => 'B'])->id]);
+
+        ($this->halamanKelas)()
+            ->assertCanSeeTableRecords([$anggota])
+            ->assertCanNotSeeTableRecords([$batal, $kelasLain])
+            ->assertDontSee($anggota->peserta->nik)
+            ->assertActionHasUrl('kembali', ManageKelas::getUrl(['record' => $this->pelatihan]));
+    });
+
+    it('membuka peserta kelas dari daftar kelas', function () {
+        ($this->kelas)()->assertSee(PesertaKelas::getUrl(['record' => $this->pelatihan, 'kelas' => $this->kelasA]), escape: false);
+    });
+
+    it('menolak kelas dari pelatihan lain', function () {
+        $kelasLain = KelasPelatihan::factory()->create();
+
+        $this->get("/admin/pelatihan/{$this->pelatihan->id}/kelas/{$kelasLain->id}")->assertNotFound();
+    });
+
+    it('mengunduh daftar hadir PDF dan Excel', function (string $aksi) {
+        PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create(['kelas_pelatihan_id' => $this->kelasA->id]);
+
+        ($this->halamanKelas)()
+            ->callAction($aksi)
+            ->assertFileDownloaded();
+    })->with(['daftarHadirPdf', 'daftarHadirExcel']);
+});
+
+it('tidak menampilkan kamar di sub-menu pelatihan karena sudah ada di menu Asrama', function () {
+    $this->get(ManageKelas::getUrl(['record' => $this->pelatihan]))
+        ->assertOk()
+        ->assertDontSee('penempatan-kamar?pelatihan=', escape: false);
 });

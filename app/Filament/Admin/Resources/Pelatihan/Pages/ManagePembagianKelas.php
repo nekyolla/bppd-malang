@@ -1,29 +1,40 @@
 <?php
 
-namespace App\Filament\Admin\Resources\Pelatihan\RelationManagers;
+namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 
 use App\Enums\StatusPendaftaran;
 use App\Filament\Admin\Actions\AturKelasAction;
 use App\Filament\Admin\Actions\AturKelasMassalAction;
 use App\Filament\Admin\Actions\BagiAcakKelasAction;
+use App\Filament\Admin\Actions\KembaliAction;
+use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Models\PelatihanPeserta;
 use App\Support\Masking;
-use Filament\Resources\RelationManagers\RelationManager;
+use BackedEnum;
+use Filament\Resources\Pages\ManageRelatedRecords;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Pembagian peserta terverifikasi ke kelas (FR-KLS-02–04). Kelas hanya berubah
  * lewat aksi yang memanggil KelasService.
  */
-class PesertaKelasRelationManager extends RelationManager
+class ManagePembagianKelas extends ManageRelatedRecords
 {
+    protected static string $resource = PelatihanResource::class;
+
     protected static string $relationship = 'pendaftaran';
 
-    protected static ?string $title = 'Pembagian Kelas';
+    protected static ?string $navigationLabel = 'Pembagian Kelas';
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
+
+    protected static ?string $breadcrumb = 'Pembagian Kelas';
 
     protected static ?string $modelLabel = 'peserta';
 
@@ -78,8 +89,15 @@ class PesertaKelasRelationManager extends RelationManager
             ->emptyStateDescription('Hanya peserta terverifikasi yang dapat dibagi ke kelas. Verifikasi pendaftar di menu Pendaftaran.');
     }
 
-    public function isReadOnly(): bool
+    public function getTitle(): string|Htmlable
     {
-        return false;
+        return "Pembagian Kelas {$this->getOwnerRecord()->nama_tampilan}";
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            KembaliAction::ke(PelatihanResource::getUrl('index'), 'Kembali ke daftar pelatihan'),
+        ];
     }
 }

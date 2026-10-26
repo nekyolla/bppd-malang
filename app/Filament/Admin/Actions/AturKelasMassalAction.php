@@ -7,12 +7,12 @@ use App\Services\KelasService;
 use Filament\Actions\BulkAction;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
-use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Menetapkan kelas beberapa peserta sekaligus. Dipakai di relation manager milik
+ * Menetapkan kelas beberapa peserta sekaligus. Dipakai di sub-halaman milik
  * Pelatihan, sehingga pilihan kelas terbatas pada pelatihan tersebut (FR-KLS-04).
  */
 class AturKelasMassalAction extends BulkAction
@@ -35,7 +35,7 @@ class AturKelasMassalAction extends BulkAction
             ->schema([
                 Select::make('kelas_pelatihan_id')
                     ->label('Kelas')
-                    ->options(fn (RelationManager $livewire): array => AturKelasAction::pilihanKelas($livewire->getOwnerRecord()->getKey()))
+                    ->options(fn (ManageRelatedRecords $livewire): array => AturKelasAction::pilihanKelas($livewire->getOwnerRecord()->getKey()))
                     ->required(),
             ])
             ->authorizeIndividualRecords('aturKelas')

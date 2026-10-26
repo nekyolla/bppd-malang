@@ -60,6 +60,22 @@ class PelatihanPesertaPolicy
         return $this->viewAny($user);
     }
 
+    /**
+     * Mengembalikan pendaftaran yang salah dibatalkan (PF-14).
+     */
+    public function kembalikan(User $user, PelatihanPeserta $pelatihanPeserta): bool
+    {
+        return $this->viewAny($user);
+    }
+
+    /**
+     * Menghapus pendaftaran tidak sah; syaratnya diperiksa PendaftaranService::hapus (PF-14).
+     */
+    public function hapus(User $user, PelatihanPeserta $pelatihanPeserta): bool
+    {
+        return $this->viewAny($user);
+    }
+
     public function aturKelas(User $user, PelatihanPeserta $pelatihanPeserta): bool
     {
         return $this->viewAny($user);

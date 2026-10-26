@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Widgets;
 
-use App\Enums\StatusPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
 use App\Filament\Admin\Widgets\Concerns\MembacaFilterTahun;
 use App\Services\StatistikService;
@@ -44,7 +43,7 @@ class RingkasanStatistik extends StatsOverviewWidget
                 ->description($r['menunggu'] > 0 ? 'Lihat daftar' : 'Semua sudah diperiksa')
                 ->color($r['menunggu'] > 0 ? 'warning' : 'success')
                 ->icon(Heroicon::OutlinedClock)
-                ->url(PendaftaranResource::getUrl('index', ['tableFilters' => ['status' => ['value' => StatusPendaftaran::Terdaftar->value]]])),
+                ->url(PendaftaranResource::getUrl('index')),
             Stat::make('Peserta terlatih', $angka($r['peserta_terlatih']))
                 ->description('Berstatus selesai')
                 ->icon(Heroicon::OutlinedAcademicCap),

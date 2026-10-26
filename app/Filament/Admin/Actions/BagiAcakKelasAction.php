@@ -7,13 +7,13 @@ use App\Services\KelasService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Radio;
 use Filament\Notifications\Notification;
-use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Bantuan "bagi acak otomatis" (FR-KLS-03). Dipakai di relation manager milik
+ * Bantuan "bagi acak otomatis" (FR-KLS-03). Dipakai di sub-halaman milik
  * Pelatihan; pelatihannya diambil dari owner record.
  */
 class BagiAcakKelasAction extends Action
@@ -48,9 +48,9 @@ class BagiAcakKelasAction extends Action
                     ->default('belum')
                     ->required(),
             ])
-            ->authorize(fn (RelationManager $livewire): bool => auth()->user()->can('update', $livewire->getOwnerRecord()))
-            ->visible(fn (RelationManager $livewire): bool => $livewire->getOwnerRecord()->status !== StatusPelatihan::Selesai)
-            ->action(function (RelationManager $livewire, array $data): void {
+            ->authorize(fn (ManageRelatedRecords $livewire): bool => auth()->user()->can('update', $livewire->getOwnerRecord()))
+            ->visible(fn (ManageRelatedRecords $livewire): bool => $livewire->getOwnerRecord()->status !== StatusPelatihan::Selesai)
+            ->action(function (ManageRelatedRecords $livewire, array $data): void {
                 try {
                     $jumlah = app(KelasService::class)->bagiAcak($livewire->getOwnerRecord(), $data['cakupan'] === 'semua');
                 } catch (ValidationException $exception) {

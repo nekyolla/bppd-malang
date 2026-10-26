@@ -59,7 +59,7 @@ it('menampilkan kartu statistik sesuai filter tahun', function () {
         ->assertSee('Total pendaftar')
         ->assertSee('Menunggu verifikasi')
         ->assertSee('dari 2 desa')
-        ->assertSee('/admin/pendaftaran?tableFilters');
+        ->assertSee('/admin/pendaftaran', escape: false);
 
     $semua = app(StatistikService::class)->ringkasan();
     $tahun2026 = app(StatistikService::class)->ringkasan(2026);

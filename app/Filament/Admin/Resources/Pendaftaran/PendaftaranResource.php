@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Pendaftaran;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ListPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ViewPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Schemas\PendaftaranInfolist;
@@ -19,7 +20,9 @@ use UnitEnum;
 
 /**
  * Peserta yang sudah registrasi lewat form publik (FR-DFT-02). Tidak ada form
- * tambah/ubah: data masuk dari /daftar dan berubah lewat aksi verifikasi.
+ * tambah/ubah: data masuk dari /daftar dan berubah lewat aksi verifikasi. Daftar
+ * pendaftar ada di sub-halaman Pendaftar milik tiap pelatihan (PF-17); resource ini
+ * menyediakan menu Pendaftaran (daftar pelatihan) dan halaman detail pendaftaran.
  */
 class PendaftaranResource extends Resource
 {
@@ -66,10 +69,7 @@ class PendaftaranResource extends Resource
      */
     public static function urlMenunggu(Pelatihan $pelatihan): string
     {
-        return static::getUrl('index', ['filters' => [
-            'pelatihan_id' => ['value' => (string) $pelatihan->getKey()],
-            'status' => ['value' => StatusPendaftaran::Terdaftar->value],
-        ]]);
+        return ManagePendaftar::urlMenunggu($pelatihan);
     }
 
     public static function infolist(Schema $schema): Schema

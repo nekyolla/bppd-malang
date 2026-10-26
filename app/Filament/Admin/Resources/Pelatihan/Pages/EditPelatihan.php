@@ -2,13 +2,11 @@
 
 namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 
-use App\Enums\TipeLokasi;
+use App\Filament\Admin\Actions\KembaliAction;
 use App\Filament\Admin\Actions\UbahStatusPelatihanAction;
-use App\Filament\Admin\Pages\PenempatanKamar;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Filament\Concerns\MemetakanGalatService;
 use App\Services\PelatihanService;
-use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Support\Icons\Heroicon;
@@ -20,15 +18,14 @@ class EditPelatihan extends EditRecord
 
     protected static string $resource = PelatihanResource::class;
 
+    protected static ?string $navigationLabel = 'Data pelatihan';
+
+    protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
+
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('penempatanKamar')
-                ->label('Penempatan kamar')
-                ->icon(Heroicon::OutlinedHomeModern)
-                ->color('gray')
-                ->url(fn (): string => PenempatanKamar::getUrl(['pelatihan' => $this->getRecord()->getKey()]))
-                ->visible(fn (): bool => $this->getRecord()->tipe_lokasi === TipeLokasi::Bbpd && PenempatanKamar::canAccess()),
+            KembaliAction::ke(PelatihanResource::getUrl('index'), 'Kembali ke daftar pelatihan'),
             UbahStatusPelatihanAction::make()
                 ->after(fn () => $this->refreshFormData(['status'])),
             DeleteAction::make(),

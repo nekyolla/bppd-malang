@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\StatusPelatihan;
 use App\Enums\StatusPendaftaran;
 use App\Models\PelatihanPeserta;
 use App\Models\SumberDana;
@@ -9,6 +10,7 @@ use App\Models\User;
 use App\Support\IsianPeserta;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -181,6 +183,85 @@ class PendaftaranService
         });
 
         $pendaftaran->refresh();
+    }
+
+    /**
+     * Mengembalikan pendaftaran batal ke status sebelum dibatalkan (PF-14): terverifikasi bila
+     * pernah diverifikasi, selain itu menunggu verifikasi. Ini koreksi salah batal, bukan
+     * perpindahan status biasa. Kelas tetap; kamar yang sudah dilepas tidak ikut kembali.
+     *
+     * @throws ValidationException
+     */
+    public function kembalikan(PelatihanPeserta $pendaftaran): StatusPendaftaran
+    {
+        $tujuan = DB::transaction(function () use ($pendaftaran): StatusPendaftaran {
+            $terkunci = PelatihanPeserta::query()->with(['pelatihan', 'pengganti.peserta'])->lockForUpdate()->findOrFail($pendaftaran->getKey());
+
+            match (true) {
+                $terkunci->status !== StatusPendaftaran::Batal => $this->tolak('status', 'Hanya pendaftaran yang batal yang dapat dikembalikan.'),
+                $terkunci->pelatihan->status === StatusPelatihan::Selesai => $this->tolak('status', 'Pelatihan sudah selesai, sehingga pembatalan tidak dapat dikembalikan.'),
+                $terkunci->pengganti !== null => $this->tolak('status', "Peserta ini sudah digantikan {$terkunci->pengganti->peserta->nama_lengkap}, sehingga pembatalannya tidak dapat dikembalikan."),
+                default => null,
+            };
+
+            $tujuan = $terkunci->diverifikasi_pada !== null ? StatusPendaftaran::Terverifikasi : StatusPendaftaran::Terdaftar;
+
+            // Alasan & waktu pembatalan tetap tersimpan di audit log.
+            $terkunci->forceFill([
+                'status' => $tujuan,
+                'alasan_batal' => null,
+                'dibatalkan_oleh' => null,
+                'dibatalkan_pada' => null,
+            ])->save();
+
+            return $tujuan;
+        });
+
+        $pendaftaran->refresh();
+
+        return $tujuan;
+    }
+
+    /**
+     * Menghapus pendaftaran tidak sah, misal data iseng dari form publik (PF-14). Hanya untuk
+     * pendaftaran yang belum pernah diverifikasi dan tidak punya pengganti. Berkasnya ikut
+     * dihapus, begitu juga data peserta bila tidak punya pendaftaran lain. Tercatat di audit log.
+     *
+     * @throws ValidationException
+     */
+    public function hapus(PelatihanPeserta $pendaftaran): void
+    {
+        $folder = DB::transaction(function () use ($pendaftaran): string {
+            $terkunci = PelatihanPeserta::query()->with('peserta')->lockForUpdate()->findOrFail($pendaftaran->getKey());
+
+            if ($terkunci->diverifikasi_pada !== null || ! in_array($terkunci->status, [StatusPendaftaran::Terdaftar, StatusPendaftaran::Batal], true)) {
+                $this->tolak('status', 'Hanya pendaftaran yang belum pernah diverifikasi yang dapat dihapus. Gunakan Batalkan untuk peserta yang sudah diverifikasi.');
+            }
+
+            if ($terkunci->pengganti()->exists()) {
+                $this->tolak('status', 'Pendaftaran ini sudah punya pengganti, sehingga tidak dapat dihapus.');
+            }
+
+            $peserta = $terkunci->peserta;
+            $terkunci->delete();
+
+            if ($peserta->pendaftaran()->doesntExist()) {
+                $peserta->delete();
+            }
+
+            return "pendaftaran/{$terkunci->getKey()}";
+        });
+
+        // Berkas dihapus setelah transaksi berhasil agar tidak hilang bila penghapusan dibatalkan.
+        Storage::disk(RegistrasiService::DISK)->deleteDirectory($folder);
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function tolak(string $kolom, string $pesan): never
+    {
+        throw ValidationException::withMessages([$kolom => $pesan]);
     }
 
     /**

@@ -3,6 +3,9 @@
 namespace App\Filament\Admin\Resources\Asrama\RelationManagers;
 
 use App\Filament\Admin\Support\DataMaster;
+use App\Models\KamarAsrama;
+use App\Services\AsramaService;
+use Closure;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -37,7 +40,15 @@ class KamarRelationManager extends RelationManager
                     ->integer()
                     ->minValue(1)
                     ->maxValue(20)
-                    ->default(4),
+                    ->default(4)
+                    // Kapasitas tidak boleh di bawah jumlah penghuni pelatihan yang belum selesai.
+                    ->rule(fn (?KamarAsrama $record): Closure => function (string $attribute, mixed $value, Closure $fail) use ($record): void {
+                        $terbanyak = $record ? app(AsramaService::class)->penghuniTerbanyak($record) : 0;
+
+                        if ((int) $value < $terbanyak) {
+                            $fail("Kamar ini sedang dihuni {$terbanyak} orang. Kapasitas tidak boleh kurang dari itu.");
+                        }
+                    }),
             ]);
     }
 

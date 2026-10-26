@@ -17,6 +17,8 @@ use Illuminate\Validation\ValidationException;
  */
 class PelatihanService
 {
+    public function __construct(private readonly AsramaService $asrama) {}
+
     /**
      * Membuat atau mengubah pelatihan.
      *
@@ -63,6 +65,11 @@ class PelatihanService
 
         if ($pelatihan && $pelatihan->tipe_lokasi !== $tipeLokasi && $this->sudahAdaPenghuniKamar($pelatihan)) {
             throw ValidationException::withMessages(['tipe_lokasi' => 'Tipe lokasi tidak dapat diubah karena sudah ada peserta yang ditempatkan di kamar asrama.']);
+        }
+
+        // Kamar yang sudah dipakai tidak boleh jadi bentrok dengan pelatihan lain (FR-ASR-07).
+        if ($pelatihan && ($bentrok = $this->asrama->bentrokJadwal($pelatihan, $mulai, $selesai))) {
+            throw ValidationException::withMessages(['tanggal_mulai' => "Tanggal tidak dapat diubah. {$bentrok} Pindahkan peserta ke kamar lain terlebih dahulu."]);
         }
 
         $pelatihan ??= new Pelatihan;

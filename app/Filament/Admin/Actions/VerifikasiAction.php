@@ -154,7 +154,13 @@ class VerifikasiAction extends Action
                     Select::make('menggantikan_id')
                         ->label('Menggantikan')
                         ->options(fn (Get $get): array => $this->kandidatPengganti($record, $get('desa_id')))
-                        ->helperText('Pengganti otomatis masuk kelas peserta yang digantikan.'),
+                        ->live()
+                        ->helperText('Pengganti otomatis masuk kelas peserta yang digantikan.')
+                        ->hint(fn (Get $get): ?string => filled($get('menggantikan_id'))
+                            && app(PenggantiService::class)->bedaJenisKelamin((int) $get('menggantikan_id'), $get('jenis_kelamin'))
+                                ? 'Jenis kelamin berbeda dengan peserta yang digantikan. Pilih kamar lain saat penempatan.'
+                                : null)
+                        ->hintColor('warning'),
                 ]),
             Textarea::make('catatan_panitia')
                 ->label('Catatan panitia')

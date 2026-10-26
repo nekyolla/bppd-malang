@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\JenisKelamin;
 use App\Enums\StatusPendaftaran;
 use App\Models\AsramaPeserta;
 use App\Models\KelasPelatihan;
@@ -106,6 +107,16 @@ describe('pengganti', function () {
             ->and($this->batal->fresh()->pengganti->is($this->calon))->toBeTrue()
             ->and($this->calon->kelas_pelatihan_id)->toBe($this->kelas->id)
             ->and($this->pengganti->kandidat($this->calon, $this->desaId))->toBeEmpty();
+    });
+
+    it('mengingatkan bila pengganti berbeda jenis kelamin dengan yang digantikan', function () {
+        $sama = $this->batal->peserta->jenis_kelamin;
+        $beda = $sama === JenisKelamin::LakiLaki ? JenisKelamin::Perempuan : JenisKelamin::LakiLaki;
+
+        expect($this->pengganti->bedaJenisKelamin($this->batal->id, $sama))->toBeFalse()
+            ->and($this->pengganti->bedaJenisKelamin($this->batal->id, $beda))->toBeTrue()
+            ->and($this->pengganti->bedaJenisKelamin($this->batal->id, $beda->value))->toBeTrue()
+            ->and($this->pengganti->bedaJenisKelamin($this->batal->id, null))->toBeFalse();
     });
 
     it('menolak pengganti dari desa lain', function () {

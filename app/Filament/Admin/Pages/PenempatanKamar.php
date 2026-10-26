@@ -1,0 +1,317 @@
+<?php
+
+namespace App\Filament\Admin\Pages;
+
+use App\Enums\StatusPelatihan;
+use App\Enums\TipeKamar;
+use App\Enums\TipeLokasi;
+use App\Models\AsramaPeserta;
+use App\Models\KamarAsrama;
+use App\Models\Pelatihan;
+use App\Models\PelatihanPeserta;
+use App\Services\AsramaService;
+use App\Services\PenggantiService;
+use App\Support\FormatTanggal;
+use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Arr;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Url;
+use UnitEnum;
+
+/**
+ * Denah kamar per pelatihan dan penempatan peserta (FR-ASR-02–11, DESIGN_SYSTEM §6.4).
+ * Semua aturan penempatan ada di AsramaService.
+ */
+class PenempatanKamar extends Page
+{
+    protected static ?string $slug = 'penempatan-kamar';
+
+    protected static ?string $title = 'Penempatan Kamar';
+
+    protected static ?string $navigationLabel = 'Penempatan Kamar';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Asrama';
+
+    protected static ?int $navigationSort = 1;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHomeModern;
+
+    protected string $view = 'filament.admin.pages.penempatan-kamar';
+
+    #[Url]
+    public ?int $pelatihan = null;
+
+    /**
+     * @var array<string, mixed>
+     */
+    public ?array $pilihan = [];
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('viewAny', AsramaPeserta::class) ?? false;
+    }
+
+    public function mount(): void
+    {
+        $this->pelatihan ??= self::pelatihanBawaan();
+        $this->form->fill(['pelatihan' => $this->pelatihan]);
+    }
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->statePath('pilihan')
+            ->components([
+                Select::make('pelatihan')
+                    ->label('Pelatihan')
+                    ->placeholder('Pilih pelatihan di BBPD Malang')
+                    ->options(fn (): array => Pelatihan::query()
+                        ->with('judulPelatihan')
+                        ->where('tipe_lokasi', TipeLokasi::Bbpd)
+                        ->orderByDesc('tanggal_mulai')
+                        ->get()
+                        ->mapWithKeys(fn (Pelatihan $p): array => [
+                            $p->id => "{$p->nama_tampilan} · ".FormatTanggal::rentang($p->tanggal_mulai, $p->tanggal_selesai)." · {$p->status->getLabel()}",
+                        ])
+                        ->all())
+                    ->searchable()
+                    ->live()
+                    ->afterStateUpdated(function (?string $state): void {
+                        $this->pelatihan = filled($state) ? (int) $state : null;
+                        unset($this->denah, $this->pelatihanTerpilih);
+                    }),
+            ]);
+    }
+
+    #[Computed]
+    public function pelatihanTerpilih(): ?Pelatihan
+    {
+        return $this->pelatihan
+            ? Pelatihan::query()->with('judulPelatihan')->where('tipe_lokasi', TipeLokasi::Bbpd)->find($this->pelatihan)
+            : null;
+    }
+
+    /**
+     * @return list<array{id: int, nama: string, kamar: list<array<string, mixed>>}>
+     */
+    #[Computed]
+    public function denah(): array
+    {
+        return $this->pelatihanTerpilih ? app(AsramaService::class)->denah($this->pelatihanTerpilih) : [];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function ringkasan(): ?array
+    {
+        return $this->pelatihanTerpilih ? app(AsramaService::class)->ringkasan($this->pelatihanTerpilih, $this->denah) : null;
+    }
+
+    /**
+     * Penempatan hanya dapat diubah sebelum pelatihan selesai.
+     */
+    public function bisaDiubah(): bool
+    {
+        return $this->pelatihanTerpilih !== null && $this->pelatihanTerpilih->status !== StatusPelatihan::Selesai;
+    }
+
+    /**
+     * Badge kamar sesuai DESIGN_SYSTEM §2.4; label selalu memuat jumlah/kapasitas.
+     *
+     * @param  array<string, mixed>  $kamar
+     * @return array{label: string, color: string|array<int|string, string>, icon: Heroicon}
+     */
+    public function lencana(array $kamar): array
+    {
+        $jumlah = "{$kamar['jumlah']}/{$kamar['kapasitas']}";
+        /** @var TipeKamar|null $tipe */
+        $tipe = $kamar['tipe'];
+
+        return match (true) {
+            ! $kamar['tersedia'] && $kamar['jumlah'] === 0 => ['label' => 'Tidak tersedia', 'color' => 'gray', 'icon' => Heroicon::OutlinedNoSymbol],
+            $tipe === null => ['label' => "Kosong · {$jumlah}", 'color' => 'gray', 'icon' => Heroicon::OutlinedHome],
+            $kamar['penuh'] => ['label' => "{$tipe->getLabel()} · Penuh {$jumlah}", 'color' => $tipe->getColor(), 'icon' => Heroicon::OutlinedLockClosed],
+            default => ['label' => "{$tipe->getLabel()} · {$jumlah}", 'color' => $tipe->getColor(), 'icon' => $tipe->getIcon()],
+        };
+    }
+
+    public function tempatkanAction(): Action
+    {
+        return Action::make('tempatkan')
+            ->label('Tempatkan')
+            ->icon(Heroicon::OutlinedPlus)
+            ->color('primary')
+            ->size('sm')
+            ->modalHeading(fn (array $arguments): string => 'Tempatkan peserta di kamar '.$this->kamar($arguments)->nama_tampilan)
+            ->modalDescription(fn (array $arguments): string => $this->keteranganKamar($arguments))
+            ->modalSubmitActionLabel('Tempatkan')
+            ->modalWidth('xl')
+            ->schema(fn (array $arguments): array => [
+                Select::make('peserta')
+                    ->label('Peserta')
+                    ->multiple()
+                    ->searchable()
+                    ->required()
+                    ->options($this->calonPenghuni($arguments))
+                    ->maxItems(max(1, $this->sisaTempat($arguments)))
+                    ->helperText($this->calonPenghuni($arguments) === []
+                        ? 'Tidak ada peserta terverifikasi tanpa kamar yang cocok dengan kamar ini.'
+                        : 'Hanya peserta terverifikasi yang belum punya kamar dan cocok dengan gender kamar.'),
+                Toggle::make('pasutri')
+                    ->label('Jadikan kamar pasutri')
+                    ->helperText('Kamar dibatasi 2 orang: 1 laki-laki dan 1 perempuan.')
+                    ->visible(fn (): bool => $this->keadaan($arguments)['tipe'] === null && $this->kamar($arguments)->kapasitas >= AsramaService::MAKS_PASUTRI),
+            ])
+            ->authorize(fn (): bool => auth()->user()->can('create', AsramaPeserta::class))
+            ->visible(fn (): bool => $this->bisaDiubah())
+            ->action(function (array $arguments, array $data, Action $action): void {
+                $kamar = $this->kamar($arguments);
+                $daftar = PelatihanPeserta::query()
+                    ->where('pelatihan_id', $this->pelatihan)
+                    ->whereIn('id', $data['peserta'])
+                    ->get();
+
+                try {
+                    $jumlah = app(AsramaService::class)->tempatkanBanyak($daftar, $kamar, auth()->user(), (bool) ($data['pasutri'] ?? false));
+                } catch (ValidationException $exception) {
+                    Notification::make()
+                        ->title('Peserta belum dapat ditempatkan')
+                        ->body(Arr::first(Arr::flatten($exception->errors())))
+                        ->danger()
+                        ->send();
+
+                    $action->halt();
+                }
+
+                unset($this->denah);
+                Notification::make()->title("{$jumlah} peserta ditempatkan di kamar {$kamar->nama_tampilan}")->success()->send();
+            });
+    }
+
+    public function keluarkanAction(): Action
+    {
+        return Action::make('keluarkan')
+            ->label('Keluarkan')
+            ->icon(Heroicon::OutlinedArrowRightStartOnRectangle)
+            ->color('danger')
+            ->size('sm')
+            ->link()
+            ->requiresConfirmation()
+            ->modalHeading(fn (array $arguments): string => "Keluarkan {$this->penempatan($arguments)->pelatihanPeserta->peserta->nama_lengkap}?")
+            ->modalDescription(fn (array $arguments): string => "Peserta dikeluarkan dari kamar {$this->penempatan($arguments)->penggunaanKamar->kamarAsrama->nama_tampilan}. Jika kamar menjadi kosong, gender kamar kembali netral.")
+            ->modalSubmitActionLabel('Keluarkan')
+            ->authorize(fn (array $arguments): bool => auth()->user()->can('delete', $this->penempatan($arguments)))
+            ->visible(fn (): bool => $this->bisaDiubah())
+            ->action(function (array $arguments, Action $action): void {
+                try {
+                    app(AsramaService::class)->keluarkan($this->penempatan($arguments));
+                } catch (ValidationException $exception) {
+                    Notification::make()
+                        ->title('Peserta tidak dapat dikeluarkan')
+                        ->body(Arr::first(Arr::flatten($exception->errors())))
+                        ->danger()
+                        ->send();
+
+                    $action->halt();
+                }
+
+                unset($this->denah);
+                Notification::make()->title('Peserta dikeluarkan dari kamar')->success()->send();
+            });
+    }
+
+    /**
+     * Pelatihan yang sedang berjalan atau paling dekat dibuka; selain itu yang terbaru.
+     */
+    private static function pelatihanBawaan(): ?int
+    {
+        $bbpd = fn () => Pelatihan::query()->where('tipe_lokasi', TipeLokasi::Bbpd);
+
+        return $bbpd()->where('status', StatusPelatihan::Berjalan)->orderBy('tanggal_mulai')->value('id')
+            ?? $bbpd()->where('status', StatusPelatihan::Dibuka)->orderBy('tanggal_mulai')->value('id')
+            ?? $bbpd()->orderByDesc('tanggal_mulai')->value('id');
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function kamar(array $arguments): KamarAsrama
+    {
+        return KamarAsrama::query()->with('asrama')->findOrFail($arguments['kamar'] ?? null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    private function keadaan(array $arguments): array
+    {
+        return collect($this->denah)->pluck('kamar')->flatten(1)->firstWhere('id', (int) ($arguments['kamar'] ?? 0))
+            ?? throw new \RuntimeException('Kamar tidak ada di denah pelatihan ini.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function sisaTempat(array $arguments): int
+    {
+        $keadaan = $this->keadaan($arguments);
+
+        // Kamar kosong yang dijadikan pasutri tetap dibatasi service menjadi 2 orang.
+        return $keadaan['kapasitas'] - $keadaan['jumlah'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function keteranganKamar(array $arguments): string
+    {
+        $keadaan = $this->keadaan($arguments);
+
+        return match ($keadaan['tipe']) {
+            null => "Kamar kosong untuk {$keadaan['kapasitas']} orang. Gender kamar mengikuti penghuni pertama.",
+            TipeKamar::Pasutri => 'Kamar pasutri: maksimal 2 orang, 1 laki-laki dan 1 perempuan.',
+            default => "Kamar {$keadaan['tipe']->getLabel()}, terisi {$keadaan['jumlah']}/{$keadaan['kapasitas']}.",
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<int, string>
+     */
+    private function calonPenghuni(array $arguments): array
+    {
+        $pengganti = app(PenggantiService::class);
+
+        return app(AsramaService::class)
+            ->calonPenghuni($this->pelatihanTerpilih, $this->kamar($arguments))
+            ->mapWithKeys(fn (PelatihanPeserta $p): array => [$p->id => collect([
+                $p->peserta->nama_lengkap,
+                $p->peserta->jenis_kelamin->getLabel(),
+                $p->kelasPelatihan ? "Kelas {$p->kelasPelatihan->nama_kelas}" : null,
+                $p->menggantikan ? "pengganti {$p->menggantikan->peserta->nama_lengkap}"
+                    .($pengganti->bedaJenisKelamin($p->menggantikan->id, $p->peserta->jenis_kelamin) ? ' (beda jenis kelamin, pilih kamar lain)' : '') : null,
+            ])->filter()->implode(' · ')])
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function penempatan(array $arguments): AsramaPeserta
+    {
+        return AsramaPeserta::query()
+            ->with(['pelatihanPeserta.peserta', 'penggunaanKamar.kamarAsrama.asrama'])
+            ->whereHas('penggunaanKamar', fn ($q) => $q->where('pelatihan_id', $this->pelatihan))
+            ->findOrFail($arguments['penempatan'] ?? null);
+    }
+}

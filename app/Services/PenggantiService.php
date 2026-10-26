@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\JenisKelamin;
 use App\Enums\StatusPendaftaran;
 use App\Models\PelatihanPeserta;
 use Illuminate\Database\Eloquent\Collection;
@@ -62,6 +63,18 @@ class PenggantiService
             'menggantikan_id' => $digantikan->getKey(),
             'kelas_pelatihan_id' => $digantikan->kelas_pelatihan_id ?? $pengganti->kelas_pelatihan_id,
         ])->save();
+    }
+
+    /**
+     * Pengganti beda gender tidak dapat memakai kamar peserta yang digantikan, sehingga
+     * admin diingatkan memilih kamar lain (FR-BTL-08).
+     */
+    public function bedaJenisKelamin(int $digantikanId, JenisKelamin|string|null $jenisKelamin): bool
+    {
+        $jenisKelamin = is_string($jenisKelamin) ? JenisKelamin::tryFrom($jenisKelamin) : $jenisKelamin;
+        $digantikan = PelatihanPeserta::query()->with('peserta')->find($digantikanId);
+
+        return $jenisKelamin !== null && $digantikan !== null && $digantikan->peserta->jenis_kelamin !== $jenisKelamin;
     }
 
     /**

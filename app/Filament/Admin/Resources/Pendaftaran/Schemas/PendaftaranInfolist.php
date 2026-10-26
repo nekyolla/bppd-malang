@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Pendaftaran\Schemas;
 
 use App\Enums\StatusPendaftaran;
+use App\Enums\TipeLokasi;
 use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
 use App\Models\PelatihanPeserta;
 use App\Services\PendaftaranService;
@@ -44,6 +45,10 @@ class PendaftaranInfolist
                         TextEntry::make('kelasPelatihan.nama_kelas')
                             ->label('Kelas')
                             ->placeholder('Belum dibagi'),
+                        TextEntry::make('penempatanKamar.penggunaanKamar.kamarAsrama.no_kamar')
+                            ->label('Kamar')
+                            ->state(fn (PelatihanPeserta $record): ?string => $record->penempatanKamar?->penggunaanKamar->kamarAsrama->nama_tampilan)
+                            ->placeholder(fn (PelatihanPeserta $record): string => $record->pelatihan->tipe_lokasi === TipeLokasi::Bbpd ? 'Belum ditempatkan' : 'Pelatihan di luar BBPD'),
                         TextEntry::make('catatan_panitia')
                             ->label('Catatan panitia')
                             ->placeholder('–')

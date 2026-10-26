@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BisaNonaktif;
 use Database\Factories\KamarAsramaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +29,16 @@ class KamarAsrama extends Model
         return [
             'kapasitas' => 'integer',
         ];
+    }
+
+    /**
+     * `{asrama}-{no_kamar}`, mis. "Anggrek-01" (DESIGN_SYSTEM §7).
+     *
+     * @return Attribute<string, never>
+     */
+    protected function namaTampilan(): Attribute
+    {
+        return Attribute::get(fn (): string => "{$this->asrama->nama_asrama}-{$this->no_kamar}");
     }
 
     /**

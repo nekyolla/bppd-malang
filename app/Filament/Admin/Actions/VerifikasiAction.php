@@ -9,6 +9,7 @@ use App\Models\Jabatan;
 use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
 use App\Models\StatusPtkp;
+use App\Models\SumberDana;
 use App\Services\PendaftaranService;
 use App\Services\PenggantiService;
 use App\Support\IsianPeserta;
@@ -54,6 +55,8 @@ class VerifikasiAction extends Action
             ->visible(fn (PelatihanPeserta $record): bool => $record->status === StatusPendaftaran::Terdaftar)
             ->fillForm(fn (PelatihanPeserta $record): array => [
                 ...app(PendaftaranService::class)->isianVerifikasi($record),
+                'sumber_dana_id' => $record->sumber_dana_id,
+                'sumber_dana_keterangan' => $record->sumber_dana_keterangan,
                 'catatan_panitia' => $record->catatan_panitia,
             ])
             ->schema(fn (PelatihanPeserta $record): array => $this->isianForm($record))
@@ -65,6 +68,7 @@ class VerifikasiAction extends Action
                         Arr::only($data, IsianPeserta::KOLOM),
                         $data['catatan_panitia'] ?? null,
                         filled($data['menggantikan_id'] ?? null) ? (int) $data['menggantikan_id'] : null,
+                        Arr::only($data, ['sumber_dana_id', 'sumber_dana_keterangan']),
                     );
                 } catch (ValidationException $exception) {
                     Notification::make()
@@ -147,6 +151,21 @@ class VerifikasiAction extends Action
                         ->required()
                         ->hint($dataLama('status_ptkp_id'))->hintColor('warning'),
                 ]),
+            Section::make('Sumber dana')
+                ->description('Perbaiki bila peserta salah memilih, misal ternyata dibiayai APBN.')
+                ->columns(2)
+                ->schema([
+                    Select::make('sumber_dana_id')
+                        ->label('Sumber dana')
+                        ->options(fn (Get $get): array => $masterAktif(SumberDana::class, 'sumber_dana_id')($get)->orderBy('id')->pluck('nama', 'id')->all())
+                        ->required()
+                        ->live(),
+                    TextInput::make('sumber_dana_keterangan')
+                        ->label('Keterangan sumber dana')
+                        ->maxLength(255)
+                        ->visible(fn (Get $get): bool => $this->butuhKeterangan($get('sumber_dana_id')))
+                        ->required(fn (Get $get): bool => $this->butuhKeterangan($get('sumber_dana_id'))),
+                ]),
             Section::make('Pengganti')
                 ->description('Peserta batal dari desa yang sama di pelatihan ini. Kosongkan jika peserta ini bukan pengganti.')
                 ->visible(fn (Get $get): bool => $this->kandidatPengganti($record, $get('desa_id')) !== [])
@@ -180,6 +199,11 @@ class VerifikasiAction extends Action
                 $batal->id => "{$batal->peserta->nama_lengkap} — batal: {$batal->alasan_batal}",
             ])
             ->all();
+    }
+
+    private function butuhKeterangan(mixed $sumberDanaId): bool
+    {
+        return filled($sumberDanaId) && (bool) SumberDana::query()->whereKey($sumberDanaId)->value('butuh_keterangan');
     }
 
     private function tautanBerkas(PelatihanPeserta $record): string

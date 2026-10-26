@@ -12,7 +12,8 @@
         @class(['grid gap-4', 'lg:grid-cols-3' => $klik === 'panel'])
     >
         <div @class(['lg:col-span-2' => $klik === 'panel'])>
-            <div class="relative">
+            {{-- `isolate`: z-index panel Leaflet (400+) tidak menimpa sidebar & topbar Filament di layar sempit. --}}
+            <div class="relative isolate">
                 <div
                     x-ref="peta"
                     class="h-80 w-full overflow-hidden rounded-lg sm:h-96"

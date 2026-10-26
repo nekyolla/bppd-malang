@@ -5,6 +5,7 @@ use App\Models\Desa;
 use App\Models\Jabatan;
 use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
+use App\Models\SumberDana;
 use App\Models\User;
 use App\Services\PendaftaranService;
 use App\Support\IsianPeserta;
@@ -142,4 +143,43 @@ it('mencatat verifikasi di audit log atas nama admin', function () {
 
     expect($log->causer->is($this->admin))->toBeTrue()
         ->and($log->attribute_changes['attributes']['status'])->toBe('terverifikasi');
+});
+
+describe('sumber dana saat verifikasi', function () {
+    it('mengganti sumber dana yang salah dipilih peserta', function () {
+        $pendaftaran = PelatihanPeserta::factory()->create();
+        $apbn = SumberDana::factory()->create(['nama' => 'APBN']);
+
+        $this->service->verifikasi($pendaftaran, $this->admin, sumberDana: ['sumber_dana_id' => $apbn->id, 'sumber_dana_keterangan' => 'sisa isian']);
+
+        expect($pendaftaran->sumber_dana_id)->toBe($apbn->id)
+            ->and($pendaftaran->sumber_dana_keterangan)->toBeNull()
+            ->and($pendaftaran->status)->toBe(StatusPendaftaran::Terverifikasi);
+    });
+
+    it('mewajibkan keterangan untuk sumber dana yang membutuhkannya', function () {
+        $pendaftaran = PelatihanPeserta::factory()->create();
+        $lainnya = SumberDana::factory()->butuhKeterangan()->create();
+
+        expect(galatVerifikasi(fn () => $this->service->verifikasi($pendaftaran, $this->admin, sumberDana: ['sumber_dana_id' => $lainnya->id, 'sumber_dana_keterangan' => ' '])))
+            ->toBe(['sumber_dana_keterangan' => ['Keterangan sumber dana wajib diisi.']])
+            ->and($pendaftaran->fresh()->status)->toBe(StatusPendaftaran::Terdaftar);
+
+        $this->service->verifikasi($pendaftaran, $this->admin, sumberDana: ['sumber_dana_id' => $lainnya->id, 'sumber_dana_keterangan' => ' Hibah desa ']);
+
+        expect($pendaftaran->sumber_dana_keterangan)->toBe('Hibah desa');
+    });
+
+    it('menolak sumber dana nonaktif kecuali yang sudah dipakai pendaftaran', function () {
+        $pendaftaran = PelatihanPeserta::factory()->create();
+        $nonaktif = SumberDana::factory()->nonaktif()->create();
+
+        expect(galatVerifikasi(fn () => $this->service->verifikasi($pendaftaran, $this->admin, sumberDana: ['sumber_dana_id' => $nonaktif->id])))
+            ->toHaveKey('sumber_dana_id');
+
+        $pendaftaran->sumberDana->update(['is_aktif' => false]);
+        $this->service->verifikasi($pendaftaran, $this->admin, sumberDana: ['sumber_dana_id' => $pendaftaran->sumber_dana_id]);
+
+        expect($pendaftaran->status)->toBe(StatusPendaftaran::Terverifikasi);
+    });
 });

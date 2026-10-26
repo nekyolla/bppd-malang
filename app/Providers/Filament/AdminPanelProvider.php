@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Admin\Pages\RincianWilayah;
 use App\Filament\Auth\Login;
+use App\Support\Logo;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -32,6 +33,11 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login(Login::class)
             ->brandName('BBPD Malang')
+            // Logo dari public/images/ (PF-20); tanpa berkas, merek tetap berupa teks.
+            ->brandLogo(fn (): ?string => Logo::url())
+            ->darkModeBrandLogo(fn (): ?string => Logo::urlGelap())
+            ->brandLogoHeight('2.5rem')
+            ->favicon(fn (): ?string => Logo::favicon())
             ->colors([
                 'primary' => Color::Blue,
                 'gray' => Color::Slate,

@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Enums\StatusPendaftaran;
 use App\Models\PelatihanPeserta;
+use App\Models\SumberDana;
 use App\Models\User;
 use App\Support\IsianPeserta;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -55,12 +57,13 @@ class PendaftaranService
      *
      * @param  array<string, mixed>|null  $dataPeserta  Data peserta hasil pemeriksaan admin; null = data peserta tidak diubah.
      * @param  int|null  $menggantikanId  Pendaftaran batal yang digantikan (FR-BTL-04).
+     * @param  array{sumber_dana_id: int|string|null, sumber_dana_keterangan?: ?string}|null  $sumberDana  Sumber dana hasil pemeriksaan admin (PF-16); null = tidak diubah.
      *
      * @throws ValidationException
      */
-    public function verifikasi(PelatihanPeserta $pendaftaran, User $oleh, ?array $dataPeserta = null, ?string $catatan = null, ?int $menggantikanId = null): void
+    public function verifikasi(PelatihanPeserta $pendaftaran, User $oleh, ?array $dataPeserta = null, ?string $catatan = null, ?int $menggantikanId = null, ?array $sumberDana = null): void
     {
-        DB::transaction(function () use ($pendaftaran, $oleh, $dataPeserta, $catatan, $menggantikanId): void {
+        DB::transaction(function () use ($pendaftaran, $oleh, $dataPeserta, $catatan, $menggantikanId, $sumberDana): void {
             $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             if (! $terkunci->status->bisaMenjadi(StatusPendaftaran::Terverifikasi)) {
@@ -87,6 +90,10 @@ class PendaftaranService
             ]));
             $peserta->save();
 
+            if ($sumberDana !== null) {
+                $terkunci->fill($this->validasiSumberDana($sumberDana, $terkunci));
+            }
+
             $terkunci->forceFill([
                 'status' => StatusPendaftaran::Terverifikasi,
                 'jabatan_id_saat_pelatihan' => $peserta->jabatan_id,
@@ -104,6 +111,40 @@ class PendaftaranService
         });
 
         $pendaftaran->refresh();
+    }
+
+    /**
+     * Sumber dana boleh yang aktif atau yang sedang dipakai pendaftaran ini; keterangan
+     * wajib jika sumber dana membutuhkannya, dan dikosongkan jika tidak (FR-REG-04).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{sumber_dana_id: int, sumber_dana_keterangan: ?string}
+     *
+     * @throws ValidationException
+     */
+    private function validasiSumberDana(array $data, PelatihanPeserta $pendaftaran): array
+    {
+        $keterangan = is_string($data['sumber_dana_keterangan'] ?? null) ? trim($data['sumber_dana_keterangan']) : null;
+        $data = ['sumber_dana_id' => $data['sumber_dana_id'] ?? null, 'sumber_dana_keterangan' => filled($keterangan) ? $keterangan : null];
+
+        Validator::make($data, [
+            'sumber_dana_id' => ['required', 'integer', Rule::exists('sumber_dana', 'id')->where(fn ($q) => $q
+                ->where('is_aktif', true)
+                ->orWhere('id', $pendaftaran->sumber_dana_id))],
+        ], [
+            'sumber_dana_id.exists' => 'Pilihan sumber dana tidak tersedia.',
+        ], ['sumber_dana_id' => 'sumber dana'])->validate();
+
+        $butuhKeterangan = (bool) SumberDana::query()->whereKey($data['sumber_dana_id'])->value('butuh_keterangan');
+
+        if ($butuhKeterangan && $data['sumber_dana_keterangan'] === null) {
+            throw ValidationException::withMessages(['sumber_dana_keterangan' => 'Keterangan sumber dana wajib diisi.']);
+        }
+
+        return [
+            'sumber_dana_id' => (int) $data['sumber_dana_id'],
+            'sumber_dana_keterangan' => $butuhKeterangan ? $data['sumber_dana_keterangan'] : null,
+        ];
     }
 
     /**

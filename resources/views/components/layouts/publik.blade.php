@@ -8,6 +8,10 @@
 
         <title>{{ $title ?? 'Registrasi Peserta' }} · BBPD Malang</title>
 
+        @if ($favicon = \App\Support\Logo::favicon())
+            <link rel="icon" href="{{ $favicon }}">
+        @endif
+
         <style>
             [x-cloak] {
                 display: none !important;
@@ -21,8 +25,12 @@
     <body class="fi-publik min-h-screen bg-gray-50 text-gray-950 antialiased">
         <header class="border-b border-gray-200 bg-white">
             <div class="mx-auto max-w-2xl px-4 py-4">
-                <p class="text-lg font-semibold">BBPD Malang</p>
-                <p class="text-sm text-gray-600">Balai Besar Pemerintahan Desa</p>
+                @if ($logo = \App\Support\Logo::url())
+                    <img src="{{ $logo }}" alt="BBPD Malang — Balai Besar Pemerintahan Desa" class="h-12 w-auto">
+                @else
+                    <p class="text-lg font-semibold">BBPD Malang</p>
+                    <p class="text-sm text-gray-600">Balai Besar Pemerintahan Desa</p>
+                @endif
             </div>
         </header>
 

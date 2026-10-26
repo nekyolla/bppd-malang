@@ -7,6 +7,7 @@ use App\Filament\Admin\Resources\Pendaftaran\Pages\ListPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ViewPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Schemas\PendaftaranInfolist;
 use App\Filament\Admin\Resources\Pendaftaran\Tables\PendaftaranTable;
+use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -58,6 +59,17 @@ class PendaftaranResource extends Resource
     public static function getNavigationBadgeTooltip(): string
     {
         return 'Menunggu verifikasi';
+    }
+
+    /**
+     * Daftar pendaftar suatu pelatihan yang masih menunggu verifikasi (PF-15).
+     */
+    public static function urlMenunggu(Pelatihan $pelatihan): string
+    {
+        return static::getUrl('index', ['filters' => [
+            'pelatihan_id' => ['value' => (string) $pelatihan->getKey()],
+            'status' => ['value' => StatusPendaftaran::Terdaftar->value],
+        ]]);
     }
 
     public static function infolist(Schema $schema): Schema

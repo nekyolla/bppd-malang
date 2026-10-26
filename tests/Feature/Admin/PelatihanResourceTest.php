@@ -5,6 +5,7 @@ use App\Enums\StatusPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\Pages\CreatePelatihan;
 use App\Filament\Admin\Resources\Pelatihan\Pages\EditPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\Pages\ListPelatihan;
+use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
 use App\Models\JudulPelatihan;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
@@ -146,4 +147,40 @@ it('mengubah pelatihan lewat halaman edit', function () {
         ->assertHasNoFormErrors();
 
     expect($pelatihan->fresh()->jumlah_jp)->toBe(50);
+});
+
+it('mengingatkan peserta yang menunggu verifikasi saat memulai pelatihan tanpa memblokir', function () {
+    $pelatihan = Pelatihan::factory()->dibuka()->create();
+    PelatihanPeserta::factory()->for($pelatihan)->count(2)->create();
+
+    Livewire::test(ListPelatihan::class)
+        ->mountAction(TestAction::make('ubahStatus')->table($pelatihan))
+        ->assertMountedActionModalSee('Masih ada 2 peserta yang menunggu verifikasi.')
+        ->assertMountedActionModalSeeHtml(e(PendaftaranResource::urlMenunggu($pelatihan)))
+        ->callMountedAction()
+        ->assertNotified('Status pelatihan: Sedang berjalan');
+
+    expect($pelatihan->fresh()->status)->toBe(StatusPelatihan::Berjalan);
+});
+
+it('tidak menampilkan peringatan saat semua peserta sudah diverifikasi', function () {
+    $pelatihan = Pelatihan::factory()->dibuka()->create();
+    PelatihanPeserta::factory()->terverifikasi()->for($pelatihan)->create();
+
+    Livewire::test(ListPelatihan::class)
+        ->mountAction(TestAction::make('ubahStatus')->table($pelatihan))
+        ->assertMountedActionModalDontSee('menunggu verifikasi.');
+});
+
+it('membuka daftar pendaftar yang menunggu verifikasi dari tautan peringatan', function () {
+    $pelatihan = Pelatihan::factory()->berjalan()->create();
+    $menunggu = PelatihanPeserta::factory()->for($pelatihan)->create();
+    $terverifikasi = PelatihanPeserta::factory()->terverifikasi()->for($pelatihan)->create();
+    $lain = PelatihanPeserta::factory()->create();
+
+    $this->get(PendaftaranResource::urlMenunggu($pelatihan))
+        ->assertOk()
+        ->assertSee($menunggu->peserta->nama_lengkap)
+        ->assertDontSee($terverifikasi->peserta->nama_lengkap)
+        ->assertDontSee($lain->peserta->nama_lengkap);
 });

@@ -145,7 +145,7 @@ it('menolak berkas lebih dari 2 MB atau bertipe salah', function (string $isian,
         ->and(Peserta::count())->toBe(0);
 })->with([
     'KTP 3 MB' => ['ktp', fn () => UploadedFile::fake()->create('ktp.pdf', 3000, 'application/pdf')],
-    'KTP berupa gambar' => ['ktp', fn () => UploadedFile::fake()->image('ktp.jpg')],
+    'KTP berupa PNG' => ['ktp', fn () => UploadedFile::fake()->image('ktp.png')],
     'foto PNG' => ['foto', fn () => UploadedFile::fake()->image('foto.png')],
     'surat tugas Word' => ['surat_tugas', fn () => UploadedFile::fake()->create('surat.docx', 100, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')],
 ]);
@@ -163,3 +163,15 @@ it('memvalidasi NIK, nomor HP, dan NPWP', function (string $kolom, string $nilai
     ['no_hp', '0212345'],
     ['npwp', '1234'],
 ]);
+
+it('menerima scan KTP berformat JPG dan menyimpannya sesuai isi berkas', function () {
+    $pendaftaran = $this->service->daftar(($this->isian)(['ktp' => UploadedFile::fake()->image('ktp.jpeg', 600, 400)]));
+
+    expect($pendaftaran->data_isian['file_ktp'])->toBe("pendaftaran/{$pendaftaran->id}/ktp.jpg");
+    Storage::disk('local')->assertExists("pendaftaran/{$pendaftaran->id}/ktp.jpg");
+});
+
+it('menolak scan KTP selain PDF atau JPG', function () {
+    expect(galatRegistrasi(fn () => $this->service->daftar(($this->isian)(['ktp' => UploadedFile::fake()->image('ktp.png')]))))
+        ->toBe(['ktp' => ['KTP harus berupa berkas PDF atau JPG.']]);
+});

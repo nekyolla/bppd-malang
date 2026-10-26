@@ -207,3 +207,22 @@ it('tidak menghitung kiriman yang gagal validasi form', function () {
         ->call('daftar')
         ->assertSet('terkirim', true);
 });
+
+it('menampilkan galat isian langsung tanpa menunggu tombol selanjutnya', function () {
+    Livewire::test(Registrasi::class)
+        ->set('data.nik', '35070101')
+        ->assertHasErrors(['data.nik'])
+        ->assertSee('NIK harus 16 angka.')
+        ->set('data.nik', '3507010101900001')
+        ->assertHasNoErrors(['data.nik'])
+        ->set('data.no_hp', '12345')
+        ->assertHasErrors(['data.no_hp'])
+        ->set('data.npwp', '123')
+        ->assertHasErrors(['data.npwp']);
+});
+
+it('menerima KTP PDF atau JPG dan memakai label pas foto 3x4', function () {
+    Livewire::test(Registrasi::class)
+        ->assertSee('Pas foto 3x4')
+        ->assertSee('Format PDF atau JPG.');
+});

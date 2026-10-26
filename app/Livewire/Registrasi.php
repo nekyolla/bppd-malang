@@ -19,6 +19,7 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
@@ -84,6 +85,11 @@ class Registrasi extends Component implements HasActions, HasSchemas
             ->maxSize(RegistrasiService::MAKS_UKURAN_BERKAS_KB)
             ->storeFiles(false);
 
+        // Galat tampil saat isian ditinggalkan, tidak menunggu tombol "Selanjutnya" (PF-12).
+        $langsung = fn (Field $isian): Field => $isian
+            ->live(onBlur: true)
+            ->afterStateUpdated(fn (HasSchemas $livewire, Field $component) => $livewire->validateOnly($component->getStatePath()));
+
         return $schema
             ->statePath('data')
             ->components([
@@ -101,52 +107,58 @@ class Registrasi extends Component implements HasActions, HasSchemas
                         ]),
                     Step::make('Identitas')
                         ->schema([
-                            TextInput::make('nik')
+                            $langsung(TextInput::make('nik')
                                 ->label('NIK')
                                 ->helperText('16 angka, sesuai KTP.')
                                 ->required()
                                 ->length(16)
                                 ->regex('/^\d{16}$/')
+                                ->validationMessages(['size' => 'NIK harus 16 angka.', 'regex' => 'NIK harus 16 angka.'])
+                                ->mask(str_repeat('9', 16))
                                 ->inputMode('numeric')
-                                ->autocomplete('off'),
-                            TextInput::make('nama_lengkap')
+                                ->autocomplete('off')),
+                            $langsung(TextInput::make('nama_lengkap')
                                 ->label('Nama lengkap')
                                 ->helperText('Sesuai KTP, tanpa gelar.')
                                 ->required()
-                                ->maxLength(255),
+                                ->maxLength(255)),
                             ToggleButtons::make('jenis_kelamin')
                                 ->label('Jenis kelamin')
                                 ->options(JenisKelamin::class)
                                 ->required()
                                 ->inline(),
-                            TextInput::make('tempat_lahir')
+                            $langsung(TextInput::make('tempat_lahir')
                                 ->label('Tempat lahir')
                                 ->required()
-                                ->maxLength(255),
-                            DatePicker::make('tanggal_lahir')
+                                ->maxLength(255)),
+                            $langsung(DatePicker::make('tanggal_lahir')
                                 ->label('Tanggal lahir')
                                 ->required()
-                                ->maxDate(now()->subYears(17)),
+                                ->maxDate(now()->subYears(17))
+                                ->validationMessages(['before_or_equal' => 'Peserta minimal berusia 17 tahun.'])),
                             Select::make('agama')
                                 ->label('Agama')
                                 ->options(array_combine(Peserta::AGAMA, Peserta::AGAMA))
                                 ->required(),
-                            Textarea::make('alamat_domisili')
+                            $langsung(Textarea::make('alamat_domisili')
                                 ->label('Alamat domisili')
                                 ->required()
                                 ->rows(2)
-                                ->maxLength(1000),
-                            TextInput::make('no_hp')
+                                ->maxLength(1000)),
+                            $langsung(TextInput::make('no_hp')
                                 ->label('Nomor HP (WhatsApp)')
                                 ->placeholder('08xxxxxxxxxx')
                                 ->required()
                                 ->tel()
-                                ->maxLength(20),
-                            TextInput::make('email')
+                                ->regex('/^08\d{8,12}$/')
+                                ->validationMessages(['regex' => 'Nomor HP diawali 08 dan terdiri dari 10–14 angka.'])
+                                ->mask(str_repeat('9', 14))
+                                ->inputMode('numeric')),
+                            $langsung(TextInput::make('email')
                                 ->label('Email')
                                 ->helperText('Boleh dikosongkan.')
                                 ->email()
-                                ->maxLength(255),
+                                ->maxLength(255)),
                             Select::make('jenjang_pendidikan')
                                 ->label('Pendidikan terakhir')
                                 ->options(array_combine(Peserta::JENJANG_PENDIDIKAN, Peserta::JENJANG_PENDIDIKAN))
@@ -203,19 +215,21 @@ class Registrasi extends Component implements HasActions, HasSchemas
                                 ->disabled(fn (Get $get): bool => blank($get('kecamatan_id')))
                                 ->required()
                                 ->searchable(),
-                            Textarea::make('alamat_kantor_desa')
+                            $langsung(Textarea::make('alamat_kantor_desa')
                                 ->label('Alamat kantor desa')
                                 ->required()
                                 ->rows(2)
-                                ->maxLength(1000),
+                                ->maxLength(1000)),
                         ]),
                     Step::make('Pajak & Sumber Dana')
                         ->schema([
-                            TextInput::make('npwp')
+                            $langsung(TextInput::make('npwp')
                                 ->label('NPWP')
-                                ->helperText('15 atau 16 angka. Boleh dikosongkan jika tidak punya.')
-                                ->inputMode('numeric')
-                                ->maxLength(25),
+                                ->helperText('15 atau 16 angka, tanpa titik dan strip. Boleh dikosongkan jika tidak punya.')
+                                ->regex('/^(\d{15}|\d{16})$/')
+                                ->validationMessages(['regex' => 'NPWP terdiri dari 15 atau 16 angka.'])
+                                ->mask(str_repeat('9', 16))
+                                ->inputMode('numeric')),
                             Select::make('status_ptkp_id')
                                 ->label('Status PTKP')
                                 ->helperText('TK = tidak kawin, K = kawin; angka = jumlah tanggungan.')
@@ -235,8 +249,8 @@ class Registrasi extends Component implements HasActions, HasSchemas
                     Step::make('Berkas')
                         ->description('Setiap berkas maksimal 2 MB.')
                         ->schema([
-                            $berkas('ktp', 'Scan KTP', ['application/pdf'], 'Format PDF.'),
-                            $berkas('foto', 'Pas foto 4x3', ['image/jpeg'], 'Format JPG, latar polos.'),
+                            $berkas('ktp', 'Scan KTP', ['application/pdf', 'image/jpeg'], 'Format PDF atau JPG.'),
+                            $berkas('foto', 'Pas foto 3x4', ['image/jpeg'], 'Format JPG, latar polos.'),
                             $berkas('surat_tugas', 'Surat tugas dari desa', ['application/pdf'], 'Format PDF.'),
                         ]),
                     Step::make('Periksa & Kirim')
@@ -257,6 +271,17 @@ class Registrasi extends Component implements HasActions, HasSchemas
                 ])
                     ->submitAction(new HtmlString(Blade::render('<x-filament::button type="submit" size="lg">Kirim pendaftaran</x-filament::button>'))),
             ]);
+    }
+
+    /**
+     * Pesan khusus isian ikut dipakai saat validasi per isian (`validateOnly`, PF-12);
+     * Filament hanya menyertakannya saat seluruh form divalidasi.
+     *
+     * @return array<string, string>
+     */
+    protected function messages(): array
+    {
+        return $this->form->getValidationMessages();
     }
 
     public function daftar(): void

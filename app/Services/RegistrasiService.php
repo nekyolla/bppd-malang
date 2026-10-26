@@ -33,12 +33,20 @@ class RegistrasiService
     public const MAKS_UKURAN_BERKAS_KB = 2048;
 
     /**
-     * Nama isian berkas => nama file tersimpan.
+     * Nama isian berkas => nama file tersimpan (tanpa ekstensi).
      */
     public const BERKAS = [
-        'ktp' => 'ktp.pdf',
-        'foto' => 'foto.jpg',
-        'surat_tugas' => 'surat-tugas.pdf',
+        'ktp' => 'ktp',
+        'foto' => 'foto',
+        'surat_tugas' => 'surat-tugas',
+    ];
+
+    /**
+     * Ekstensi file tersimpan menurut isi berkas, bukan nama kiriman klien.
+     */
+    public const EKSTENSI = [
+        'application/pdf' => 'pdf',
+        'image/jpeg' => 'jpg',
     ];
 
     public const PESAN_NIK_GANDA = 'NIK ini sudah terdaftar di pelatihan tersebut. Hubungi panitia jika ada data yang perlu diperbaiki.';
@@ -77,7 +85,7 @@ class RegistrasiService
                 $path = [];
 
                 foreach (self::BERKAS as $isian => $namaFile) {
-                    $path[$isian] = Storage::disk(self::DISK)->putFileAs($folder, $data[$isian], $namaFile);
+                    $path[$isian] = Storage::disk(self::DISK)->putFileAs($folder, $data[$isian], $namaFile.'.'.self::EKSTENSI[$data[$isian]->getMimeType()]);
                 }
 
                 $pendaftaran->update([
@@ -144,14 +152,15 @@ class RegistrasiService
                 Rule::requiredIf(fn (): bool => (bool) SumberDana::query()->whereKey($data['sumber_dana_id'] ?? null)->value('butuh_keterangan')),
                 'nullable', 'string', 'max:255',
             ],
-            'ktp' => $berkasPdf,
+            // KTP boleh PDF atau JPG (PF-13).
+            'ktp' => ['required', 'file', 'mimetypes:application/pdf,image/jpeg', 'max:'.self::MAKS_UKURAN_BERKAS_KB],
             'foto' => ['required', 'file', 'mimetypes:image/jpeg', 'max:'.self::MAKS_UKURAN_BERKAS_KB],
             'surat_tugas' => $berkasPdf,
         ], [
             // Pesan spesifik harus di atas pola `*.` karena Laravel memakai pola pertama yang cocok.
             'pelatihan_id.exists' => 'Pelatihan ini tidak sedang menerima pendaftaran.',
             'sumber_dana_keterangan.required' => 'Keterangan sumber dana wajib diisi.',
-            'ktp.mimetypes' => 'KTP harus berupa berkas PDF.',
+            'ktp.mimetypes' => 'KTP harus berupa berkas PDF atau JPG.',
             'surat_tugas.mimetypes' => 'Surat tugas harus berupa berkas PDF.',
             'foto.mimetypes' => 'Pas foto harus berupa berkas JPG.',
             ...IsianPeserta::pesan(),

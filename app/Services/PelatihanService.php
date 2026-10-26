@@ -111,11 +111,19 @@ class PelatihanService
     }
 
     /**
+     * Jumlah pendaftaran yang masih menunggu verifikasi (PF-15).
+     */
+    public function jumlahMenunggu(Pelatihan $pelatihan): int
+    {
+        return $pelatihan->pendaftaran()->where('status', StatusPendaftaran::Terdaftar)->count();
+    }
+
+    /**
      * @throws ValidationException
      */
     private function selesaikanPendaftaran(Pelatihan $pelatihan): void
     {
-        $menunggu = $pelatihan->pendaftaran()->where('status', StatusPendaftaran::Terdaftar)->count();
+        $menunggu = $this->jumlahMenunggu($pelatihan);
 
         if ($menunggu > 0) {
             throw ValidationException::withMessages([

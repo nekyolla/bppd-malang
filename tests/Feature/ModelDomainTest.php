@@ -3,7 +3,6 @@
 use App\Enums\JenisKelamin;
 use App\Enums\StatusPelatihan;
 use App\Enums\StatusPendaftaran;
-use App\Enums\StatusPresensi;
 use App\Enums\TipeKamar;
 use App\Enums\TipeLokasi;
 use App\Models\Asrama;
@@ -13,13 +12,10 @@ use App\Models\Jabatan;
 use App\Models\JudulPelatihan;
 use App\Models\KamarAsrama;
 use App\Models\KategoriPelatihan;
-use App\Models\KelasPelatihan;
-use App\Models\LembarPresensi;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\PenggunaanKamar;
 use App\Models\Peserta;
-use App\Models\Presensi;
 use App\Models\SertifikatPeserta;
 use App\Models\StatusPtkp;
 use App\Models\SumberDana;
@@ -120,18 +116,6 @@ describe('tahun menjabat', function () {
     });
 });
 
-it('menghitung jumlah hadir langsung maupun lewat withCount', function () {
-    $kelas = KelasPelatihan::create(['pelatihan_id' => $this->pelatihan->id, 'nama_kelas' => 'A']);
-
-    foreach (['2026-10-05' => StatusPresensi::Hadir, '2026-10-06' => StatusPresensi::Sakit, '2026-10-07' => StatusPresensi::Hadir] as $tanggal => $status) {
-        $lembar = LembarPresensi::create(['kelas_pelatihan_id' => $kelas->id, 'tanggal' => $tanggal, 'diinput_oleh' => $this->admin->id]);
-        Presensi::create(['lembar_presensi_id' => $lembar->id, 'pelatihan_peserta_id' => $this->pendaftaran->id, 'status' => $status]);
-    }
-
-    expect($this->pendaftaran->jumlah_hadir)->toBe(2)
-        ->and(PelatihanPeserta::denganJumlahHadir()->find($this->pendaftaran->id)->jumlah_hadir)->toBe(2);
-});
-
 it('menghitung jumlah penghuni kamar langsung maupun lewat withCount', function () {
     $kamar = KamarAsrama::create([
         'asrama_id' => Asrama::create(['nama_asrama' => 'Anggrek'])->id,
@@ -213,8 +197,6 @@ it('menghubungkan pendaftaran dengan snapshot, pengganti, dan sertifikat', funct
 
     SertifikatPeserta::create([
         'pelatihan_peserta_id' => $pengganti->id,
-        'nomor_sertifikat' => 'BBPD/001',
-        'tanggal_terbit' => '2026-10-08',
         'file_sertifikat' => 'sertifikat/1/2.pdf',
         'diupload_oleh' => $this->admin->id,
     ]);
@@ -227,7 +209,7 @@ it('menghubungkan pendaftaran dengan snapshot, pengganti, dan sertifikat', funct
         ->and($batal->desaSaatPelatihan->is($this->desa))->toBeTrue()
         ->and($batal->statusPtkpSaatPelatihan->is($this->ptkp))->toBeTrue()
         ->and($batal->dibatalkanOleh->is($this->admin))->toBeTrue()
-        ->and($pengganti->sertifikat->nomor_sertifikat)->toBe('BBPD/001')
+        ->and($pengganti->sertifikat->file_sertifikat)->toBe('sertifikat/1/2.pdf')
         ->and($this->peserta->pendaftaran()->count())->toBe(1)
         ->and($this->pelatihan->pendaftaran()->count())->toBe(2)
         ->and($this->pelatihan->judulPelatihan->kategoriPelatihan->nama_kategori)->toBe('Teknis');
@@ -244,4 +226,17 @@ it('mencatat perubahan pendaftaran ke audit log beserta nilai lama', function ()
         ->and($log->causer->is($this->admin))->toBeTrue()
         ->and($log->attribute_changes['old']['status'])->toBe('terdaftar')
         ->and($log->attribute_changes['attributes']['status'])->toBe('terverifikasi');
+});
+
+it('menampilkan jabatan beserta periodenya (PF-25)', function () {
+    expect(Jabatan::tampilan('Kepala Desa', 2))->toBe('Kepala Desa (periode ke-2)')
+        ->and(Jabatan::tampilan('Sekretaris Desa', null))->toBe('Sekretaris Desa')
+        ->and(Jabatan::tampilan(null, 1))->toBeNull()
+        ->and(Jabatan::berperiode(null))->toBeFalse()
+        ->and(Jabatan::berperiode(999999))->toBeFalse()
+        ->and(Jabatan::berperiode(Jabatan::factory()->berperiode()->create()->id))->toBeTrue();
+
+    $this->pendaftaran->forceFill(['jabatan_id_saat_pelatihan' => $this->jabatan->id, 'periode_jabatan_saat_pelatihan' => 1])->save();
+
+    expect($this->pendaftaran->fresh()->jabatan_saat_pelatihan_tampilan)->toBe('Sekretaris Desa (periode ke-1)');
 });

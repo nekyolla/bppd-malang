@@ -16,6 +16,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -59,7 +60,16 @@ class IsianPesertaForm
                         ->label('Jabatan')
                         ->options(fn (Get $get): array => self::masterAktif(Jabatan::class, $get('jabatan_id'))->orderBy('urutan')->pluck('nama_jabatan', 'id')->all())
                         ->required()
-                        ->searchable()),
+                        ->searchable()
+                        ->live()
+                        ->afterStateUpdated(fn (Set $set) => $set('periode_jabatan', null))),
+                    // Hanya untuk jabatan berperiode, mis. kepala desa (PF-25).
+                    $isian(Select::make('periode_jabatan')
+                        ->label('Periode jabatan')
+                        ->options(Peserta::PERIODE_JABATAN)
+                        ->required()
+                        ->validationMessages(['required' => 'Pilih periode jabatan.'])
+                        ->visible(fn (Get $get): bool => Jabatan::berperiode($get('jabatan_id')))),
                     $isian(DatePicker::make('waktu_pelantikan')->label('Tanggal pelantikan')->required()),
                     $isian(Select::make('desa_id')
                         ->label('Desa')

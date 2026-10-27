@@ -255,3 +255,34 @@ describe('hapus pendaftaran tidak sah', function () {
         expect(Activity::query()->where('subject_type', $pendaftaran->getMorphClass())->where('subject_id', $pendaftaran->id)->where('event', 'deleted')->exists())->toBeTrue();
     });
 });
+
+describe('periode jabatan (PF-25)', function () {
+    it('menyalin periode jabatan ke snapshot saat verifikasi', function () {
+        $kades = Jabatan::factory()->berperiode()->create();
+        $pendaftaran = PelatihanPeserta::factory()->create();
+
+        $this->service->verifikasi($pendaftaran, $this->admin, [
+            ...$this->service->isianVerifikasi($pendaftaran),
+            'jabatan_id' => $kades->id,
+            'periode_jabatan' => 2,
+        ]);
+
+        expect($pendaftaran->peserta->fresh()->periode_jabatan)->toBe(2)
+            ->and($pendaftaran->periode_jabatan_saat_pelatihan)->toBe(2);
+    });
+
+    it('meminta periode untuk pendaftaran lama yang jabatannya kini berperiode', function () {
+        $pendaftaran = PelatihanPeserta::factory()->create();
+        $pendaftaran->peserta->jabatan->update(['memiliki_periode' => true]);
+        $isianLama = $pendaftaran->data_isian;
+        unset($isianLama['periode_jabatan']);
+        $pendaftaran->update(['data_isian' => $isianLama]);
+
+        expect(galatVerifikasi(fn () => $this->service->verifikasi($pendaftaran, $this->admin))['periode_jabatan'][0])
+            ->toBe('Pilih periode jabatan.')
+            ->and(galatVerifikasi(fn () => $this->service->verifikasi($pendaftaran, $this->admin, $this->service->isianVerifikasi($pendaftaran)))['periode_jabatan'][0])
+            ->toBe('Pilih periode jabatan.')
+            ->and($this->service->verifikasiMassal([$pendaftaran], $this->admin))->toBe(['terverifikasi' => 0, 'dilewati' => 1])
+            ->and($pendaftaran->fresh()->status)->toBe(StatusPendaftaran::Terdaftar);
+    });
+});

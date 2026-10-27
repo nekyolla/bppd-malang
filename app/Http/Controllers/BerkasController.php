@@ -53,6 +53,16 @@ class BerkasController extends Controller
         return $this->tampilkan($peserta->{$kolom}, "{$nama}-peserta-{$peserta->id}");
     }
 
+    /**
+     * Sertifikat PDF peserta (PF-27).
+     */
+    public function sertifikat(PelatihanPeserta $pelatihanPeserta): StreamedResponse
+    {
+        Gate::authorize('view', $pelatihanPeserta);
+
+        return $this->tampilkan($pelatihanPeserta->sertifikat?->file_sertifikat, "sertifikat-{$pelatihanPeserta->id}");
+    }
+
     private function tampilkan(?string $path, string $namaDasar): StreamedResponse
     {
         $disk = Storage::disk(RegistrasiService::DISK);

@@ -174,7 +174,16 @@ class Registrasi extends Component implements HasActions, HasSchemas
                                 ->label('Jabatan')
                                 ->options(fn (): array => Jabatan::aktif()->orderBy('urutan')->orderBy('nama_jabatan')->pluck('nama_jabatan', 'id')->all())
                                 ->required()
-                                ->searchable(),
+                                ->searchable()
+                                ->live()
+                                ->afterStateUpdated(fn (Set $set) => $set('periode_jabatan', null)),
+                            // Hanya untuk jabatan berperiode, mis. kepala desa (PF-25).
+                            Select::make('periode_jabatan')
+                                ->label('Periode jabatan')
+                                ->options(Peserta::PERIODE_JABATAN)
+                                ->required()
+                                ->validationMessages(['required' => 'Pilih periode jabatan.'])
+                                ->visible(fn (Get $get): bool => Jabatan::berperiode($get('jabatan_id'))),
                             DatePicker::make('waktu_pelantikan')
                                 ->label('Tanggal pelantikan')
                                 ->required()

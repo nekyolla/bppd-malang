@@ -44,8 +44,7 @@ class AturKelasAction extends Action
                         : 'Kosongkan untuk melepas peserta dari kelas.'),
             ])
             ->authorize('aturKelas')
-            ->visible(fn (PelatihanPeserta $record): bool => $record->status === StatusPendaftaran::Terverifikasi
-                && ! app(KelasService::class)->kelasTerkunci($record))
+            ->visible(fn (PelatihanPeserta $record): bool => $record->status === StatusPendaftaran::Terverifikasi)
             ->action(function (PelatihanPeserta $record, array $data): void {
                 $kelas = filled($data['kelas_pelatihan_id'] ?? null) ? KelasPelatihan::query()->findOrFail($data['kelas_pelatihan_id']) : null;
 

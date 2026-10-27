@@ -7,9 +7,11 @@ use App\Filament\Admin\Support\DataMaster;
 use App\Models\Jabatan;
 use BackedEnum;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use UnitEnum;
@@ -50,6 +52,9 @@ class JabatanResource extends Resource
                     ->integer()
                     ->minValue(0)
                     ->default(fn (): int => (int) Jabatan::max('urutan') + 1),
+                Toggle::make('memiliki_periode')
+                    ->label('Memiliki periode jabatan')
+                    ->helperText('Centang untuk jabatan yang dibatasi periode, mis. Kepala Desa (maks. 2 periode).'),
             ]);
     }
 
@@ -64,6 +69,9 @@ class JabatanResource extends Resource
                     ->label('Nama jabatan')
                     ->searchable()
                     ->sortable(),
+                IconColumn::make('memiliki_periode')
+                    ->label('Berperiode')
+                    ->boolean(),
                 TextColumn::make('peserta_count')
                     ->label('Jumlah peserta')
                     ->counts('peserta'),

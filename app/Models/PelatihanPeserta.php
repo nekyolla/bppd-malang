@@ -3,18 +3,14 @@
 namespace App\Models;
 
 use App\Enums\StatusPendaftaran;
-use App\Enums\StatusPresensi;
 use App\Models\Concerns\Diaudit;
 use App\Services\StatistikService;
 use Database\Factories\PelatihanPesertaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Scope;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
@@ -24,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 #[Fillable([
     'pelatihan_id', 'peserta_id', 'data_isian', 'file_surat_tugas',
-    'sumber_dana_id', 'sumber_dana_keterangan', 'catatan_panitia', 'nilai_pretest', 'nilai_posttest',
+    'sumber_dana_id', 'sumber_dana_keterangan', 'catatan_panitia',
 ])]
 class PelatihanPeserta extends Model
 {
@@ -56,21 +52,11 @@ class PelatihanPeserta extends Model
         return [
             'data_isian' => 'array',
             'waktu_pelantikan_saat_pelatihan' => 'date',
+            'periode_jabatan_saat_pelatihan' => 'integer',
             'status' => StatusPendaftaran::class,
             'diverifikasi_pada' => 'datetime',
             'dibatalkan_pada' => 'datetime',
-            'nilai_pretest' => 'decimal:2',
-            'nilai_posttest' => 'decimal:2',
         ];
-    }
-
-    /**
-     * Memuat `jumlah_hadir` dalam satu query untuk tabel/rekap.
-     */
-    #[Scope]
-    protected function denganJumlahHadir(Builder $query): void
-    {
-        $query->withCount(['presensi as jumlah_hadir' => fn (Builder $q) => $q->where('status', StatusPresensi::Hadir)]);
     }
 
     /**
@@ -88,14 +74,13 @@ class PelatihanPeserta extends Model
     }
 
     /**
-     * Memakai hasil `denganJumlahHadir()` bila dimuat, selain itu menghitung langsung.
+     * Jabatan saat pelatihan (snapshot) beserta periodenya (PF-25).
      *
-     * @return Attribute<int, never>
+     * @return Attribute<?string, never>
      */
-    protected function jumlahHadir(): Attribute
+    protected function jabatanSaatPelatihanTampilan(): Attribute
     {
-        return Attribute::get(fn (?int $value): int => $value
-            ?? $this->presensi()->where('status', StatusPresensi::Hadir)->count());
+        return Attribute::get(fn (): ?string => Jabatan::tampilan($this->jabatanSaatPelatihan?->nama_jabatan, $this->periode_jabatan_saat_pelatihan));
     }
 
     /**
@@ -188,14 +173,6 @@ class PelatihanPeserta extends Model
     public function pengganti(): HasOne
     {
         return $this->hasOne(self::class, 'menggantikan_id');
-    }
-
-    /**
-     * @return HasMany<Presensi, $this>
-     */
-    public function presensi(): HasMany
-    {
-        return $this->hasMany(Presensi::class);
     }
 
     /**

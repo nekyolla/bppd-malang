@@ -21,9 +21,6 @@ class SertifikatPesertaFactory extends Factory
     {
         return [
             'pelatihan_peserta_id' => PelatihanPeserta::factory()->selesai(),
-            'nomor_sertifikat' => fake()->unique()->numerify('BBPD/####/2026'),
-            'tanggal_terbit' => fn (array $attributes) => PelatihanPeserta::findOrFail($attributes['pelatihan_peserta_id'])
-                ->pelatihan->tanggal_selesai->toDateString(),
             'file_sertifikat' => function (array $attributes) {
                 $pendaftaran = PelatihanPeserta::findOrFail($attributes['pelatihan_peserta_id']);
 

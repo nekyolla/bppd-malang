@@ -2,8 +2,8 @@
 
 namespace App\Filament\Admin\Pages;
 
-use App\Filament\Admin\Widgets\PendaftarTerbaru;
 use App\Filament\Admin\Widgets\PetaProvinsi;
+use App\Filament\Admin\Widgets\RingkasanPelatihan;
 use App\Filament\Admin\Widgets\RingkasanStatistik;
 use App\Filament\Admin\Widgets\StatistikProvinsi;
 use App\Services\StatistikService;
@@ -39,7 +39,7 @@ class Dashboard extends BaseDashboard
             RingkasanStatistik::class,
             PetaProvinsi::class,
             StatistikProvinsi::class,
-            PendaftarTerbaru::class,
+            RingkasanPelatihan::class,
         ];
     }
 

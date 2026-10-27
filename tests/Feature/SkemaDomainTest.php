@@ -82,9 +82,18 @@ it('membuat seluruh tabel domain', function () {
         ]))->toBeTrue()
         ->and(Schema::hasColumn('peserta', 'sumber_dana_default_id'))->toBeFalse();
 
-    foreach (['lembar_presensi', 'presensi', 'sertifikat_peserta', 'penggunaan_kamar', 'asrama_peserta'] as $tabel) {
+    foreach (['sertifikat_peserta', 'penggunaan_kamar', 'asrama_peserta'] as $tabel) {
         expect(Schema::hasTable($tabel))->toBeTrue($tabel);
     }
+});
+
+it('tidak menyimpan presensi, nilai, maupun nomor sertifikat (PF-22, PF-26, PF-27)', function () {
+    expect(Schema::hasTable('presensi'))->toBeFalse()
+        ->and(Schema::hasTable('lembar_presensi'))->toBeFalse()
+        ->and(Schema::hasColumn('pelatihan_peserta', 'nilai_pretest'))->toBeFalse()
+        ->and(Schema::hasColumn('pelatihan_peserta', 'nilai_posttest'))->toBeFalse()
+        ->and(Schema::hasColumn('sertifikat_peserta', 'nomor_sertifikat'))->toBeFalse()
+        ->and(Schema::hasColumn('sertifikat_peserta', 'tanggal_terbit'))->toBeFalse();
 });
 
 it('mengisi nilai bawaan status dan is_aktif', function () {
@@ -168,52 +177,19 @@ it('mencegah data master yang dipakai terhapus', function () {
         ->toThrow(QueryException::class);
 });
 
-it('mencatat satu lembar presensi per kelas per tanggal dan satu status per peserta', function () {
+it('menyimpan satu sertifikat per pendaftaran', function () {
     $admin = User::factory()->create()->id;
     $pelatihan = barisPelatihan($this->master);
-    $kelas = DB::table('kelas_pelatihan')->insertGetId(['pelatihan_id' => $pelatihan, 'nama_kelas' => 'A']);
     $pendaftaran = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master));
-    $lembar = DB::table('lembar_presensi')->insertGetId(['kelas_pelatihan_id' => $kelas, 'tanggal' => '2026-10-05', 'diinput_oleh' => $admin]);
-    DB::table('presensi')->insert(['lembar_presensi_id' => $lembar, 'pelatihan_peserta_id' => $pendaftaran, 'status' => 'hadir']);
-
-    expect(fn () => DB::table('lembar_presensi')->insert(['kelas_pelatihan_id' => $kelas, 'tanggal' => '2026-10-05', 'diinput_oleh' => $admin]))
-        ->toThrow(QueryException::class)
-        ->and(fn () => DB::table('presensi')->insert(['lembar_presensi_id' => $lembar, 'pelatihan_peserta_id' => $pendaftaran, 'status' => 'alpa']))
-        ->toThrow(QueryException::class);
-});
-
-it('mempertahankan presensi saat pendaftaran dibatalkan', function () {
-    $admin = User::factory()->create()->id;
-    $pelatihan = barisPelatihan($this->master);
-    $kelas = DB::table('kelas_pelatihan')->insertGetId(['pelatihan_id' => $pelatihan, 'nama_kelas' => 'A']);
-    $pendaftaran = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master));
-    $lembar = DB::table('lembar_presensi')->insertGetId(['kelas_pelatihan_id' => $kelas, 'tanggal' => '2026-10-05', 'diinput_oleh' => $admin]);
-    DB::table('presensi')->insert(['lembar_presensi_id' => $lembar, 'pelatihan_peserta_id' => $pendaftaran, 'status' => 'hadir']);
-
-    DB::table('pelatihan_peserta')->where('id', $pendaftaran)->update(['status' => 'batal']);
-
-    expect(DB::table('presensi')->count())->toBe(1)
-        ->and(fn () => DB::table('pelatihan_peserta')->where('id', $pendaftaran)->delete())
-        ->toThrow(QueryException::class);
-});
-
-it('menerbitkan satu sertifikat per pendaftaran dengan nomor unik', function () {
-    $admin = User::factory()->create()->id;
-    $pelatihan = barisPelatihan($this->master);
-    $pertama = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master));
-    $kedua = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master, '3507010101900002'));
-    $sertifikat = fn (int $pendaftaran, string $nomor) => DB::table('sertifikat_peserta')->insert([
+    $sertifikat = fn () => DB::table('sertifikat_peserta')->insert([
         'pelatihan_peserta_id' => $pendaftaran,
-        'nomor_sertifikat' => $nomor,
-        'tanggal_terbit' => '2026-10-08',
         'file_sertifikat' => "sertifikat/{$pelatihan}/{$pendaftaran}.pdf",
         'diupload_oleh' => $admin,
     ]);
 
-    $sertifikat($pertama, 'BBPD/001');
+    $sertifikat();
 
-    expect(fn () => $sertifikat($pertama, 'BBPD/002'))->toThrow(QueryException::class)
-        ->and(fn () => $sertifikat($kedua, 'BBPD/001'))->toThrow(QueryException::class);
+    expect($sertifikat)->toThrow(QueryException::class);
 });
 
 it('mencatat satu penggunaan per kamar per pelatihan dan satu kamar per peserta', function () {

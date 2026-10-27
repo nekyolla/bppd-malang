@@ -32,7 +32,7 @@ class PesertaInfolist
                             'no_hp', 'email', 'jenjang_pendidikan', 'jurusan_pendidikan', 'alamat_domisili',
                         ]),
                         self::bagian('Jabatan, desa & pajak', [
-                            'jabatan_id', 'waktu_pelantikan', 'desa_id', 'alamat_kantor_desa', 'npwp', 'status_ptkp_id',
+                            'jabatan_id', 'periode_jabatan', 'waktu_pelantikan', 'desa_id', 'alamat_kantor_desa', 'npwp', 'status_ptkp_id',
                         ]),
                     ])->columnSpan(['lg' => 3]),
                 ]),
@@ -50,6 +50,8 @@ class PesertaInfolist
                 ->map(fn (string $nama): TextEntry => TextEntry::make("isian_{$nama}")
                     ->label(ucfirst(IsianPeserta::LABEL[$nama]))
                     ->state(fn (Peserta $record): string => IsianPeserta::tampilkan($nama, IsianPeserta::dariPeserta($record)[$nama]))
+                    // Periode hanya ada untuk jabatan berperiode (PF-25).
+                    ->visible(fn (Peserta $record): bool => $nama !== 'periode_jabatan' || filled($record->periode_jabatan))
                     ->columnSpan(in_array($nama, ['alamat_domisili', 'alamat_kantor_desa', 'desa_id'], true) ? 'full' : 1))
                 ->all());
     }

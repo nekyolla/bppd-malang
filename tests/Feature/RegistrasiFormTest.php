@@ -226,3 +226,31 @@ it('menerima KTP PDF atau JPG dan memakai label pas foto 3x4', function () {
         ->assertSee('Pas foto 3x4')
         ->assertSee('Format PDF atau JPG.');
 });
+
+it('memunculkan periode jabatan begitu jabatan berperiode dipilih dan mengosongkannya saat jabatan diganti', function () {
+    $kades = Jabatan::factory()->berperiode()->create();
+    $sekdes = Jabatan::factory()->create();
+
+    Livewire::test(Registrasi::class)
+        ->assertFormFieldHidden('periode_jabatan')
+        ->fillForm(['jabatan_id' => $kades->id])
+        ->assertFormFieldVisible('periode_jabatan')
+        ->fillForm(['periode_jabatan' => 2])
+        ->fillForm(['jabatan_id' => $sekdes->id])
+        ->assertFormFieldHidden('periode_jabatan')
+        ->assertFormSet(['periode_jabatan' => null]);
+});
+
+it('mengirim pendaftaran kepala desa beserta periodenya', function () {
+    $kades = Jabatan::factory()->berperiode()->create();
+
+    Livewire::test(Registrasi::class)
+        ->fillForm(($this->isian)(['jabatan_id' => $kades->id]))
+        ->call('daftar')
+        ->assertHasFormErrors(['periode_jabatan' => 'required'])
+        ->fillForm(['periode_jabatan' => 1])
+        ->call('daftar')
+        ->assertHasNoFormErrors();
+
+    expect(PelatihanPeserta::sole()->data_isian['periode_jabatan'])->toBe(1);
+});

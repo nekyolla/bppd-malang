@@ -8,7 +8,7 @@ use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\PenggunaanKamar;
 use App\Models\Peserta;
-use App\Models\Presensi;
+use App\Models\SertifikatPeserta;
 use App\Models\User;
 use App\Services\PendaftaranService;
 use App\Services\PenggantiService;
@@ -60,6 +60,17 @@ describe('pembatalan', function () {
         expect(galatBatal(fn () => $this->service->batalkan($pendaftaran, $this->admin, 'Sakit')))->toHaveKey('status');
     })->with(['selesai', 'batal']);
 
+    it('menolak membatalkan peserta yang sertifikatnya sudah diunggah', function () {
+        $sertifikat = SertifikatPeserta::factory()->create([
+            'pelatihan_peserta_id' => PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan),
+        ]);
+        $pendaftaran = $sertifikat->pelatihanPeserta;
+
+        expect(galatBatal(fn () => $this->service->batalkan($pendaftaran, $this->admin, 'Sakit'))['status'][0])
+            ->toBe('Hapus sertifikat peserta ini terlebih dahulu.')
+            ->and($pendaftaran->fresh()->status)->toBe(StatusPendaftaran::Terverifikasi);
+    });
+
     it('melepas jatah kamar dan mengembalikan kamar ke netral jika penghuni terakhir', function () {
         $penggunaan = PenggunaanKamar::factory()->for($this->pelatihan)->create();
         $pertama = AsramaPeserta::factory()->for($penggunaan)->create();
@@ -73,16 +84,6 @@ describe('pembatalan', function () {
         $this->service->batalkan($kedua->pelatihanPeserta, $this->admin, 'Sakit');
 
         expect($penggunaan->fresh())->toBeNull();
-    });
-
-    it('tidak menghapus presensi yang sudah tercatat', function () {
-        $presensi = Presensi::factory()->create();
-        $pendaftaran = $presensi->pelatihanPeserta;
-
-        $this->service->batalkan($pendaftaran, $this->admin, 'Pulang di hari kedua');
-
-        expect($presensi->fresh())->not->toBeNull()
-            ->and($pendaftaran->presensi()->count())->toBe(1);
     });
 });
 

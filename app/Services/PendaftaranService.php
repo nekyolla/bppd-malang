@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Enums\StatusPelatihan;
 use App\Enums\StatusPendaftaran;
+use App\Models\Jabatan;
 use App\Models\PelatihanPeserta;
+use App\Models\Peserta;
 use App\Models\SumberDana;
 use App\Models\User;
 use App\Services\Concerns\MenolakAturan;
@@ -93,6 +95,10 @@ class PendaftaranService
             ]));
             $peserta->save();
 
+            if ($this->periodeBelumDiisi($peserta)) {
+                $this->tolak('periode_jabatan', 'Pilih periode jabatan.');
+            }
+
             if ($sumberDana !== null) {
                 $terkunci->fill($this->validasiSumberDana($sumberDana, $terkunci));
             }
@@ -100,6 +106,7 @@ class PendaftaranService
             $terkunci->forceFill([
                 'status' => StatusPendaftaran::Terverifikasi,
                 'jabatan_id_saat_pelatihan' => $peserta->jabatan_id,
+                'periode_jabatan_saat_pelatihan' => $peserta->periode_jabatan,
                 'desa_id_saat_pelatihan' => $peserta->desa_id,
                 'status_ptkp_id_saat_pelatihan' => $peserta->status_ptkp_id,
                 'waktu_pelantikan_saat_pelatihan' => $peserta->waktu_pelantikan,
@@ -151,8 +158,8 @@ class PendaftaranService
     }
 
     /**
-     * Membatalkan peserta: alasan wajib, jatah kamar dilepas, presensi yang sudah
-     * tercatat tidak dihapus (ARCHITECTURE §7.5, CLAUDE.md aturan 7).
+     * Membatalkan peserta: alasan wajib, ditolak bila sudah bersertifikat, dan jatah kamar
+     * dilepas (ARCHITECTURE §7.5).
      *
      * @throws ValidationException
      */
@@ -167,6 +174,11 @@ class PendaftaranService
 
             if (! $terkunci->status->bisaMenjadi(StatusPendaftaran::Batal)) {
                 $this->tolak('status', 'Hanya peserta yang menunggu verifikasi atau terverifikasi yang dapat dibatalkan.');
+            }
+
+            // Peserta batal tidak mendapat sertifikat (FR-SRT-04).
+            if ($terkunci->sertifikat()->exists()) {
+                $this->tolak('status', 'Hapus sertifikat peserta ini terlebih dahulu.');
             }
 
             $terkunci->forceFill([
@@ -257,7 +269,8 @@ class PendaftaranService
 
     /**
      * Verifikasi beberapa pendaftaran sekaligus tanpa mengubah data peserta. Pendaftaran
-     * yang isiannya berbeda dengan data peserta dilewati agar diperiksa satu per satu.
+     * yang isiannya berbeda dengan data peserta, atau periode jabatannya belum diisi
+     * (PF-25), dilewati agar diperiksa satu per satu.
      *
      * @param  iterable<PelatihanPeserta>  $daftar
      * @return array{terverifikasi: int, dilewati: int}
@@ -267,7 +280,9 @@ class PendaftaranService
         $hasil = ['terverifikasi' => 0, 'dilewati' => 0];
 
         foreach ($daftar as $pendaftaran) {
-            if ($pendaftaran->status !== StatusPendaftaran::Terdaftar || $this->perbedaanIsian($pendaftaran) !== []) {
+            if ($pendaftaran->status !== StatusPendaftaran::Terdaftar
+                || $this->perbedaanIsian($pendaftaran) !== []
+                || $this->periodeBelumDiisi($pendaftaran->peserta)) {
                 $hasil['dilewati']++;
 
                 continue;
@@ -278,5 +293,14 @@ class PendaftaranService
         }
 
         return $hasil;
+    }
+
+    /**
+     * Jabatan berperiode (mis. kepala desa) yang periodenya belum diisi, biasanya
+     * pendaftaran sebelum jabatannya ditandai berperiode (PF-25).
+     */
+    private function periodeBelumDiisi(Peserta $peserta): bool
+    {
+        return $peserta->periode_jabatan === null && Jabatan::berperiode($peserta->jabatan_id);
     }
 }

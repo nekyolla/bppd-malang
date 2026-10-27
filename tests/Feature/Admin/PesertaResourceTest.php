@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\Peserta\Pages\ListPeserta;
 use App\Filament\Admin\Resources\Peserta\Pages\ViewPeserta;
 use App\Filament\Admin\Resources\Peserta\RelationManagers\RiwayatPelatihanRelationManager;
 use App\Models\Desa;
+use App\Models\Jabatan;
 use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
 use App\Models\User;
@@ -100,4 +101,16 @@ it('menampilkan galat service di bawah isian NIK', function () {
         ->fillForm(['nik' => $lain->nik])
         ->call('save')
         ->assertHasFormErrors(['nik']);
+});
+
+it('menampilkan periode jabatan hanya untuk jabatan berperiode (PF-25)', function () {
+    $kades = Peserta::factory()->for(Jabatan::factory()->berperiode()->state(['nama_jabatan' => 'Kepala Desa']))->create(['periode_jabatan' => 2]);
+    PelatihanPeserta::factory()->terverifikasi()->for($kades)->create();
+
+    Livewire::test(ViewPeserta::class, ['record' => $kades->getRouteKey()])
+        ->assertSee('Periode ke-2');
+    Livewire::test(RiwayatPelatihanRelationManager::class, ['ownerRecord' => $kades, 'pageClass' => ViewPeserta::class])
+        ->assertSee('Kepala Desa (periode ke-2)');
+    Livewire::test(ViewPeserta::class, ['record' => $this->peserta->getRouteKey()])
+        ->assertDontSee('Periode jabatan');
 });

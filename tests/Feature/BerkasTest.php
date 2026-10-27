@@ -2,6 +2,7 @@
 
 use App\Enums\Peran;
 use App\Models\PelatihanPeserta;
+use App\Models\SertifikatPeserta;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Storage;
@@ -89,6 +90,35 @@ describe('berkas peserta', function () {
 
         $this->actingAs(User::factory()->peran(Peran::Admin)->create())
             ->get(route('berkas.peserta', [$this->peserta, 'ktp']))
+            ->assertNotFound();
+    });
+});
+
+describe('sertifikat (PF-27)', function () {
+    beforeEach(function () {
+        $this->bersertifikat = SertifikatPeserta::factory()->create();
+        Storage::disk('local')->put($this->bersertifikat->file_sertifikat, '%PDF-sertifikat');
+        $this->urlSertifikat = route('berkas.sertifikat', $this->bersertifikat->pelatihanPeserta);
+    });
+
+    it('membuka sertifikat untuk superadmin dan admin', function (Peran $peran) {
+        $response = $this->actingAs(User::factory()->peran($peran)->create())
+            ->get($this->urlSertifikat)
+            ->assertOk();
+
+        expect($response->streamedContent())->toBe('%PDF-sertifikat')
+            ->and($response->headers->get('Content-Disposition'))->toContain("inline; filename=sertifikat-{$this->bersertifikat->pelatihan_peserta_id}.pdf")
+            ->and($response->headers->get('Cache-Control'))->toContain('no-store');
+    })->with([Peran::Superadmin, Peran::Admin]);
+
+    it('mengarahkan tamu ke login dan menolak akun tanpa role', function () {
+        $this->get($this->urlSertifikat)->assertRedirect('/admin/login');
+        $this->actingAs(User::factory()->create())->get($this->urlSertifikat)->assertForbidden();
+    });
+
+    it('mengembalikan 404 untuk peserta tanpa sertifikat', function () {
+        $this->actingAs(User::factory()->peran(Peran::Admin)->create())
+            ->get(route('berkas.sertifikat', $this->pendaftaran))
             ->assertNotFound();
     });
 });

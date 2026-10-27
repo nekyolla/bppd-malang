@@ -10,10 +10,13 @@ use App\Models\KelasPelatihan;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\User;
+use App\Services\ExportService;
 use Database\Seeders\RoleSeeder;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
@@ -236,13 +239,38 @@ describe('peserta per kelas', function () {
         $this->get("/admin/pelatihan/{$this->pelatihan->id}/kelas/{$kelasLain->id}")->assertNotFound();
     });
 
-    it('mengunduh daftar hadir PDF dan Excel', function (string $aksi) {
+    it('mengunduh daftar hadir untuk hari terpilih dalam PDF dan Excel', function (string $format, string $ekstensi) {
         PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create(['kelas_pelatihan_id' => $this->kelasA->id]);
+        $mulai = $this->pelatihan->tanggal_mulai->toDateString();
 
         ($this->halamanKelas)()
-            ->callAction($aksi)
-            ->assertFileDownloaded();
-    })->with(['daftarHadirPdf', 'daftarHadirExcel']);
+            ->callAction('unduhDaftarHadir', ['tanggal' => [$mulai], 'format' => $format])
+            ->assertHasNoActionErrors()
+            ->assertFileDownloaded(Str::slug("daftar-hadir {$this->pelatihan->nama_tampilan} kelas A {$mulai}").".{$ekstensi}");
+
+        expect(Activity::query()->where('log_name', 'unduhan')->latest('id')->first()->properties['lembar'])->toHaveCount(1);
+    })->with([['pdf', 'pdf'], ['excel', 'xlsx']]);
+
+    it('menamai berkas beberapa hari dengan jumlah harinya', function () {
+        $hari = array_keys(app(ExportService::class)->pilihanHari($this->pelatihan));
+
+        ($this->halamanKelas)()
+            ->callAction('unduhDaftarHadir', ['tanggal' => $hari, 'format' => 'pdf'])
+            ->assertFileDownloaded(Str::slug("daftar-hadir {$this->pelatihan->nama_tampilan} kelas A ".count($hari).' hari').'.pdf');
+    });
+
+    it('menolak unduhan tanpa hari terpilih', function () {
+        ($this->halamanKelas)()
+            ->callAction('unduhDaftarHadir', ['tanggal' => [], 'format' => 'pdf'])
+            ->assertHasActionErrors(['tanggal' => 'required']);
+    });
+
+    it('menolak hari di luar jadwal yang dikirim lewat state', function () {
+        ($this->halamanKelas)()
+            ->callAction('unduhDaftarHadir', ['tanggal' => ['2030-01-01'], 'format' => 'pdf'])
+            ->assertHasActionErrors(['tanggal.0'])
+            ->assertNoFileDownloaded();
+    });
 });
 
 it('tidak menampilkan kamar di sub-menu pelatihan karena sudah ada di menu Asrama', function () {

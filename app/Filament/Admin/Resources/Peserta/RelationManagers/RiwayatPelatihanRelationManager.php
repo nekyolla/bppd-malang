@@ -23,7 +23,7 @@ class RiwayatPelatihanRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['pelatihan.judulPelatihan', 'kelasPelatihan', 'jabatanSaatPelatihan']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['pelatihan.judulPelatihan', 'kelasPelatihan', 'jabatanSaatPelatihan', 'sertifikat']))
             ->columns([
                 TextColumn::make('pelatihan.nama_tampilan')
                     ->label('Pelatihan')
@@ -31,7 +31,13 @@ class RiwayatPelatihanRelationManager extends RelationManager
                     ->wrap(),
                 TextColumn::make('status')->label('Status')->badge(),
                 TextColumn::make('kelasPelatihan.nama_kelas')->label('Kelas')->placeholder('–'),
-                TextColumn::make('jabatanSaatPelatihan.nama_jabatan')->label('Jabatan saat pelatihan')->placeholder('Belum diverifikasi'),
+                TextColumn::make('jabatan_saat_pelatihan_tampilan')->label('Jabatan saat pelatihan')->placeholder('Belum diverifikasi'),
+                TextColumn::make('sertifikat')
+                    ->label('Sertifikat')
+                    ->state(fn (PelatihanPeserta $record): ?string => $record->sertifikat ? 'Lihat sertifikat' : null)
+                    ->url(fn (PelatihanPeserta $record): ?string => $record->sertifikat ? route('berkas.sertifikat', $record) : null, shouldOpenInNewTab: true)
+                    ->color('primary')
+                    ->placeholder('–'),
             ])
             ->defaultSort('created_at', 'desc')
             ->recordUrl(fn (PelatihanPeserta $record): string => PendaftaranResource::getUrl('view', ['record' => $record]))

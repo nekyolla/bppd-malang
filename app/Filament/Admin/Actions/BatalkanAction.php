@@ -30,7 +30,7 @@ class BatalkanAction extends Action
             ->icon(Heroicon::OutlinedXCircle)
             ->color('danger')
             ->modalHeading(fn (PelatihanPeserta $record): string => "Batalkan {$record->peserta->nama_lengkap}?")
-            ->modalDescription(fn (PelatihanPeserta $record): string => 'Jatah kamar peserta akan dilepas. Presensi yang sudah tercatat tetap disimpan. '
+            ->modalDescription(fn (PelatihanPeserta $record): string => 'Jatah kamar peserta akan dilepas. '
                 .(app(PenggantiService::class)->masihBisaDiganti($record)
                     ? 'Pengganti dari desa yang sama dapat ditetapkan saat verifikasi pendaftarannya.'
                     : 'Pelatihan sudah dimulai, sehingga peserta ini tidak dapat digantikan.'))

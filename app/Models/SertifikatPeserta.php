@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['pelatihan_peserta_id', 'nomor_sertifikat', 'tanggal_terbit', 'file_sertifikat', 'diupload_oleh'])]
+#[Fillable(['pelatihan_peserta_id', 'file_sertifikat', 'diupload_oleh'])]
 class SertifikatPeserta extends Model
 {
     use Diaudit;
@@ -18,16 +18,6 @@ class SertifikatPeserta extends Model
     use HasFactory;
 
     protected $table = 'sertifikat_peserta';
-
-    /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'tanggal_terbit' => 'date',
-        ];
-    }
 
     /**
      * @return BelongsTo<PelatihanPeserta, $this>

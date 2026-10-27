@@ -32,7 +32,7 @@ class KelasPelatihanPolicy
     }
 
     /**
-     * Kelas yang masih berisi peserta atau sudah punya presensi ditolak KelasService.
+     * Kelas yang masih berisi peserta ditolak KelasService.
      */
     public function delete(User $user, KelasPelatihan $kelasPelatihan): bool
     {

@@ -10,7 +10,6 @@ use App\Models\Jabatan;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\PenggunaanKamar;
-use App\Models\Presensi;
 use App\Models\SertifikatPeserta;
 use App\Models\SumberDana;
 
@@ -47,15 +46,6 @@ it('membuat pendaftaran baru, selesai, dan batal', function () {
         ->and(PelatihanPeserta::factory()->create()->desa_id_saat_pelatihan)->toBeNull()
         ->and(PelatihanPeserta::factory()->selesai()->create()->status)->toBe(StatusPendaftaran::Selesai)
         ->and(PelatihanPeserta::factory()->batal()->create()->alasan_batal)->not->toBeNull();
-});
-
-it('membuat presensi untuk peserta di kelas dan pelatihan yang sama', function () {
-    $presensi = Presensi::factory()->create();
-    $kelas = $presensi->lembarPresensi->kelasPelatihan;
-
-    expect($presensi->pelatihanPeserta->kelas_pelatihan_id)->toBe($kelas->id)
-        ->and($presensi->pelatihanPeserta->pelatihan_id)->toBe($kelas->pelatihan_id)
-        ->and($presensi->lembarPresensi->tanggal->equalTo($kelas->pelatihan->tanggal_mulai))->toBeTrue();
 });
 
 it('membuat penghuni kamar di pelatihan yang sama dengan gender sesuai kamar', function () {

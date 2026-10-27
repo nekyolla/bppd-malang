@@ -78,10 +78,6 @@ class KelasService
                 $this->tolak('kelas', "Kelas {$kelas->nama_kelas} masih berisi {$jumlah} peserta. Pindahkan pesertanya ke kelas lain terlebih dahulu.");
             }
 
-            if ($kelas->lembarPresensi()->exists()) {
-                $this->tolak('kelas', "Kelas {$kelas->nama_kelas} sudah memiliki presensi, sehingga tidak dapat dihapus.");
-            }
-
             $kelas->pendaftaran()->get()
                 ->each(fn (PelatihanPeserta $pendaftaran) => $pendaftaran->forceFill(['kelas_pelatihan_id' => null])->save());
 
@@ -106,10 +102,6 @@ class KelasService
 
             if ($kelas !== null && $kelas->pelatihan_id !== $terkunci->pelatihan_id) {
                 $this->tolak('kelas_pelatihan_id', 'Kelas harus milik pelatihan yang sama dengan pendaftaran peserta.');
-            }
-
-            if ($terkunci->kelas_pelatihan_id !== $kelas?->getKey() && $this->kelasTerkunci($terkunci)) {
-                $this->tolak('kelas_pelatihan_id', 'Kelas tidak dapat diubah karena peserta sudah memiliki presensi.');
             }
 
             $terkunci->forceFill(['kelas_pelatihan_id' => $kelas?->getKey()])->save();
@@ -144,7 +136,7 @@ class KelasService
     /**
      * Membagi peserta terverifikasi secara acak dan rata ke semua kelas pelatihan (FR-KLS-03).
      * Bawaan: hanya peserta yang belum punya kelas, dengan memperhitungkan isi kelas saat ini.
-     * `$ulangSemua` membagi ulang seluruh peserta terverifikasi, kecuali yang sudah punya presensi.
+     * `$ulangSemua` membagi ulang seluruh peserta terverifikasi.
      *
      * @return int Jumlah peserta yang dibagi.
      *
@@ -165,25 +157,22 @@ class KelasService
             }
 
             $terverifikasi = fn () => $terkunci->pendaftaran()->where('status', StatusPendaftaran::Terverifikasi);
-            // Peserta yang kelasnya tidak diubah: yang sudah punya kelas (bawaan), atau
-            // yang sudah punya presensi (selalu, termasuk saat membagi ulang semua).
-            $kelasnyaTetap = fn ($query) => $ulangSemua
-                ? $query->whereHas('presensi')
-                : $query->whereNotNull('kelas_pelatihan_id');
 
-            $terverifikasi()
-                ->where($kelasnyaTetap)
-                ->whereIn('kelas_pelatihan_id', array_keys($isi))
-                ->toBase()
-                ->selectRaw('kelas_pelatihan_id, count(*) as jumlah')
-                ->groupBy('kelas_pelatihan_id')
-                ->pluck('jumlah', 'kelas_pelatihan_id')
-                ->each(function (int $jumlah, int $kelasId) use (&$isi): void {
-                    $isi[$kelasId] = $jumlah;
-                });
+            // Bawaan: peserta yang sudah punya kelas tetap di kelasnya dan ikut dihitung.
+            if (! $ulangSemua) {
+                $terverifikasi()
+                    ->whereIn('kelas_pelatihan_id', array_keys($isi))
+                    ->toBase()
+                    ->selectRaw('kelas_pelatihan_id, count(*) as jumlah')
+                    ->groupBy('kelas_pelatihan_id')
+                    ->pluck('jumlah', 'kelas_pelatihan_id')
+                    ->each(function (int $jumlah, int $kelasId) use (&$isi): void {
+                        $isi[$kelasId] = $jumlah;
+                    });
+            }
 
             $peserta = $terverifikasi()
-                ->whereNot($kelasnyaTetap)
+                ->when(! $ulangSemua, fn ($query) => $query->whereNull('kelas_pelatihan_id'))
                 ->lockForUpdate()
                 ->get()
                 ->shuffle();
@@ -199,15 +188,6 @@ class KelasService
 
             return $peserta->count();
         });
-    }
-
-    /**
-     * Kelas peserta terkunci begitu presensinya tercatat: peserta tidak berpindah kelas
-     * selama pelatihan (keputusan pemilik repo, 26 Okt 2026).
-     */
-    public function kelasTerkunci(PelatihanPeserta $pendaftaran): bool
-    {
-        return $pendaftaran->presensi()->exists();
     }
 
     /**

@@ -3,8 +3,9 @@
 use App\Enums\Peran;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Admin\Pages\RincianWilayah;
-use App\Filament\Admin\Widgets\PendaftarTerbaru;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
 use App\Filament\Admin\Widgets\PetaProvinsi;
+use App\Filament\Admin\Widgets\RingkasanPelatihan;
 use App\Filament\Admin\Widgets\RingkasanStatistik;
 use App\Filament\Admin\Widgets\StatistikProvinsi;
 use App\Models\Desa;
@@ -40,13 +41,13 @@ beforeEach(function () {
         ->create();
 });
 
-it('menampilkan dashboard berisi kartu, peta, tabel provinsi, dan pendaftar terbaru', function () {
+it('menampilkan dashboard berisi kartu, peta, tabel provinsi, dan ringkasan per pelatihan', function () {
     $this->get('/admin')
         ->assertOk()
         ->assertSeeLivewire(RingkasanStatistik::class)
         ->assertSeeLivewire(PetaProvinsi::class)
         ->assertSeeLivewire(StatistikProvinsi::class)
-        ->assertSeeLivewire(PendaftarTerbaru::class);
+        ->assertSeeLivewire(RingkasanPelatihan::class);
 });
 
 it('menawarkan filter tahun dari tahun anggaran pelatihan', function () {
@@ -101,16 +102,30 @@ it('menampilkan tabel provinsi sebagai alternatif peta', function () {
         ->assertSee('1 dari 1');
 });
 
-it('menampilkan pendaftar terbaru dengan NIK tersamar', function () {
-    $nik = $this->menunggu->first()->peserta->nik;
+it('meringkas pendaftar per pelatihan sesuai filter tahun (PF-24)', function () {
+    $pelatihan2026 = $this->menunggu->first()->pelatihan;
+    PelatihanPeserta::factory()->terverifikasi()->for($pelatihan2026)->create();
+    PelatihanPeserta::factory()->selesai()->for($pelatihan2026)->create();
+    PelatihanPeserta::factory()->batal()->for($pelatihan2026)->create();
 
-    Livewire::test(PendaftarTerbaru::class)
-        ->assertCanSeeTableRecords($this->menunggu)
-        ->assertDontSee($nik);
+    Livewire::test(RingkasanPelatihan::class)
+        ->assertCanSeeTableRecords([$pelatihan2026, $this->pelatihan2025], inOrder: true)
+        ->assertTableColumnStateSet('jumlah_menunggu', 2, $pelatihan2026)
+        ->assertTableColumnStateSet('jumlah_terverifikasi', 2, $pelatihan2026)
+        ->assertTableColumnStateSet('jumlah_terverifikasi', 1, $this->pelatihan2025);
 
-    Livewire::test(PendaftarTerbaru::class, ['pageFilters' => ['tahun' => '2025']])
-        ->assertCanSeeTableRecords([$this->selesai])
-        ->assertCanNotSeeTableRecords($this->menunggu);
+    Livewire::test(RingkasanPelatihan::class, ['pageFilters' => ['tahun' => '2025']])
+        ->assertCanSeeTableRecords([$this->pelatihan2025])
+        ->assertCanNotSeeTableRecords([$pelatihan2026]);
+});
+
+it('membuka pendaftar pelatihan dari ringkasan tanpa menampilkan data perorangan', function () {
+    $pelatihan2026 = $this->menunggu->first()->pelatihan;
+
+    Livewire::test(RingkasanPelatihan::class)
+        ->assertSee(ManagePendaftar::getUrl(['record' => $pelatihan2026]), escape: false)
+        ->assertDontSee('Siti Aminah')
+        ->assertDontSee($this->selesai->peserta->nik);
 });
 
 it('merinci provinsi, kab/kota, dan desa terlatih tanpa nama peserta', function () {

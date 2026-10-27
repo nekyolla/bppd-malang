@@ -151,3 +151,13 @@ it('memilih kategori aktif, ditambah kategori nonaktif yang sedang dipakai', fun
 it('menolak menonaktifkan model yang bukan data master', function () {
     app(DataMasterService::class)->nonaktifkan($this->superadmin);
 })->throws(InvalidArgumentException::class);
+
+it('menandai jabatan yang memiliki periode (PF-25)', function () {
+    $this->actingAs($this->superadmin);
+
+    Livewire::test(ManageJabatan::class)
+        ->callAction('create', data: ['nama_jabatan' => 'Kepala Desa', 'urutan' => 1, 'memiliki_periode' => true])
+        ->assertHasNoActionErrors();
+
+    expect(Jabatan::where('nama_jabatan', 'Kepala Desa')->sole()->memiliki_periode)->toBeTrue();
+});

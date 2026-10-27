@@ -6,12 +6,10 @@ use App\Filament\Admin\Resources\AuditLog\Pages\ListAuditLog;
 use App\Filament\Admin\Resources\AuditLog\Pages\ViewAuditLog;
 use App\Models\AsramaPeserta;
 use App\Models\KelasPelatihan;
-use App\Models\LembarPresensi;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\PenggunaanKamar;
 use App\Models\Peserta;
-use App\Models\Presensi;
 use App\Models\SertifikatPeserta;
 use App\Models\User;
 use App\Support\IsianPeserta;
@@ -65,8 +63,6 @@ class AuditLogResource extends Resource
         KelasPelatihan::class => 'Kelas',
         AsramaPeserta::class => 'Penempatan kamar',
         PenggunaanKamar::class => 'Pemakaian kamar',
-        LembarPresensi::class => 'Lembar presensi',
-        Presensi::class => 'Presensi',
         SertifikatPeserta::class => 'Sertifikat',
         User::class => 'Akun',
     ];
@@ -75,6 +71,7 @@ class AuditLogResource extends Resource
         'created' => 'Dibuat',
         'updated' => 'Diubah',
         'deleted' => 'Dihapus',
+        'ganti' => 'Diganti',
         'unduh' => 'Diunduh',
         'atur-ulang-sandi' => 'Atur ulang kata sandi',
     ];

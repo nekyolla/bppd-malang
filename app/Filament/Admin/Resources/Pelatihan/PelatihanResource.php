@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\Pelatihan\Pages\ListPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\Pages\ManageKelas;
 use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePembagianKelas;
 use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManageSertifikat;
 use App\Filament\Admin\Resources\Pelatihan\Pages\PesertaKelas;
 use App\Filament\Admin\Resources\Pelatihan\Schemas\PelatihanForm;
 use App\Filament\Admin\Resources\Pelatihan\Tables\PelatihanTable;
@@ -71,6 +72,7 @@ class PelatihanResource extends Resource
             ManagePendaftar::class,
             ManageKelas::class,
             ManagePembagianKelas::class,
+            ManageSertifikat::class,
         ]);
     }
 
@@ -84,6 +86,7 @@ class PelatihanResource extends Resource
             'kelas' => ManageKelas::route('/{record}/kelas'),
             'kelas.peserta' => PesertaKelas::route('/{record}/kelas/{kelas}'),
             'pembagian-kelas' => ManagePembagianKelas::route('/{record}/pembagian-kelas'),
+            'sertifikat' => ManageSertifikat::route('/{record}/sertifikat'),
         ];
     }
 }

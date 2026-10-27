@@ -49,6 +49,13 @@ class PendaftaranInfolist
                             ->label('Kamar')
                             ->state(fn (PelatihanPeserta $record): ?string => $record->penempatanKamar?->penggunaanKamar->kamarAsrama->nama_tampilan)
                             ->placeholder(fn (PelatihanPeserta $record): string => $record->pelatihan->tipe_lokasi === TipeLokasi::Bbpd ? 'Belum ditempatkan' : 'Pelatihan di luar BBPD'),
+                        TextEntry::make('sertifikat')
+                            ->label('Sertifikat')
+                            ->state(fn (PelatihanPeserta $record): ?string => $record->sertifikat ? 'Lihat sertifikat' : null)
+                            ->url(fn (PelatihanPeserta $record): ?string => $record->sertifikat ? route('berkas.sertifikat', $record) : null, shouldOpenInNewTab: true)
+                            ->color('primary')
+                            ->placeholder('Belum diunggah')
+                            ->visible(fn (PelatihanPeserta $record): bool => in_array($record->status, [StatusPendaftaran::Terverifikasi, StatusPendaftaran::Selesai], true)),
                         TextEntry::make('catatan_panitia')
                             ->label('Catatan panitia')
                             ->placeholder('–')
@@ -110,12 +117,9 @@ class PendaftaranInfolist
                     ->schema(collect(IsianPeserta::KOLOM)
                         ->map(fn (string $kolom): TextEntry => TextEntry::make("isian_{$kolom}")
                             ->label(ucfirst(IsianPeserta::LABEL[$kolom]))
-                            ->state(fn (PelatihanPeserta $record): string => IsianPeserta::tampilkan(
-                                $kolom,
-                                $record->status === StatusPendaftaran::Terdaftar
-                                    ? app(PendaftaranService::class)->isianVerifikasi($record)[$kolom]
-                                    : IsianPeserta::dariPeserta($record->peserta)[$kolom],
-                            ))
+                            ->state(fn (PelatihanPeserta $record): string => IsianPeserta::tampilkan($kolom, self::nilaiIsian($record, $kolom)))
+                            // Periode hanya ada untuk jabatan berperiode (PF-25).
+                            ->visible(fn (PelatihanPeserta $record): bool => $kolom !== 'periode_jabatan' || filled(self::nilaiIsian($record, $kolom)))
                             ->columnSpan(in_array($kolom, ['alamat_domisili', 'alamat_kantor_desa', 'desa_id'], true) ? 'full' : 1))
                         ->all()),
                 Section::make('Snapshot saat pelatihan')
@@ -123,7 +127,7 @@ class PendaftaranInfolist
                     ->columns(2)
                     ->visible(fn (PelatihanPeserta $record): bool => $record->status !== StatusPendaftaran::Terdaftar && $record->jabatan_id_saat_pelatihan !== null)
                     ->schema([
-                        TextEntry::make('jabatanSaatPelatihan.nama_jabatan')->label('Jabatan'),
+                        TextEntry::make('jabatan_saat_pelatihan_tampilan')->label('Jabatan'),
                         TextEntry::make('tahun_menjabat')->label('Tahun menjabat')->suffix(' tahun'),
                         TextEntry::make('desaSaatPelatihan.nama')
                             ->label('Desa')
@@ -134,5 +138,15 @@ class PendaftaranInfolist
                             ->formatStateUsing(fn (PelatihanPeserta $record): string => FormatTanggal::tanggal($record->waktu_pelantikan_saat_pelatihan)),
                     ]),
             ]);
+    }
+
+    /**
+     * Isian terbaru selama menunggu verifikasi, selain itu data peserta yang sudah diterapkan.
+     */
+    private static function nilaiIsian(PelatihanPeserta $record, string $kolom): mixed
+    {
+        return $record->status === StatusPendaftaran::Terdaftar
+            ? app(PendaftaranService::class)->isianVerifikasi($record)[$kolom]
+            : IsianPeserta::dariPeserta($record->peserta)[$kolom];
     }
 }

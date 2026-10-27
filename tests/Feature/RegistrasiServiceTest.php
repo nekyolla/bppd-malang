@@ -175,3 +175,31 @@ it('menolak scan KTP selain PDF atau JPG', function () {
     expect(galatRegistrasi(fn () => $this->service->daftar(($this->isian)(['ktp' => UploadedFile::fake()->image('ktp.png')]))))
         ->toBe(['ktp' => ['KTP harus berupa berkas PDF atau JPG.']]);
 });
+
+describe('periode jabatan (PF-25)', function () {
+    beforeEach(function () {
+        $this->kades = Jabatan::factory()->berperiode()->create(['nama_jabatan' => 'Kepala Desa']);
+    });
+
+    it('mewajibkan periode 1 atau 2 untuk jabatan berperiode', function (mixed $periode, string $pesan) {
+        expect(galatRegistrasi(fn () => $this->service->daftar(($this->isian)(['jabatan_id' => $this->kades->id, 'periode_jabatan' => $periode])))['periode_jabatan'][0])
+            ->toBe($pesan);
+    })->with([
+        'kosong' => [null, 'Pilih periode jabatan.'],
+        'lebih dari 2' => [3, 'Pilihan periode jabatan tidak valid.'],
+    ]);
+
+    it('menyimpan periode jabatan berperiode di isian pendaftaran', function () {
+        $pendaftaran = $this->service->daftar(($this->isian)(['jabatan_id' => $this->kades->id, 'periode_jabatan' => '2']));
+
+        expect($pendaftaran->data_isian['periode_jabatan'])->toBe(2)
+            ->and($pendaftaran->peserta->periode_jabatan)->toBe(2);
+    });
+
+    it('mengosongkan periode bila jabatannya tidak berperiode', function () {
+        $pendaftaran = $this->service->daftar(($this->isian)(['periode_jabatan' => 2]));
+
+        expect($pendaftaran->data_isian['periode_jabatan'])->toBeNull()
+            ->and($pendaftaran->peserta->periode_jabatan)->toBeNull();
+    });
+});

@@ -42,6 +42,7 @@ class PelatihanPesertaFactory extends Factory
         return $this->state([
             'status' => StatusPendaftaran::Terverifikasi,
             'jabatan_id_saat_pelatihan' => fn (array $attributes) => Peserta::findOrFail($attributes['peserta_id'])->jabatan_id,
+            'periode_jabatan_saat_pelatihan' => fn (array $attributes) => Peserta::findOrFail($attributes['peserta_id'])->periode_jabatan,
             'desa_id_saat_pelatihan' => fn (array $attributes) => Peserta::findOrFail($attributes['peserta_id'])->desa_id,
             'status_ptkp_id_saat_pelatihan' => fn (array $attributes) => Peserta::findOrFail($attributes['peserta_id'])->status_ptkp_id,
             'waktu_pelantikan_saat_pelatihan' => fn (array $attributes) => Peserta::findOrFail($attributes['peserta_id'])->waktu_pelantikan,

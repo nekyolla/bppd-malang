@@ -25,4 +25,12 @@ class JabatanFactory extends Factory
             'urutan' => fake()->numberBetween(1, 20),
         ];
     }
+
+    /**
+     * Jabatan dengan periode, mis. kepala desa (PF-25).
+     */
+    public function berperiode(): static
+    {
+        return $this->state(['memiliki_periode' => true]);
+    }
 }

@@ -29,7 +29,7 @@ class PesertaTable
                         ->orWhere('nik', preg_replace('/\D/', '', $search) ?: $search))
                     ->sortable(),
                 TextColumn::make('jenis_kelamin')->label('Jenis kelamin'),
-                TextColumn::make('jabatan.nama_jabatan')->label('Jabatan'),
+                TextColumn::make('jabatan_tampilan')->label('Jabatan'),
                 TextColumn::make('desa.nama')
                     ->label('Desa')
                     ->description(fn (Peserta $record): string => $record->desa->kecamatan->kabKota->nama),

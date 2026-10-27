@@ -3,7 +3,6 @@
 use App\Enums\JenisKelamin;
 use App\Enums\StatusPelatihan;
 use App\Enums\StatusPendaftaran;
-use App\Enums\StatusPresensi;
 use App\Enums\TipeKamar;
 use Filament\Support\Colors\Color;
 use Filament\Support\Icons\Heroicon;
@@ -57,11 +56,6 @@ it('menerima pendaftaran saat pelatihan dibuka atau berjalan', function () {
         ->and(StatusPelatihan::Dibuka->menerimaPendaftaran())->toBeTrue()
         ->and(StatusPelatihan::Berjalan->menerimaPendaftaran())->toBeTrue()
         ->and(StatusPelatihan::Selesai->menerimaPendaftaran())->toBeFalse();
-});
-
-it('memakai singkatan H/I/S/A untuk presensi', function () {
-    expect(array_map(fn (StatusPresensi $status) => $status->singkatan(), StatusPresensi::cases()))
-        ->toBe(['H', 'I', 'S', 'A']);
 });
 
 it('menentukan tipe kamar dari jenis kelamin penghuni pertama', function () {

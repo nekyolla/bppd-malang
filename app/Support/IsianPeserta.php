@@ -7,6 +7,7 @@ use App\Models\Desa;
 use App\Models\Jabatan;
 use App\Models\Peserta;
 use App\Models\StatusPtkp;
+use App\Rules\PeriodeJabatanWajib;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,7 @@ class IsianPeserta
     public const KOLOM = [
         'nik', 'nama_lengkap', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'agama',
         'alamat_domisili', 'no_hp', 'email', 'jenjang_pendidikan', 'jurusan_pendidikan',
-        'jabatan_id', 'waktu_pelantikan', 'desa_id', 'alamat_kantor_desa', 'npwp', 'status_ptkp_id',
+        'jabatan_id', 'periode_jabatan', 'waktu_pelantikan', 'desa_id', 'alamat_kantor_desa', 'npwp', 'status_ptkp_id',
     ];
 
     public const LABEL = [
@@ -39,6 +40,7 @@ class IsianPeserta
         'jenjang_pendidikan' => 'jenjang pendidikan',
         'jurusan_pendidikan' => 'jurusan',
         'jabatan_id' => 'jabatan',
+        'periode_jabatan' => 'periode jabatan',
         'waktu_pelantikan' => 'tanggal pelantikan',
         'desa_id' => 'desa',
         'alamat_kantor_desa' => 'alamat kantor desa',
@@ -66,6 +68,11 @@ class IsianPeserta
         $data['npwp'] = $angka($data['npwp'] ?? null) ?: null;
         $data['email'] = filled($data['email'] ?? null) ? strtolower(trim($data['email'])) : null;
         $data['jenis_kelamin'] = ($data['jenis_kelamin'] ?? null) instanceof JenisKelamin ? $data['jenis_kelamin']->value : ($data['jenis_kelamin'] ?? null);
+        // Periode hanya untuk jabatan berperiode (PF-25); jabatan lain selalu kosong.
+        $periode = $data['periode_jabatan'] ?? null;
+        $data['periode_jabatan'] = Jabatan::berperiode($data['jabatan_id'] ?? null) && filled($periode)
+            ? (is_numeric($periode) ? (int) $periode : $periode)
+            : null;
 
         return $data;
     }
@@ -94,6 +101,7 @@ class IsianPeserta
             'jenjang_pendidikan' => ['required', Rule::in(Peserta::JENJANG_PENDIDIKAN)],
             'jurusan_pendidikan' => ['nullable', 'string', 'max:255'],
             'jabatan_id' => ['required', 'integer', $master('jabatan')],
+            'periode_jabatan' => ['nullable', 'integer', Rule::in(array_keys(Peserta::PERIODE_JABATAN)), new PeriodeJabatanWajib],
             'waktu_pelantikan' => ['required', 'date', 'before_or_equal:today', 'after:tanggal_lahir'],
             'desa_id' => ['required', 'integer', Rule::exists('desa', 'id')],
             'alamat_kantor_desa' => ['required', 'string', 'max:1000'],
@@ -113,6 +121,8 @@ class IsianPeserta
             'no_hp.regex' => 'Nomor HP diawali 08 dan terdiri dari 10–14 angka.',
             'npwp.regex' => 'NPWP terdiri dari 15 atau 16 angka.',
             'waktu_pelantikan.after' => 'Tanggal pelantikan harus setelah tanggal lahir.',
+            'periode_jabatan.in' => 'Pilihan periode jabatan tidak valid.',
+            'periode_jabatan.integer' => 'Pilihan periode jabatan tidak valid.',
             '*.exists' => 'Pilihan :attribute tidak tersedia.',
         ];
     }
@@ -160,6 +170,7 @@ class IsianPeserta
         return match ($kolom) {
             'jenis_kelamin' => JenisKelamin::tryFrom((string) $nilai)?->getLabel() ?? (string) $nilai,
             'jabatan_id' => Jabatan::find($nilai)?->nama_jabatan ?? '–',
+            'periode_jabatan' => Peserta::PERIODE_JABATAN[(int) $nilai] ?? (string) $nilai,
             'status_ptkp_id' => StatusPtkp::find($nilai)?->kode ?? '–',
             'desa_id' => ($desa = Desa::with('kecamatan.kabKota')->find($nilai))
                 ? "{$desa->nama}, Kec. {$desa->kecamatan->nama}, {$desa->kecamatan->kabKota->nama}"

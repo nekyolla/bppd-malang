@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'nik', 'nama_lengkap', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 'agama',
     'alamat_domisili', 'no_hp', 'email', 'jenjang_pendidikan', 'jurusan_pendidikan',
-    'jabatan_id', 'waktu_pelantikan', 'desa_id', 'alamat_kantor_desa', 'npwp',
+    'jabatan_id', 'periode_jabatan', 'waktu_pelantikan', 'desa_id', 'alamat_kantor_desa', 'npwp',
     'status_ptkp_id', 'foto', 'file_ktp',
 ])]
 class Peserta extends Model
@@ -28,6 +28,11 @@ class Peserta extends Model
     public const AGAMA = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Kepercayaan terhadap Tuhan YME'];
 
     public const JENJANG_PENDIDIKAN = ['SD/Sederajat', 'SMP/Sederajat', 'SMA/Sederajat', 'D1', 'D2', 'D3', 'D4', 'S1', 'S2', 'S3'];
+
+    /**
+     * Pilihan periode untuk jabatan berperiode, maksimal dua periode (PF-25).
+     */
+    public const PERIODE_JABATAN = [1 => 'Periode ke-1', 2 => 'Periode ke-2'];
 
     use Diaudit;
 
@@ -45,7 +50,18 @@ class Peserta extends Model
             'jenis_kelamin' => JenisKelamin::class,
             'tanggal_lahir' => 'date',
             'waktu_pelantikan' => 'date',
+            'periode_jabatan' => 'integer',
         ];
+    }
+
+    /**
+     * Jabatan terkini beserta periodenya, mis. "Kepala Desa (periode ke-2)" (PF-25).
+     *
+     * @return Attribute<?string, never>
+     */
+    protected function jabatanTampilan(): Attribute
+    {
+        return Attribute::get(fn (): ?string => Jabatan::tampilan($this->jabatan?->nama_jabatan, $this->periode_jabatan));
     }
 
     /**

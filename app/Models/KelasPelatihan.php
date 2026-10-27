@@ -35,12 +35,4 @@ class KelasPelatihan extends Model
     {
         return $this->hasMany(PelatihanPeserta::class);
     }
-
-    /**
-     * @return HasMany<LembarPresensi, $this>
-     */
-    public function lembarPresensi(): HasMany
-    {
-        return $this->hasMany(LembarPresensi::class);
-    }
 }

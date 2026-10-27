@@ -17,4 +17,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/berkas/peserta/{peserta}/{jenis}', [BerkasController::class, 'peserta'])
         ->whereIn('jenis', array_keys(BerkasController::JENIS_PESERTA))
         ->name('berkas.peserta');
+
+    Route::get('/berkas/sertifikat/{pelatihanPeserta}', [BerkasController::class, 'sertifikat'])
+        ->name('berkas.sertifikat');
 });

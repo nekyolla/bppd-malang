@@ -7,6 +7,7 @@ use App\Filament\Admin\Resources\Pendaftaran\Pages\ListPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ViewPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
 use App\Models\Desa;
+use App\Models\Jabatan;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
@@ -311,4 +312,14 @@ describe('pembatalan, pengembalian, dan penghapusan', function () {
             ->callAction('hapus')
             ->assertRedirect(ManagePendaftar::getUrl(['record' => $this->pelatihan]));
     });
+});
+
+it('menampilkan snapshot jabatan beserta periodenya di detail pendaftaran (PF-25)', function () {
+    $this->actingAs(User::factory()->peran(Peran::Admin)->create());
+    $peserta = Peserta::factory()->for(Jabatan::factory()->berperiode()->state(['nama_jabatan' => 'Kepala Desa']))->create(['periode_jabatan' => 1]);
+    $pendaftaran = PelatihanPeserta::factory()->terverifikasi()->for($peserta)->create();
+
+    Livewire::test(ViewPendaftaran::class, ['record' => $pendaftaran->getRouteKey()])
+        ->assertSee('Kepala Desa (periode ke-1)')
+        ->assertSee('Periode ke-1');
 });

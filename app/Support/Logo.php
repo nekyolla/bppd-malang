@@ -34,8 +34,10 @@ class Logo
     private static function cari(string $nama): ?string
     {
         foreach (self::EKSTENSI as $ekstensi) {
-            if (is_file(public_path("images/{$nama}.{$ekstensi}"))) {
-                return asset("images/{$nama}.{$ekstensi}");
+            $path = config('bbpd.logo_folder')."/{$nama}.{$ekstensi}";
+
+            if (is_file(public_path($path))) {
+                return asset($path);
             }
         }
 

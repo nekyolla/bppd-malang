@@ -19,4 +19,10 @@ return [
         'maks_per_jam' => (int) env('REGISTRASI_MAKS_PER_JAM', 5),
     ],
 
+    /*
+    | Folder logo instansi di dalam public/ (App\Support\Logo). Test memakai folder
+    | lain agar tidak pernah menyentuh logo asli.
+    */
+    'logo_folder' => 'images',
+
 ];

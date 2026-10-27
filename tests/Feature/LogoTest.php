@@ -3,34 +3,31 @@
 use App\Support\Logo;
 use Illuminate\Support\Facades\File;
 
+// Folder uji terpisah: test tidak boleh menyentuh logo asli di public/images.
+beforeEach(function () {
+    config(['bbpd.logo_folder' => 'images-uji']);
+    File::ensureDirectoryExists(public_path('images-uji'));
+});
+
 afterEach(function () {
-    File::delete([public_path('images/logo.png'), public_path('images/logo-gelap.png')]);
+    File::deleteDirectory(public_path('images-uji'));
 });
 
 it('memakai teks merek selama berkas logo belum ada', function () {
-    File::delete(public_path('images/logo.png'));
-
-    if (Logo::url() !== null) {
-        $this->markTestSkipped('Logo asli sudah dipasang di public/images.');
-    }
+    expect(Logo::url())->toBeNull();
 
     $this->get('/daftar')->assertOk()->assertSee('Balai Besar Pemerintahan Desa');
 });
 
-it('memakai logo dari public/images bila tersedia, termasuk varian gelap', function () {
-    if (Logo::url() !== null) {
-        $this->markTestSkipped('Logo asli sudah dipasang di public/images.');
-    }
+it('memakai logo dari folder logo bila tersedia, termasuk varian gelap', function () {
+    File::put(public_path('images-uji/logo.png'), 'png');
 
-    File::ensureDirectoryExists(public_path('images'));
-    File::put(public_path('images/logo.png'), 'png');
-
-    expect(Logo::url())->toEndWith('/images/logo.png')
+    expect(Logo::url())->toEndWith('/images-uji/logo.png')
         ->and(Logo::urlGelap())->toBe(Logo::url());
 
-    File::put(public_path('images/logo-gelap.png'), 'png');
+    File::put(public_path('images-uji/logo-gelap.png'), 'png');
 
-    expect(Logo::urlGelap())->toEndWith('/images/logo-gelap.png');
+    expect(Logo::urlGelap())->toEndWith('/images-uji/logo-gelap.png');
 
-    $this->get('/daftar')->assertOk()->assertSee('images/logo.png', escape: false);
+    $this->get('/daftar')->assertOk()->assertSee('images-uji/logo.png', escape: false);
 });

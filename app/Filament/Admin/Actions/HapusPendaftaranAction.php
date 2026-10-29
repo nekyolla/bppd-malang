@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Livewire\LoncengVerifikasi;
 use App\Filament\Admin\Support\GalatService;
 use App\Models\PelatihanPeserta;
 use App\Services\PendaftaranService;
@@ -34,6 +35,7 @@ class HapusPendaftaranAction extends Action
             ->authorize('hapus')
             ->visible(fn (PelatihanPeserta $record): bool => $record->diverifikasi_pada === null
                 && in_array($record->status, [StatusPendaftaran::Terdaftar, StatusPendaftaran::Batal], true))
+            ->after(LoncengVerifikasi::perbarui(...))
             ->action(function (PelatihanPeserta $record): void {
                 GalatService::jalankan($this, 'Pendaftaran tidak dapat dihapus', fn () => app(PendaftaranService::class)->hapus($record));
 

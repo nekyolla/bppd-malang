@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Livewire\LoncengVerifikasi;
 use App\Filament\Admin\Support\GalatService;
 use App\Models\PelatihanPeserta;
 use App\Services\PendaftaranService;
@@ -43,6 +44,7 @@ class BatalkanAction extends Action
             ])
             ->authorize('batalkan')
             ->visible(fn (PelatihanPeserta $record): bool => $record->status->bisaMenjadi(StatusPendaftaran::Batal))
+            ->after(LoncengVerifikasi::perbarui(...))
             ->action(function (PelatihanPeserta $record, array $data): void {
                 GalatService::jalankan($this, 'Peserta tidak dapat dibatalkan', fn () => app(PendaftaranService::class)->batalkan($record, auth()->user(), $data['alasan_batal']));
 

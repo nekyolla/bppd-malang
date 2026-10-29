@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPelatihan;
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Livewire\LoncengVerifikasi;
 use App\Filament\Admin\Support\GalatService;
 use App\Models\PelatihanPeserta;
 use App\Services\PendaftaranService;
@@ -38,6 +39,7 @@ class KembalikanPendaftaranAction extends Action
             ->visible(fn (PelatihanPeserta $record): bool => $record->status === StatusPendaftaran::Batal
                 && $record->pelatihan->status !== StatusPelatihan::Selesai
                 && $record->pengganti === null)
+            ->after(LoncengVerifikasi::perbarui(...))
             ->action(function (PelatihanPeserta $record): void {
                 $status = GalatService::jalankan($this, 'Pembatalan tidak dapat dikembalikan', fn () => app(PendaftaranService::class)->kembalikan($record));
 

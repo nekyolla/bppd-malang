@@ -2,6 +2,7 @@
 
 use App\Enums\Peran;
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Livewire\LoncengVerifikasi;
 use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ListPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ViewPendaftaran;
@@ -155,7 +156,8 @@ describe('verifikasi', function () {
                 'catatan_panitia' => 'Nama dirapikan sesuai KTP',
             ])
             ->assertHasNoFormErrors()
-            ->assertNotified('Pendaftaran terverifikasi');
+            ->assertNotified('Pendaftaran terverifikasi')
+            ->assertDispatched(LoncengVerifikasi::PERBARUI);
 
         $pendaftaran->refresh();
 
@@ -187,6 +189,7 @@ describe('verifikasi', function () {
         halamanPendaftar($this->pelatihan)
             ->callAction(TestAction::make('verifikasi')->table($pendaftaran), data: ['nik' => $lain->nik])
             ->assertNotified('Pendaftaran belum dapat diverifikasi')
+            ->assertNotDispatched(LoncengVerifikasi::PERBARUI)
             ->assertActionMounted(TestAction::make('verifikasi')->table($pendaftaran));
 
         expect($pendaftaran->fresh()->status)->toBe(StatusPendaftaran::Terdaftar);
@@ -207,7 +210,8 @@ describe('verifikasi', function () {
         halamanPendaftar($this->pelatihan)
             ->selectTableRecords([...$siap, $berbeda])
             ->callAction(TestAction::make('verifikasiMassal')->table()->bulk())
-            ->assertNotified('2 pendaftaran terverifikasi');
+            ->assertNotified('2 pendaftaran terverifikasi')
+            ->assertDispatched(LoncengVerifikasi::PERBARUI);
 
         expect($berbeda->fresh()->status)->toBe(StatusPendaftaran::Terdaftar)
             ->and($siap->first()->fresh()->status)->toBe(StatusPendaftaran::Terverifikasi);
@@ -266,6 +270,17 @@ describe('detail pendaftaran', function () {
             ->assertSee('Snapshot saat pelatihan')
             ->assertActionHidden('verifikasi');
     });
+
+    it('mengakhiri breadcrumb di nama peserta tanpa "Lihat"', function () {
+        $pendaftaran = PelatihanPeserta::factory()->for($this->pelatihan)->create();
+
+        $halaman = Livewire::test(ViewPendaftaran::class, ['record' => $pendaftaran->getRouteKey()])->instance();
+
+        expect($halaman->getBreadcrumbs())->toBe([
+            PendaftaranResource::getUrl('index') => 'Pendaftaran',
+            $pendaftaran->peserta->nama_lengkap,
+        ]);
+    });
 });
 
 describe('pembatalan, pengembalian, dan penghapusan', function () {
@@ -280,7 +295,8 @@ describe('pembatalan, pengembalian, dan penghapusan', function () {
 
         halamanPendaftar($this->pelatihan)
             ->callAction(TestAction::make('batalkan')->table($pendaftaran), data: ['alasan_batal' => 'Sakit'])
-            ->assertNotified('Peserta dibatalkan');
+            ->assertNotified('Peserta dibatalkan')
+            ->assertDispatched(LoncengVerifikasi::PERBARUI);
 
         expect($pendaftaran->fresh()->status)->toBe(StatusPendaftaran::Batal)
             ->and($pendaftaran->fresh()->alasan_batal)->toBe('Sakit');
@@ -295,7 +311,8 @@ describe('pembatalan, pengembalian, dan penghapusan', function () {
 
         halamanPendaftar($this->pelatihan)
             ->callAction(TestAction::make('kembalikan')->table($pendaftaran))
-            ->assertNotified('Pendaftaran dikembalikan: Terverifikasi');
+            ->assertNotified('Pendaftaran dikembalikan: Terverifikasi')
+            ->assertDispatched(LoncengVerifikasi::PERBARUI);
 
         expect($pendaftaran->fresh()->status)->toBe(StatusPendaftaran::Terverifikasi);
     });
@@ -309,7 +326,8 @@ describe('pembatalan, pengembalian, dan penghapusan', function () {
         halamanPendaftar($this->pelatihan)
             ->assertActionHidden(TestAction::make('hapus')->table($terverifikasi))
             ->callAction(TestAction::make('hapus')->table($pendaftaran))
-            ->assertNotified('Pendaftaran dihapus');
+            ->assertNotified('Pendaftaran dihapus')
+            ->assertDispatched(LoncengVerifikasi::PERBARUI);
 
         expect(PelatihanPeserta::find($pendaftaran->id))->toBeNull();
         Storage::disk('local')->assertMissing("pendaftaran/{$pendaftaran->id}/ktp.pdf");

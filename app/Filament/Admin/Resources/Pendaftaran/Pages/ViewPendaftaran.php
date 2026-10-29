@@ -10,10 +10,13 @@ use App\Filament\Admin\Actions\KembalikanPendaftaranAction;
 use App\Filament\Admin\Actions\VerifikasiAction;
 use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
 use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
+use App\Filament\Concerns\RemahTanpaLihat;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewPendaftaran extends ViewRecord
 {
+    use RemahTanpaLihat;
+
     protected static string $resource = PendaftaranResource::class;
 
     protected function getHeaderActions(): array

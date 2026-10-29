@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\Peserta\Pages;
 
 use App\Filament\Admin\Actions\KembaliAction;
 use App\Filament\Admin\Resources\Peserta\PesertaResource;
+use App\Filament\Concerns\RemahTanpaLihat;
 use App\Models\Peserta;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
@@ -11,6 +12,8 @@ use Illuminate\Contracts\Support\Htmlable;
 
 class ViewPeserta extends ViewRecord
 {
+    use RemahTanpaLihat;
+
     protected static string $resource = PesertaResource::class;
 
     /**

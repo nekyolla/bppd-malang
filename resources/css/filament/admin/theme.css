@@ -232,3 +232,8 @@
 .fi-global-search-field .fi-input-wrp-suffix {
     @apply max-sm:hidden;
 }
+
+/* Lebar cukup agar placeholder "Cari peserta atau pelatihan" tidak terpotong di desktop. */
+.fi-topbar .fi-global-search-field {
+    @apply lg:w-80;
+}

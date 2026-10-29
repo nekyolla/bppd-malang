@@ -11,6 +11,7 @@ use App\Models\Peserta;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
+use Filament\Navigation\NavigationGroup;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -49,12 +50,45 @@ describe('lonceng verifikasi', function () {
             ->assertSee('Lihat semua (+2 pelatihan)');
     });
 
+    it('langsung diperbarui saat aksi pendaftaran mengirim event', function () {
+        $lonceng = Livewire::test(LoncengVerifikasi::class)->assertViewHas('total', 0);
+
+        PelatihanPeserta::factory()->count(2)->create();
+
+        $lonceng->dispatch(LoncengVerifikasi::PERBARUI)->assertViewHas('total', 2);
+    });
+
     it('tampil di topbar panel', function () {
         PelatihanPeserta::factory()->count(2)->create();
 
         $this->get(PelatihanResource::getUrl('index'))
             ->assertOk()
-            ->assertSee('fi-lonceng', escape: false);
+            ->assertSee('fi-lonceng', escape: false)
+            ->assertSee('Cari peserta atau pelatihan');
+    });
+});
+
+describe('menu samping', function () {
+    it('menutup grup Data Master dan Pengguna secara bawaan', function () {
+        $tertutup = collect(Filament::getPanel('admin')->getNavigationGroups())
+            ->filter(fn ($grup): bool => $grup instanceof NavigationGroup && $grup->isCollapsed())
+            ->map(fn (NavigationGroup $grup): string => $grup->getLabel())
+            ->values()
+            ->all();
+
+        expect($tertutup)->toBe(['Data Master', 'Pengguna']);
+    });
+
+    it('mempertahankan urutan grup menu', function () {
+        $this->actingAs(User::factory()->peran(Peran::Superadmin)->create());
+
+        $grup = collect(Filament::getPanel('admin')->getNavigation())
+            ->map(fn (NavigationGroup $grup): ?string => $grup->getLabel())
+            ->filter()
+            ->values()
+            ->all();
+
+        expect($grup)->toBe(['Pelatihan', 'Asrama', 'Data Master', 'Pengguna']);
     });
 });
 

@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Livewire\LoncengVerifikasi;
 use App\Filament\Admin\Support\GalatService;
 use App\Filament\Admin\Support\IsianPesertaForm;
 use App\Filament\Admin\Support\PratinjauBerkas;
@@ -56,6 +57,7 @@ class VerifikasiAction extends Action
                 'catatan_panitia' => $record->catatan_panitia,
             ])
             ->schema(fn (PelatihanPeserta $record): array => $this->isianForm($record))
+            ->after(LoncengVerifikasi::perbarui(...))
             ->action(function (PelatihanPeserta $record, array $data): void {
                 GalatService::jalankan($this, 'Pendaftaran belum dapat diverifikasi', fn () => app(PendaftaranService::class)->verifikasi(
                     $record,

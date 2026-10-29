@@ -4,6 +4,7 @@ use App\Enums\Peran;
 use App\Filament\Admin\Resources\Peserta\Pages\EditPeserta;
 use App\Filament\Admin\Resources\Peserta\Pages\ListPeserta;
 use App\Filament\Admin\Resources\Peserta\Pages\ViewPeserta;
+use App\Filament\Admin\Resources\Peserta\PesertaResource;
 use App\Filament\Admin\Resources\Peserta\RelationManagers\RiwayatPelatihanRelationManager;
 use App\Models\Desa;
 use App\Models\Jabatan;
@@ -81,6 +82,15 @@ it('berjudul nama peserta dengan jabatan dan desa sebagai subjudul', function ()
 
     expect($halaman->getTitle())->toBe($this->peserta->nama_lengkap)
         ->and($halaman->getSubheading())->toBe("{$this->peserta->jabatan->nama_jabatan} · Desa {$this->peserta->desa->nama}");
+});
+
+it('mengakhiri breadcrumb detail di nama peserta tanpa "Lihat"', function () {
+    $halaman = Livewire::test(ViewPeserta::class, ['record' => $this->peserta->getRouteKey()])->instance();
+
+    expect($halaman->getBreadcrumbs())->toBe([
+        PesertaResource::getUrl('index') => 'Peserta',
+        $this->peserta->nama_lengkap,
+    ]);
 });
 
 it('menampilkan riwayat seluruh pelatihan peserta', function () {

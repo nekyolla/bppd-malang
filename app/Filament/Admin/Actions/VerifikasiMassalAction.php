@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Actions;
 
+use App\Filament\Admin\Livewire\LoncengVerifikasi;
 use App\Services\PendaftaranService;
 use Filament\Actions\BulkAction;
 use Filament\Notifications\Notification;
@@ -27,6 +28,7 @@ class VerifikasiMassalAction extends BulkAction
             ->modalSubmitActionLabel('Verifikasi')
             ->authorizeIndividualRecords('verifikasi')
             ->deselectRecordsAfterCompletion()
+            ->after(LoncengVerifikasi::perbarui(...))
             ->action(function (Collection $records): void {
                 $hasil = app(PendaftaranService::class)->verifikasiMassal($records->load('peserta'), auth()->user());
 

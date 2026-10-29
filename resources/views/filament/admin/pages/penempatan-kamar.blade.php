@@ -33,8 +33,10 @@
                 </div>
                 <div>
                     <dt class="text-sm text-gray-500 dark:text-gray-400">Sisa tempat tidur</dt>
-                    <dd class="mt-1 text-sm font-semibold text-gray-950 dark:text-white">
-                        {{ $ringkasan['sisa']['L'] }} di kamar laki-laki · {{ $ringkasan['sisa']['P'] }} di kamar perempuan · {{ $ringkasan['kosong'] }} di kamar kosong
+                    <dd class="mt-1 flex flex-col text-sm font-semibold text-gray-950 dark:text-white">
+                        <span>{{ $ringkasan['sisa']['L'] }} di kamar laki-laki</span>
+                        <span>{{ $ringkasan['sisa']['P'] }} di kamar perempuan</span>
+                        <span>{{ $ringkasan['kosong'] }} di kamar kosong</span>
                     </dd>
                 </div>
                 <div>

@@ -99,7 +99,21 @@ it('mencantumkan atribusi dan data peta 38 provinsi yang kodenya unik', function
 it('menampilkan tabel provinsi sebagai alternatif peta', function () {
     Livewire::test(StatistikProvinsi::class)
         ->assertSee('Jawa Timur')
-        ->assertSee('1 dari 1');
+        ->assertSee('1 dari 1')
+        ->assertTableColumnFormattedStateSet('desa_terlatih', '1', $this->jatim->id)
+        ->assertTableColumnFormattedStateSet('desa_belum_terlatih', '1', $this->jatim->id)
+        ->assertTableColumnFormattedStateSet('peserta_terlatih', '1', $this->jatim->id);
+});
+
+it('menampilkan angka desa belum terlatih dan peserta di rincian wilayah', function () {
+    Livewire::withQueryParams(['provinsi' => $this->jatim->id])
+        ->test(RincianWilayah::class)
+        ->assertTableColumnFormattedStateSet('desa_belum_terlatih', '1', $this->malang->id)
+        ->assertTableColumnFormattedStateSet('peserta_terlatih', '1', $this->malang->id);
+
+    Livewire::withQueryParams(['provinsi' => $this->jatim->id, 'kab_kota' => $this->malang->id])
+        ->test(RincianWilayah::class)
+        ->assertTableColumnFormattedStateSet('peserta_terlatih', '1', $this->kedungsalam->id);
 });
 
 it('meringkas pendaftar per pelatihan sesuai filter tahun (PF-24)', function () {

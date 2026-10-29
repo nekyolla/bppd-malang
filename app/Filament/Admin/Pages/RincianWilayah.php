@@ -57,7 +57,8 @@ class RincianWilayah extends Page implements HasTable
 
     public function table(Table $table): Table
     {
-        $angka = fn ($n): string => Number::format((int) $n, locale: 'id');
+        // Parameter harus bernama $state: Filament mengisi parameter closure berdasarkan namanya.
+        $angka = fn ($state): string => Number::format((int) $state, locale: 'id');
         $service = app(StatistikService::class);
 
         return $table

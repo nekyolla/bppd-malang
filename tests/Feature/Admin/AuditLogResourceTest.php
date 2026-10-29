@@ -43,7 +43,8 @@ it('menampilkan siapa, kapan, aksi, objek, dan nilai lama → baru', function ()
     Livewire::test(ViewAuditLog::class, ['record' => $log->getKey()])
         ->assertSee('status')
         ->assertSee('terdaftar')
-        ->assertSee('terverifikasi');
+        ->assertSee('terverifikasi')
+        ->assertActionDoesNotExist('kembali');
 });
 
 it('mencatat perubahan akun tanpa hash kata sandi', function () {

@@ -6,6 +6,7 @@ use App\Filament\Admin\Livewire\LoncengVerifikasi;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Admin\Pages\RincianWilayah;
 use App\Filament\Auth\Login;
+use App\Http\Middleware\BatasSesiAdmin;
 use App\Support\Instansi;
 use App\Support\Logo;
 use App\Support\Warna;
@@ -26,9 +27,19 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Livewire\Livewire;
 
 class AdminPanelProvider extends PanelProvider
 {
+    /**
+     * Komponen Livewire di luar App\Livewire harus didaftarkan: permintaan update (polling,
+     * event) memetakan nama komponen kembali ke class, dan bila gagal Livewire membalas 419.
+     */
+    public function boot(): void
+    {
+        Livewire::component(LoncengVerifikasi::NAMA, LoncengVerifikasi::class);
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -74,7 +85,26 @@ class AdminPanelProvider extends PanelProvider
             // Lonceng pendaftar menunggu verifikasi, di kiri menu akun.
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
-                fn (): string => Blade::render('@livewire('.LoncengVerifikasi::class.'::class)'),
+                fn (): string => Blade::render('@livewire(\''.LoncengVerifikasi::NAMA.'\')'),
+            )
+            // Sesi berakhir (BatasSesiAdmin membalas 401) atau token kedaluwarsa (419): muat ulang
+            // halaman sehingga diarahkan ke login, alih-alih dialog "This page has expired".
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => <<<'HTML'
+                    <script>
+                        document.addEventListener('livewire:init', () => {
+                            Livewire.hook('request', ({ fail }) => {
+                                fail(({ status, preventDefault }) => {
+                                    if (status === 401 || status === 419) {
+                                        preventDefault();
+                                        window.location.reload();
+                                    }
+                                });
+                            });
+                        });
+                    </script>
+                    HTML,
             )
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')
             ->middleware([
@@ -88,8 +118,10 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            // Persisten: ikut diperiksa pada update Livewire (polling, aksi), bukan hanya saat membuka halaman.
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+                BatasSesiAdmin::class,
+            ], isPersistent: true);
     }
 }

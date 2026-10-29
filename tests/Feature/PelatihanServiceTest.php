@@ -138,3 +138,22 @@ describe('ubahStatus', function () {
                 ->count())->toBe(2);
     });
 });
+
+describe('daftarMenunggu', function () {
+    it('hanya memuat pelatihan dengan pendaftar menunggu, terdekat tanggal mulainya dulu', function () {
+        $nanti = Pelatihan::factory()->dibuka()->create(['tanggal_mulai' => '2026-12-01', 'tanggal_selesai' => '2026-12-03']);
+        $dekat = Pelatihan::factory()->dibuka()->create(['tanggal_mulai' => '2026-11-10', 'tanggal_selesai' => '2026-11-12']);
+        $beres = Pelatihan::factory()->dibuka()->create();
+
+        PelatihanPeserta::factory()->count(2)->for($nanti)->create();
+        PelatihanPeserta::factory()->for($nanti)->terverifikasi()->create();
+        PelatihanPeserta::factory()->for($dekat)->create();
+        PelatihanPeserta::factory()->for($beres)->terverifikasi()->create();
+        PelatihanPeserta::factory()->for($beres)->batal()->create();
+
+        $hasil = $this->service->daftarMenunggu();
+
+        expect($hasil->modelKeys())->toBe([$dekat->id, $nanti->id])
+            ->and($hasil->pluck('jumlah_menunggu')->all())->toBe([1, 2]);
+    });
+});

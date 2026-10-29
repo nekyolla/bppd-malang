@@ -163,3 +163,12 @@
         @apply min-w-0 break-words;
     }
 }
+
+/* Lonceng verifikasi: angka sebagai bulatan solid agar terlihat sekilas. */
+.fi-lonceng .fi-icon-btn > .fi-icon-btn-badge-ctn {
+    @apply start-[calc(100%-0.5rem)] top-1.5 rounded-full bg-transparent;
+
+    & .fi-badge {
+        @apply min-w-5 justify-center rounded-full bg-danger-600 px-1.5 py-0 text-[0.6875rem] leading-5 font-semibold text-white ring-2 ring-white dark:bg-danger-500 dark:ring-gray-900;
+    }
+}

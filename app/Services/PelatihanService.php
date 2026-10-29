@@ -7,6 +7,8 @@ use App\Enums\StatusPendaftaran;
 use App\Enums\TipeLokasi;
 use App\Models\JudulPelatihan;
 use App\Models\Pelatihan;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -116,6 +118,24 @@ class PelatihanService
     public function jumlahMenunggu(Pelatihan $pelatihan): int
     {
         return $pelatihan->pendaftaran()->where('status', StatusPendaftaran::Terdaftar)->count();
+    }
+
+    /**
+     * Pelatihan yang masih punya pendaftar menunggu verifikasi, terdekat tanggal mulainya
+     * dulu. Setiap baris membawa `jumlah_menunggu` (lonceng di topbar).
+     *
+     * @return Collection<int, Pelatihan>
+     */
+    public function daftarMenunggu(): Collection
+    {
+        $menunggu = fn (Builder $q) => $q->where('status', StatusPendaftaran::Terdaftar);
+
+        return Pelatihan::query()
+            ->with('judulPelatihan')
+            ->whereHas('pendaftaran', $menunggu)
+            ->withCount(['pendaftaran as jumlah_menunggu' => $menunggu])
+            ->orderBy('tanggal_mulai')
+            ->get();
     }
 
     /**

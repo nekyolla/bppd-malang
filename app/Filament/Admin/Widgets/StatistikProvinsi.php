@@ -24,12 +24,14 @@ class StatistikProvinsi extends TableWidget
 
     public function table(Table $table): Table
     {
-        $angka = fn ($n): string => Number::format((int) $n, locale: 'id');
+        // Parameter harus bernama $state: Filament mengisi parameter closure berdasarkan namanya.
+        $angka = fn ($state): string => Number::format((int) $state, locale: 'id');
 
         return $table
             ->heading('Sebaran per provinsi')
             ->description('Klik provinsi untuk melihat rinciannya.')
-            ->records(fn (): array => app(StatistikService::class)->perProvinsi($this->tahun())->keyBy('id')->all())
+            // Provinsi dengan desa terlatih terbanyak di atas; seri tetap urut kode wilayah.
+            ->records(fn (): array => app(StatistikService::class)->perProvinsi($this->tahun())->sortByDesc('desa_terlatih')->keyBy('id')->all())
             ->columns([
                 TextColumn::make('nama')->label('Provinsi'),
                 TextColumn::make('kab_kota_terlatih')
@@ -37,13 +39,16 @@ class StatistikProvinsi extends TableWidget
                     ->formatStateUsing(fn ($state, array $record): string => "{$angka($state)} dari {$angka($record['total_kab_kota'])}"),
                 TextColumn::make('desa_terlatih')
                     ->label('Desa terlatih')
-                    ->formatStateUsing($angka),
+                    ->formatStateUsing($angka)
+                    ->alignEnd(),
                 TextColumn::make('desa_belum_terlatih')
                     ->label('Desa belum terlatih')
-                    ->formatStateUsing($angka),
+                    ->formatStateUsing($angka)
+                    ->alignEnd(),
                 TextColumn::make('peserta_terlatih')
                     ->label('Peserta terlatih')
-                    ->formatStateUsing($angka),
+                    ->formatStateUsing($angka)
+                    ->alignEnd(),
             ])
             ->recordUrl(fn (array $record): string => RincianWilayah::getUrl(['provinsi' => $record['id'], 'tahun' => $this->tahun()]))
             ->paginated(false);

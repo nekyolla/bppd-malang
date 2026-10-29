@@ -30,7 +30,7 @@ class Dashboard extends BaseDashboard
                 ->options(fn (): array => collect(app(StatistikService::class)->daftarTahun())
                     ->mapWithKeys(fn (int $tahun): array => [$tahun => (string) $tahun])
                     ->all()),
-        ]);
+        ])->columns(['md' => 3, 'xl' => 4]);
     }
 
     public function getWidgets(): array

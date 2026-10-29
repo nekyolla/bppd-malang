@@ -192,8 +192,9 @@
 .fi-wi-stats-overview-stat {
     @apply min-w-0;
 
+    /* Lima kartu sejajar: label bisa dua baris, jadi tinggi label disamakan agar angka sejajar. */
     & .fi-wi-stats-overview-stat-label-ctn {
-        @apply items-start;
+        @apply items-start @4xl:min-h-10;
     }
 
     & .fi-wi-stats-overview-stat-label,
@@ -236,4 +237,13 @@
 /* Lebar cukup agar placeholder "Cari peserta atau pelatihan" tidak terpotong di desktop. */
 .fi-topbar .fi-global-search-field {
     @apply lg:w-80;
+}
+
+/* Kontrol peta Leaflet ikut mode gelap (leaflet.css dimuat belakangan, jadi selektor dipertajam). */
+.dark .leaflet-container .leaflet-control-attribution {
+    @apply bg-gray-900/80 text-gray-400;
+}
+
+.dark .leaflet-container .leaflet-bar a {
+    @apply border-white/10 bg-gray-800 text-gray-200 hover:bg-gray-700;
 }

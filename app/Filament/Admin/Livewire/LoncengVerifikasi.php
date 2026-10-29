@@ -16,6 +16,8 @@ use Livewire\Component;
  */
 class LoncengVerifikasi extends Component
 {
+    public const NAMA = 'lonceng-verifikasi';
+
     public const BATAS = 8;
 
     public const PERBARUI = 'lonceng-verifikasi-perbarui';

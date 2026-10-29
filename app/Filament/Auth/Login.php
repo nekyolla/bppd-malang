@@ -2,10 +2,12 @@
 
 namespace App\Filament\Auth;
 
+use App\Http\Middleware\BatasSesiAdmin;
 use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse;
 use Filament\Auth\Pages\Login as BaseLogin;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\RateLimiter;
@@ -33,6 +35,27 @@ class Login extends BaseLogin
      * Dua kolom: panel instansi di kiri, form di kanan (PF-20).
      */
     protected static string $layout = 'filament.admin.auth.layout';
+
+    /**
+     * Menjelaskan logout otomatis dari BatasSesiAdmin.
+     */
+    public function mount(): void
+    {
+        parent::mount();
+
+        $alasan = session()->pull(BatasSesiAdmin::KUNCI_BERAKHIR);
+
+        if ($alasan !== null) {
+            Notification::make()
+                ->title('Sesi berakhir')
+                ->body($alasan === 'mutlak'
+                    ? 'Anda sudah login lebih dari '.intdiv(config('session.batas_mutlak'), 60).' jam. Silakan masuk kembali.'
+                    : 'Anda keluar otomatis setelah '.config('session.batas_diam').' menit tanpa aktivitas.')
+                ->warning()
+                ->persistent()
+                ->send();
+        }
+    }
 
     public function getHeading(): string
     {
@@ -91,11 +114,11 @@ class Login extends BaseLogin
 
     public function form(Schema $schema): Schema
     {
+        // Tanpa "Ingat saya": data panel sensitif, lama sesi dibatasi BatasSesiAdmin.
         return $schema
             ->components([
                 $this->getUsernameFormComponent(),
                 $this->getPasswordFormComponent(),
-                $this->getRememberFormComponent(),
             ]);
     }
 

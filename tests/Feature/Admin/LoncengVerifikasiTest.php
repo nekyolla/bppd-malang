@@ -13,6 +13,7 @@ use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationGroup;
 use Livewire\Livewire;
+use Livewire\Mechanisms\ComponentRegistry;
 
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
@@ -56,6 +57,12 @@ describe('lonceng verifikasi', function () {
         PelatihanPeserta::factory()->count(2)->create();
 
         $lonceng->dispatch(LoncengVerifikasi::PERBARUI)->assertViewHas('total', 2);
+    });
+
+    it('terdaftar di Livewire agar polling dan event tidak ditolak 419', function () {
+        // Permintaan update Livewire memetakan nama komponen kembali ke class; komponen di luar
+        // App\Livewire harus didaftarkan, kalau tidak setiap polling memunculkan "page expired".
+        expect(app(ComponentRegistry::class)->getClass('lonceng-verifikasi'))->toBe(LoncengVerifikasi::class);
     });
 
     it('tampil di topbar panel', function () {

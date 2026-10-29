@@ -8,6 +8,7 @@ use App\Filament\Auth\Login;
 use App\Support\Instansi;
 use App\Support\Logo;
 use App\Support\Warna;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -36,9 +37,11 @@ class AdminPanelProvider extends PanelProvider
             ->login(Login::class)
             ->brandName(Instansi::NAMA)
             // Lambang + nama instansi sebagai teks HTML agar terbaca di mode gelap (PF-20, PF-21).
-            ->brandLogo(fn (): HtmlString => new HtmlString(Blade::render('<x-merek />')))
+            ->brandLogo(fn (): HtmlString => new HtmlString(Blade::render('<x-merek topbar />')))
             ->brandLogoHeight('3rem')
             ->favicon(fn (): ?string => Logo::favicon())
+            // Poppins dimuat lokal dari theme.css (@fontsource), tanpa CDN.
+            ->font('Poppins', provider: LocalFontProvider::class)
             ->colors(Warna::semua())
             // Urutan grup menu mengikuti DESIGN_SYSTEM §5.1.
             ->navigationGroups(['Pelatihan', 'Asrama', 'Laporan', 'Data Master', 'Pengguna'])

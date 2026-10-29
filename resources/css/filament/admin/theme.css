@@ -1,4 +1,6 @@
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
+@import '@fontsource/poppins/latin-400.css';
+@import '@fontsource/poppins/latin-500.css';
 @import '@fontsource/poppins/latin-600.css';
 @import '@fontsource/poppins/latin-700.css';
 
@@ -13,34 +15,52 @@
 
 :root {
     --emas: #f0c010;
-    --font-judul: 'Poppins', var(--font-family, ui-sans-serif), sans-serif;
 }
 
 .fi-body {
     --topbar-height: 4.5rem;
 }
 
-/* Judul memakai Poppins, senada dengan teks logo. */
-.fi-header-heading,
-.fi-simple-header-heading,
-.fi-section-header-heading,
-.fi-modal-heading,
-.fi-wi-stats-overview-stat-value,
-.fi-merek-nama {
-    font-family: var(--font-judul);
-}
-
+/*
+ * Seluruh panel memakai Poppins (`->font()` di AdminPanelProvider). Judul (h1/h2) tebal,
+ * teks biasa regular; label & tombol tetap medium bawaan Filament agar tetap terbaca
+ * sebagai elemen yang bisa diklik/diisi.
+ */
 .fi-header-heading {
-    @apply text-2xl font-semibold tracking-normal text-primary-950 sm:text-[1.75rem] dark:text-white;
+    @apply text-2xl font-bold tracking-normal text-primary-950 sm:text-[1.75rem] dark:text-white;
 }
 
 .fi-header-subheading {
     @apply mt-1 text-base;
 }
 
+.fi-section-header-heading,
+.fi-modal-heading,
+.fi-simple-header-heading {
+    @apply font-bold;
+}
+
+.fi-sidebar-item-label {
+    @apply font-normal;
+}
+
 /* Topbar */
 .fi-topbar {
     @apply shadow-none ring-0 border-b border-gray-200 dark:border-white/10;
+}
+
+/*
+ * Di bawah lg (tombol menu tampil) logo tidak ada di topbar, tetapi di kepala sidebar yang
+ * dibuka. Lebarnya hanya selebar sidebar, jadi nama boleh dua baris.
+ */
+.fi-sidebar-header {
+    & .fi-merek-kementerian {
+        @apply hidden;
+    }
+
+    & .fi-merek-nama {
+        @apply text-sm whitespace-normal;
+    }
 }
 
 /* Sidebar biru tua */
@@ -100,4 +120,46 @@
 /* Kepala tabel: latar tipis agar terpisah dari isi. */
 .fi-ta-header-cell {
     @apply bg-gray-50 text-xs font-semibold tracking-wide text-gray-600 uppercase dark:bg-white/5 dark:text-gray-300;
+}
+
+/* Login dua kolom: di layar lebar merek sudah ada di panel kiri. */
+.fi-masuk {
+    & .fi-simple-header {
+        @apply items-start;
+
+        & .fi-logo {
+            @apply hidden;
+        }
+    }
+
+    & .fi-simple-header-heading,
+    & .fi-simple-header-subheading {
+        @apply text-start;
+    }
+
+    & .fi-simple-header-heading {
+        @apply text-3xl tracking-normal text-primary-950 dark:text-white;
+    }
+
+    & .fi-simple-header-subheading {
+        @apply text-base;
+    }
+
+    & .fi-simple-page-content {
+        @apply gap-y-8;
+    }
+}
+
+/* Kartu statistik: teks panjang turun baris di dalam kartu, tidak meluber. */
+.fi-wi-stats-overview-stat {
+    @apply min-w-0;
+
+    & .fi-wi-stats-overview-stat-label-ctn {
+        @apply items-start;
+    }
+
+    & .fi-wi-stats-overview-stat-label,
+    & .fi-wi-stats-overview-stat-description {
+        @apply min-w-0 break-words;
+    }
 }

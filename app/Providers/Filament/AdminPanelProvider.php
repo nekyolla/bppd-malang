@@ -7,6 +7,7 @@ use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Admin\Pages\RincianWilayah;
 use App\Filament\Auth\Login;
 use App\Http\Middleware\BatasSesiAdmin;
+use App\Http\Middleware\HeaderKeamanan;
 use App\Support\Instansi;
 use App\Support\Logo;
 use App\Support\Warna;
@@ -117,6 +118,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                HeaderKeamanan::class,
             ])
             // Persisten: ikut diperiksa pada update Livewire (polling, aksi), bukan hanya saat membuka halaman.
             ->authMiddleware([

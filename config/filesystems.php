@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Berkas pribadi hanya lewat BerkasController; route /storage/{path} bawaan tidak dipakai.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

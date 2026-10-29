@@ -6,6 +6,7 @@ use App\Enums\TipeLokasi;
 use App\Models\Asrama;
 use App\Models\AsramaPeserta;
 use App\Models\KamarAsrama;
+use App\Models\KelasPelatihan;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\PenggunaanKamar;
@@ -321,5 +322,87 @@ describe('denah dan ringkasan', function () {
         AsramaPeserta::factory()->for($penggunaanLama)->count(3)->create();
 
         expect($this->service->penghuniTerbanyak($this->kamar))->toBe(2);
+    });
+});
+
+describe('keluarkan sekaligus', function () {
+    it('mengosongkan kamar dan mengembalikannya netral', function () {
+        $daftar = [pesertaAsrama($this->pelatihan), pesertaAsrama($this->pelatihan), pesertaAsrama($this->pelatihan)];
+        $this->service->tempatkanBanyak($daftar, $this->kamar, $this->admin);
+
+        $jumlah = $this->service->keluarkanBanyak(AsramaPeserta::all());
+
+        expect($jumlah)->toBe(3)
+            ->and(AsramaPeserta::count())->toBe(0)
+            ->and(PenggunaanKamar::count())->toBe(0);
+    });
+
+    it('tidak mengeluarkan siapa pun bila satu penempatan ditolak', function () {
+        [$a, $b] = [pesertaAsrama($this->pelatihan), pesertaAsrama($this->pelatihan)];
+        $this->service->tempatkanBanyak([$a, $b], $this->kamar, $this->admin);
+        $b->forceFill(['status' => 'selesai'])->save();
+
+        galatAsrama(fn () => $this->service->keluarkanBanyak(AsramaPeserta::query()->orderBy('id')->get()));
+
+        expect(AsramaPeserta::count())->toBe(2);
+    });
+});
+
+describe('isi otomatis', function () {
+    it('mengisi kamar segender yang bersisa dulu, lalu kamar kosong, dan memisahkan gender', function () {
+        $kamar2 = KamarAsrama::factory()->for($this->asrama)->create(['no_kamar' => '02', 'kapasitas' => 2]);
+        $kamar3 = KamarAsrama::factory()->for($this->asrama)->create(['no_kamar' => '03', 'kapasitas' => 2]);
+        $this->service->tempatkan(pesertaAsrama($this->pelatihan), $kamar2, $this->admin);
+
+        $laki = [pesertaAsrama($this->pelatihan), pesertaAsrama($this->pelatihan)];
+        $perempuan = [pesertaAsrama($this->pelatihan, JenisKelamin::Perempuan), pesertaAsrama($this->pelatihan, JenisKelamin::Perempuan)];
+
+        $hasil = $this->service->isiOtomatis($this->pelatihan, $this->admin);
+
+        $kamarDari = fn (PelatihanPeserta $p): int => $p->fresh()->penempatanKamar->penggunaanKamar->kamar_asrama_id;
+
+        $kamarLaki = collect($laki)->map($kamarDari);
+        $kamarPerempuan = collect($perempuan)->map($kamarDari);
+
+        expect($hasil)->toBe(['ditempatkan' => 4, 'sisa' => 0])
+            // Sisa satu tempat di kamar 02 (laki-laki) terpakai sebelum membuka kamar kosong.
+            ->and($kamarLaki)->toContain($kamar2->id)
+            ->and($kamarLaki->intersect($kamarPerempuan))->toBeEmpty()
+            ->and($kamarPerempuan->unique())->toHaveCount(1)
+            ->and(PenggunaanKamar::query()->where('kamar_asrama_id', $kamarPerempuan->first())->sole()->tipe)->toBe(TipeKamar::Perempuan);
+    });
+
+    it('melewati kamar pasutri, kamar bentrok, dan menyisakan peserta yang tidak kebagian', function () {
+        $this->kamar->update(['kapasitas' => 2]);
+        $pasutri = KamarAsrama::factory()->for($this->asrama)->create(['no_kamar' => '02', 'kapasitas' => 2]);
+        $this->service->tempatkan(pesertaAsrama($this->pelatihan, JenisKelamin::Perempuan), $pasutri, $this->admin, pasutri: true);
+
+        $calon = [pesertaAsrama($this->pelatihan), pesertaAsrama($this->pelatihan), pesertaAsrama($this->pelatihan)];
+
+        $hasil = $this->service->isiOtomatis($this->pelatihan, $this->admin);
+
+        expect($hasil)->toBe(['ditempatkan' => 2, 'sisa' => 1])
+            ->and(PenggunaanKamar::query()->where('kamar_asrama_id', $pasutri->id)->sole()->jumlah_penghuni)->toBe(1)
+            ->and(collect($calon)->filter(fn (PelatihanPeserta $p): bool => $p->fresh()->penempatanKamar === null))->toHaveCount(1);
+    });
+
+    it('mendekatkan teman sekelas dalam satu kamar', function () {
+        $this->kamar->update(['kapasitas' => 2]);
+        KamarAsrama::factory()->for($this->asrama)->create(['no_kamar' => '02', 'kapasitas' => 2]);
+        $kelasA = KelasPelatihan::factory()->for($this->pelatihan)->create(['nama_kelas' => 'A']);
+        $kelasB = KelasPelatihan::factory()->for($this->pelatihan)->create(['nama_kelas' => 'B']);
+        $daftar = collect([$kelasB, $kelasA, $kelasB, $kelasA])->map(function ($kelas) {
+            $p = pesertaAsrama($this->pelatihan);
+            $p->forceFill(['kelas_pelatihan_id' => $kelas->id])->save();
+
+            return $p;
+        });
+
+        $this->service->isiOtomatis($this->pelatihan, $this->admin);
+
+        $kamarPerKelas = $daftar->groupBy('kelas_pelatihan_id')
+            ->map(fn ($grup) => $grup->map(fn (PelatihanPeserta $p): int => $p->fresh()->penempatanKamar->penggunaanKamar->kamar_asrama_id)->unique()->count());
+
+        expect($kamarPerKelas->all())->each->toBe(1);
     });
 });

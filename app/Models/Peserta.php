@@ -30,6 +30,16 @@ class Peserta extends Model
     public const JENJANG_PENDIDIKAN = ['SD/Sederajat', 'SMP/Sederajat', 'SMA/Sederajat', 'D1', 'D2', 'D3', 'D4', 'S1', 'S2', 'S3'];
 
     /**
+     * Jenjang perguruan tinggi: hanya jenjang ini yang punya (dan wajib mengisi) jurusan (PF-28).
+     */
+    public const JENJANG_KULIAH = ['D1', 'D2', 'D3', 'D4', 'S1', 'S2', 'S3'];
+
+    public static function jenjangKuliah(?string $jenjang): bool
+    {
+        return in_array($jenjang, self::JENJANG_KULIAH, true);
+    }
+
+    /**
      * Pilihan periode untuk jabatan berperiode, maksimal dua periode (PF-25).
      */
     public const PERIODE_JABATAN = [1 => 'Periode ke-1', 2 => 'Periode ke-2'];

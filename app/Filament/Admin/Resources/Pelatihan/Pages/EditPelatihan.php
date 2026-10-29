@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 
-use App\Filament\Admin\Actions\KembaliAction;
 use App\Filament\Admin\Actions\UbahStatusPelatihanAction;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Filament\Concerns\MemetakanGalatService;
@@ -25,7 +24,6 @@ class EditPelatihan extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            KembaliAction::ke(PelatihanResource::getUrl('index'), 'Kembali ke daftar pelatihan'),
             UbahStatusPelatihanAction::make()
                 ->after(fn () => $this->refreshFormData(['status'])),
             DeleteAction::make(),

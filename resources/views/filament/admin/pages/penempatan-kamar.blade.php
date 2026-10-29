@@ -101,9 +101,15 @@
                                 <p class="text-sm text-gray-500 dark:text-gray-400">Belum ada penghuni.</p>
                             @endif
 
-                            @if ($kamar['tersedia'] && ! $kamar['penuh'])
-                                <div class="mt-auto">
-                                    {{ ($this->tempatkanAction)(['kamar' => $kamar['id']]) }}
+                            @if (($kamar['tersedia'] && ! $kamar['penuh']) || $kamar['jumlah'] > 1)
+                                <div class="mt-auto flex items-center justify-between gap-2">
+                                    @if ($kamar['tersedia'] && ! $kamar['penuh'])
+                                        {{ ($this->tempatkanAction)(['kamar' => $kamar['id']]) }}
+                                    @endif
+
+                                    @if ($kamar['jumlah'] > 1)
+                                        <span class="ms-auto">{{ ($this->kosongkanAction)(['kamar' => $kamar['id']]) }}</span>
+                                    @endif
                                 </div>
                             @endif
                         </div>

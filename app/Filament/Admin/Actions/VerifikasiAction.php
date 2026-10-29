@@ -42,7 +42,7 @@ class VerifikasiAction extends Action
 
         $this->label('Verifikasi')
             ->icon(Heroicon::OutlinedCheckBadge)
-            ->color('info')
+            ->color('primary')
             ->slideOver()
             ->modalWidth('7xl')
             ->modalHeading(fn (PelatihanPeserta $record): string => "Verifikasi {$record->peserta->nama_lengkap}")

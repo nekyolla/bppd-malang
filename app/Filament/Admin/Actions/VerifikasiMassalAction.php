@@ -21,7 +21,7 @@ class VerifikasiMassalAction extends BulkAction
 
         $this->label('Verifikasi terpilih')
             ->icon(Heroicon::OutlinedCheckBadge)
-            ->color('info')
+            ->color('primary')
             ->requiresConfirmation()
             ->modalDescription('Isian yang berbeda dari data lama dilewati, untuk diperiksa satu per satu.')
             ->modalSubmitActionLabel('Verifikasi')

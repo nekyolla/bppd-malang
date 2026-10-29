@@ -6,7 +6,6 @@ use App\Enums\StatusPendaftaran;
 use App\Filament\Admin\Actions\AturKelasAction;
 use App\Filament\Admin\Actions\AturKelasMassalAction;
 use App\Filament\Admin\Actions\BagiAcakKelasAction;
-use App\Filament\Admin\Actions\KembaliAction;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Models\PelatihanPeserta;
 use App\Support\Masking;
@@ -92,12 +91,5 @@ class ManagePembagianKelas extends ManageRelatedRecords
     public function getTitle(): string|Htmlable
     {
         return "Pembagian Kelas {$this->getOwnerRecord()->nama_tampilan}";
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            KembaliAction::ke(PelatihanResource::getUrl('index'), 'Kembali ke daftar pelatihan'),
-        ];
     }
 }

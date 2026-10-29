@@ -33,6 +33,7 @@ beforeEach(function () {
         'alamat_domisili' => 'Jl. Raya Donomulyo 1',
         'no_hp' => '081234567890',
         'jenjang_pendidikan' => 'S1',
+        'jurusan_pendidikan' => 'Ilmu Pemerintahan',
         'jabatan_id' => Jabatan::factory()->create()->id,
         'waktu_pelantikan' => '2022-03-01',
         'provinsi_id' => $this->desa->kecamatan->kabKota->provinsi_id,
@@ -224,7 +225,7 @@ it('menampilkan galat isian langsung tanpa menunggu tombol selanjutnya', functio
 it('menerima KTP PDF atau JPG dan memakai label pas foto 3x4', function () {
     Livewire::test(Registrasi::class)
         ->assertSee('Pas foto 3x4')
-        ->assertSee('Format PDF atau JPG.');
+        ->assertSee('PDF atau JPG, maksimal 2 MB.');
 });
 
 it('memunculkan periode jabatan begitu jabatan berperiode dipilih dan mengosongkannya saat jabatan diganti', function () {
@@ -253,4 +254,15 @@ it('mengirim pendaftaran kepala desa beserta periodenya', function () {
         ->assertHasNoFormErrors();
 
     expect(PelatihanPeserta::sole()->data_isian['periode_jabatan'])->toBe(1);
+});
+
+it('memunculkan jurusan hanya untuk jenjang kuliah dan mengosongkannya saat jenjang turun', function () {
+    Livewire::test(Registrasi::class)
+        ->assertFormFieldHidden('jurusan_pendidikan')
+        ->fillForm(['jenjang_pendidikan' => 'S1'])
+        ->assertFormFieldVisible('jurusan_pendidikan')
+        ->fillForm(['jurusan_pendidikan' => 'Akuntansi'])
+        ->fillForm(['jenjang_pendidikan' => 'SMA/Sederajat'])
+        ->assertFormFieldHidden('jurusan_pendidikan')
+        ->assertFormSet(['jurusan_pendidikan' => null]);
 });

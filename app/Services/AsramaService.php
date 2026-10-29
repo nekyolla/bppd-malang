@@ -191,6 +191,80 @@ class AsramaService
     }
 
     /**
+     * Mengeluarkan beberapa penghuni sekaligus (mis. mengosongkan kamar): semua berhasil atau
+     * tidak ada yang dikeluarkan.
+     *
+     * @param  iterable<AsramaPeserta>  $daftar
+     *
+     * @throws ValidationException
+     */
+    public function keluarkanBanyak(iterable $daftar): int
+    {
+        return DB::transaction(function () use ($daftar): int {
+            $jumlah = 0;
+
+            foreach ($daftar as $penempatan) {
+                $this->keluarkan($penempatan);
+                $jumlah++;
+            }
+
+            return $jumlah;
+        });
+    }
+
+    /**
+     * Menempatkan otomatis peserta terverifikasi yang belum punya kamar. Peserta diurutkan per
+     * kelas lalu nama agar teman sekelas sekamar; tiap peserta masuk kamar segender yang masih
+     * bersisa dulu, baru kamar kosong (urut asrama & nomor kamar). Kamar pasutri tidak diisi
+     * otomatis. Peserta yang tidak kebagian tempat dibiarkan untuk ditempatkan manual.
+     * Setiap penempatan tetap lewat `tempatkan` sehingga seluruh aturan berlaku.
+     *
+     * @return array{ditempatkan: int, sisa: int}
+     *
+     * @throws ValidationException
+     */
+    public function isiOtomatis(Pelatihan $pelatihan, User $oleh): array
+    {
+        $calon = $this->calonPenghuni($pelatihan)
+            // Yang belum punya kelas di belakang.
+            ->sortBy(fn (PelatihanPeserta $p): string => ($p->kelasPelatihan ? "0{$p->kelasPelatihan->nama_kelas}" : '1')."|{$p->peserta->nama_lengkap}");
+
+        $kamar = collect($this->denah($pelatihan))
+            ->pluck('kamar')
+            ->flatten(1)
+            ->filter(fn (array $k): bool => $k['tersedia'] && $k['tipe'] !== TipeKamar::Pasutri && ! $k['penuh'])
+            ->map(fn (array $k): array => ['id' => $k['id'], 'tipe' => $k['tipe'], 'sisa' => $k['kapasitas'] - $k['jumlah']])
+            ->values()
+            ->all();
+
+        return DB::transaction(function () use ($calon, $kamar, $oleh): array {
+            $hasil = ['ditempatkan' => 0, 'sisa' => 0];
+
+            foreach ($calon as $pendaftaran) {
+                $tipe = TipeKamar::dariJenisKelamin($pendaftaran->peserta->jenis_kelamin);
+                $pilih = collect($kamar)->search(fn (array $k): bool => $k['sisa'] > 0 && $k['tipe'] === $tipe);
+
+                if ($pilih === false) {
+                    $pilih = collect($kamar)->search(fn (array $k): bool => $k['sisa'] > 0 && $k['tipe'] === null);
+                }
+
+                if ($pilih === false) {
+                    $hasil['sisa']++;
+
+                    continue;
+                }
+
+                $this->tempatkan($pendaftaran, KamarAsrama::query()->findOrFail($kamar[$pilih]['id']), $oleh);
+                $kamar[$pilih]['tipe'] = $tipe;
+                $kamar[$pilih]['sisa']--;
+                $hasil['ditempatkan']++;
+            }
+
+            return $hasil;
+        });
+    }
+
+    /**
      * Denah kamar satu pelatihan, dikelompokkan per asrama (FR-ASR-10). Memuat kamar aktif
      * ditambah kamar nonaktif yang sudah berpenghuni di pelatihan ini.
      *

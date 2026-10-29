@@ -31,8 +31,9 @@ class PesertaFactory extends Factory
             'alamat_domisili' => fake()->streetAddress(),
             'no_hp' => fake()->numerify('08##########'),
             'email' => null,
-            'jenjang_pendidikan' => fake()->randomElement(['SMA/Sederajat', 'D3', 'S1', 'S2']),
-            'jurusan_pendidikan' => null,
+            'jenjang_pendidikan' => $jenjang = fake()->randomElement(['SMA/Sederajat', 'D3', 'S1', 'S2']),
+            // Jurusan hanya untuk jenjang kuliah (PF-28).
+            'jurusan_pendidikan' => Peserta::jenjangKuliah($jenjang) ? fake()->randomElement(['Ilmu Pemerintahan', 'Administrasi Publik', 'Akuntansi', 'Hukum']) : null,
             'jabatan_id' => Jabatan::factory(),
             'waktu_pelantikan' => fake()->dateTimeBetween('-10 years', '-1 year')->format('Y-m-d'),
             'desa_id' => Desa::factory(),

@@ -3,9 +3,7 @@
 namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 
 use App\Enums\StatusPendaftaran;
-use App\Filament\Admin\Actions\KembaliAction;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
-use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
 use App\Filament\Admin\Resources\Pendaftaran\Tables\PendaftaranTable;
 use App\Models\Pelatihan;
 use App\Services\PelatihanService;
@@ -39,13 +37,6 @@ class ManagePendaftar extends ManageRelatedRecords
     public function table(Table $table): Table
     {
         return PendaftaranTable::configure($table);
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            KembaliAction::ke(PendaftaranResource::getUrl('index'), 'Kembali ke pendaftaran'),
-        ];
     }
 
     /**

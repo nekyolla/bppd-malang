@@ -30,7 +30,7 @@ beforeEach(function () {
         'alamat_domisili' => 'Jl. Raya Donomulyo 1',
         'no_hp' => '0812-3456-7890',
         'email' => ' Siti@Contoh.ID ',
-        'jenjang_pendidikan' => 'S1',
+        'jenjang_pendidikan' => 'SMA/Sederajat',
         'jurusan_pendidikan' => '',
         'jabatan_id' => Jabatan::factory()->create()->id,
         'waktu_pelantikan' => '2022-03-01',
@@ -174,6 +174,26 @@ it('menerima scan KTP berformat JPG dan menyimpannya sesuai isi berkas', functio
 it('menolak scan KTP selain PDF atau JPG', function () {
     expect(galatRegistrasi(fn () => $this->service->daftar(($this->isian)(['ktp' => UploadedFile::fake()->image('ktp.png')]))))
         ->toBe(['ktp' => ['KTP harus berupa berkas PDF atau JPG.']]);
+});
+
+describe('jurusan (PF-28)', function () {
+    it('mewajibkan jurusan untuk jenjang kuliah', function () {
+        expect(galatRegistrasi(fn () => $this->service->daftar(($this->isian)(['jenjang_pendidikan' => 'S1', 'jurusan_pendidikan' => ' '])))['jurusan_pendidikan'][0])
+            ->toBe('Jurusan wajib diisi untuk pendidikan D1–S3.');
+    });
+
+    it('menyimpan jurusan untuk jenjang kuliah', function () {
+        $pendaftaran = $this->service->daftar(($this->isian)(['jenjang_pendidikan' => 'D3', 'jurusan_pendidikan' => ' Akuntansi ']));
+
+        expect($pendaftaran->peserta->jurusan_pendidikan)->toBe('Akuntansi');
+    });
+
+    it('mengosongkan jurusan untuk jenjang di bawah kuliah', function () {
+        $pendaftaran = $this->service->daftar(($this->isian)(['jenjang_pendidikan' => 'SMA/Sederajat', 'jurusan_pendidikan' => 'IPA']));
+
+        expect($pendaftaran->data_isian['jurusan_pendidikan'])->toBeNull()
+            ->and($pendaftaran->peserta->jurusan_pendidikan)->toBeNull();
+    });
 });
 
 describe('periode jabatan (PF-25)', function () {

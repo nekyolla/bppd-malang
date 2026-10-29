@@ -94,7 +94,7 @@ describe('pendaftar per pelatihan', function () {
             ->assertSee(substr($nik, 0, 4).'********'.substr($nik, -4))
             ->assertDontSee($nik)
             ->assertTableColumnDoesNotExist('pelatihan.nama_tampilan')
-            ->assertActionExists('kembali');
+            ->assertActionDoesNotExist('kembali');
     });
 
     it('menyaring pendaftar per status dan wilayah', function () {

@@ -68,6 +68,11 @@ class IsianPeserta
         $data['npwp'] = $angka($data['npwp'] ?? null) ?: null;
         $data['email'] = filled($data['email'] ?? null) ? strtolower(trim($data['email'])) : null;
         $data['jenis_kelamin'] = ($data['jenis_kelamin'] ?? null) instanceof JenisKelamin ? $data['jenis_kelamin']->value : ($data['jenis_kelamin'] ?? null);
+        // Jurusan hanya untuk jenjang kuliah (PF-28).
+        if (! Peserta::jenjangKuliah($data['jenjang_pendidikan'] ?? null)) {
+            $data['jurusan_pendidikan'] = null;
+        }
+
         // Periode hanya untuk jabatan berperiode (PF-25); jabatan lain selalu kosong.
         $periode = $data['periode_jabatan'] ?? null;
         $data['periode_jabatan'] = Jabatan::berperiode($data['jabatan_id'] ?? null) && filled($periode)
@@ -99,7 +104,7 @@ class IsianPeserta
             'no_hp' => ['required', 'regex:/^08\d{8,12}$/'],
             'email' => ['nullable', 'email', 'max:255'],
             'jenjang_pendidikan' => ['required', Rule::in(Peserta::JENJANG_PENDIDIKAN)],
-            'jurusan_pendidikan' => ['nullable', 'string', 'max:255'],
+            'jurusan_pendidikan' => ['required_if:jenjang_pendidikan,'.implode(',', Peserta::JENJANG_KULIAH), 'nullable', 'string', 'max:255'],
             'jabatan_id' => ['required', 'integer', $master('jabatan')],
             'periode_jabatan' => ['nullable', 'integer', Rule::in(array_keys(Peserta::PERIODE_JABATAN)), new PeriodeJabatanWajib],
             'waktu_pelantikan' => ['required', 'date', 'before_or_equal:today', 'after:tanggal_lahir'],
@@ -120,6 +125,7 @@ class IsianPeserta
             'tanggal_lahir.before' => 'Peserta minimal berusia 17 tahun.',
             'no_hp.regex' => 'Nomor HP diawali 08 dan terdiri dari 10–14 angka.',
             'npwp.regex' => 'NPWP terdiri dari 15 atau 16 angka.',
+            'jurusan_pendidikan.required_if' => 'Jurusan wajib diisi untuk pendidikan D1–S3.',
             'waktu_pelantikan.after' => 'Tanggal pelantikan harus setelah tanggal lahir.',
             'periode_jabatan.in' => 'Pilihan periode jabatan tidak valid.',
             'periode_jabatan.integer' => 'Pilihan periode jabatan tidak valid.',

@@ -15,6 +15,7 @@ use App\Services\PenggantiService;
 use App\Support\FormatTanggal;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -115,6 +116,11 @@ class PenempatanKamar extends Page
         return $this->pelatihanTerpilih ? app(AsramaService::class)->ringkasan($this->pelatihanTerpilih, $this->denah) : null;
     }
 
+    public function jumlahBelumDapatKamar(): int
+    {
+        return array_sum($this->ringkasan()['belum'] ?? []);
+    }
+
     /**
      * Penempatan hanya dapat diubah sebelum pelatihan selesai.
      */
@@ -188,12 +194,14 @@ class PenempatanKamar extends Page
 
     public function keluarkanAction(): Action
     {
+        // Ikon saja: tombol merah berlabel di setiap baris penghuni terlalu ramai.
         return Action::make('keluarkan')
             ->label('Keluarkan')
-            ->icon(Heroicon::OutlinedArrowRightStartOnRectangle)
-            ->color('danger')
+            ->icon(Heroicon::OutlinedXMark)
+            ->color('gray')
             ->size('sm')
-            ->link()
+            ->iconButton()
+            ->tooltip('Keluarkan dari kamar')
             ->requiresConfirmation()
             ->modalHeading(fn (array $arguments): string => "Keluarkan {$this->penempatan($arguments)->pelatihanPeserta->peserta->nama_lengkap}?")
             ->modalDescription(fn (array $arguments): string => "Peserta keluar dari kamar {$this->penempatan($arguments)->penggunaanKamar->kamarAsrama->nama_tampilan}. Kamar yang kosong kembali netral.")
@@ -205,6 +213,82 @@ class PenempatanKamar extends Page
 
                 unset($this->denah);
                 Notification::make()->title('Peserta keluar dari kamar')->success()->send();
+            });
+    }
+
+    /**
+     * @return array<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->isiOtomatisAction(),
+        ];
+    }
+
+    public function isiOtomatisAction(): Action
+    {
+        return Action::make('isiOtomatis')
+            ->label('Isi otomatis')
+            ->icon(Heroicon::OutlinedSparkles)
+            ->color('primary')
+            ->requiresConfirmation()
+            ->modalIcon(Heroicon::OutlinedSparkles)
+            ->modalHeading('Isi kamar otomatis?')
+            ->modalDescription(fn (): string => "{$this->ringkasan()['belum']['L']} laki-laki dan {$this->ringkasan()['belum']['P']} perempuan belum dapat kamar. "
+                .'Sistem mengisi kamar segender yang masih bersisa dulu, lalu kamar kosong; teman sekelas didekatkan. Kamar pasutri tidak diisi. Hasilnya tetap bisa diubah.')
+            ->modalSubmitActionLabel('Isi otomatis')
+            ->authorize(fn (): bool => auth()->user()->can('create', AsramaPeserta::class))
+            ->visible(fn (): bool => $this->bisaDiubah())
+            ->disabled(fn (): bool => $this->jumlahBelumDapatKamar() === 0)
+            ->tooltip(fn (): ?string => $this->jumlahBelumDapatKamar() === 0 ? 'Semua peserta terverifikasi sudah dapat kamar.' : null)
+            ->action(function (Action $action): void {
+                $hasil = GalatService::jalankan($action, 'Kamar belum dapat diisi otomatis', fn () => app(AsramaService::class)->isiOtomatis($this->pelatihanTerpilih, auth()->user()));
+
+                unset($this->denah);
+
+                $notifikasi = Notification::make()->title("{$hasil['ditempatkan']} peserta ditempatkan otomatis");
+
+                $hasil['sisa'] > 0
+                    ? $notifikasi->body("{$hasil['sisa']} peserta belum kebagian kamar. Tambah kamar atau tempatkan manual.")->warning()->send()
+                    : $notifikasi->success()->send();
+            });
+    }
+
+    public function kosongkanAction(): Action
+    {
+        return Action::make('kosongkan')
+            ->label('Kosongkan')
+            ->icon(Heroicon::OutlinedArrowRightStartOnRectangle)
+            ->color('danger')
+            ->size('sm')
+            ->link()
+            ->modalHeading(fn (array $arguments): string => 'Keluarkan penghuni kamar '.$this->kamar($arguments)->nama_tampilan)
+            ->modalDescription('Penghuni yang dicentang keluar sekaligus. Kamar yang kosong kembali netral.')
+            ->modalSubmitActionLabel('Keluarkan')
+            ->modalWidth('md')
+            ->schema(fn (array $arguments): array => [
+                CheckboxList::make('penempatan')
+                    ->label('Penghuni')
+                    ->options(collect($this->keadaan($arguments)['penghuni'])->pluck('nama', 'id')->all())
+                    ->default(collect($this->keadaan($arguments)['penghuni'])->pluck('id')->all())
+                    ->bulkToggleable()
+                    ->required(),
+            ])
+            ->authorize(fn (): bool => auth()->user()->can('viewAny', AsramaPeserta::class))
+            ->visible(fn (): bool => $this->bisaDiubah())
+            ->action(function (array $arguments, array $data, Action $action): void {
+                $daftar = AsramaPeserta::query()
+                    ->whereHas('penggunaanKamar', fn ($q) => $q->where('pelatihan_id', $this->pelatihan)->where('kamar_asrama_id', $arguments['kamar'] ?? null))
+                    ->whereIn('id', $data['penempatan'])
+                    ->get();
+
+                abort_unless($daftar->every(fn (AsramaPeserta $p): bool => auth()->user()->can('delete', $p)), 403);
+
+                $jumlah = GalatService::jalankan($action, 'Penghuni tidak dapat dikeluarkan', fn () => app(AsramaService::class)->keluarkanBanyak($daftar));
+
+                unset($this->denah);
+                Notification::make()->title("{$jumlah} peserta keluar dari kamar {$this->kamar($arguments)->nama_tampilan}")->success()->send();
             });
     }
 

@@ -39,3 +39,61 @@
         font-size: 1rem;
     }
 }
+
+/*
+ * Penanda langkah form publik: enam langkah tidak muat berlabel di kolom 672px.
+ * Semua langkah tampil sebagai nomor (juga di ponsel, agar tahu posisi), label hanya
+ * untuk langkah aktif.
+ */
+.fi-publik .fi-sc-wizard {
+    & .fi-sc-wizard-header {
+        @apply flex overflow-x-auto px-2 sm:px-3;
+
+        & .fi-sc-wizard-header-step {
+            @apply flex shrink-0;
+
+            &.fi-active {
+                @apply shrink;
+            }
+
+            &:not(.fi-active) .fi-sc-wizard-header-step-text {
+                @apply sr-only;
+            }
+
+            & .fi-sc-wizard-header-step-btn {
+                @apply gap-x-2 px-1.5 py-3 sm:gap-x-2.5 sm:px-3;
+            }
+
+            & .fi-sc-wizard-header-step-icon-ctn {
+                @apply size-8;
+            }
+
+            & .fi-sc-wizard-header-step-label {
+                @apply leading-tight;
+            }
+
+            & .fi-sc-wizard-header-step-separator {
+                @apply hidden;
+            }
+        }
+    }
+}
+
+/* Ringkasan sebelum kirim: baris rapat, label abu di kiri. */
+.fi-publik .fi-ringkasan {
+    & .fi-sc-has-gap {
+        @apply gap-2;
+    }
+
+    & .fi-in-entry-has-inline-label {
+        @apply grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3;
+
+        & .fi-in-entry-content-col {
+            @apply col-span-1;
+        }
+    }
+
+    & .fi-in-entry-label {
+        @apply font-normal text-gray-500;
+    }
+}

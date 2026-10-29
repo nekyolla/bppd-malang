@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Instansi;
 use App\Support\Logo;
 use Illuminate\Support\Facades\File;
 
@@ -13,21 +14,25 @@ afterEach(function () {
     File::deleteDirectory(public_path('images-uji'));
 });
 
-it('memakai teks merek selama berkas logo belum ada', function () {
-    expect(Logo::url())->toBeNull();
+it('menampilkan nama instansi sebagai teks, juga tanpa berkas lambang (PF-21)', function () {
+    expect(Logo::lambang())->toBeNull();
 
-    $this->get('/daftar')->assertOk()->assertSee('Balai Besar Pemerintahan Desa');
+    $this->get('/daftar')->assertOk()
+        ->assertSee(Instansi::NAMA)
+        ->assertSee(Instansi::KEMENTERIAN)
+        ->assertDontSee('BBPD');
 });
 
-it('memakai logo dari folder logo bila tersedia, termasuk varian gelap', function () {
-    File::put(public_path('images-uji/logo.png'), 'png');
+it('memakai lambang dari folder logo bila tersedia', function () {
+    File::put(public_path('images-uji/lambang.png'), 'png');
 
-    expect(Logo::url())->toEndWith('/images-uji/logo.png')
-        ->and(Logo::urlGelap())->toBe(Logo::url());
+    expect(Logo::lambang())->toEndWith('/images-uji/lambang.png');
 
-    File::put(public_path('images-uji/logo-gelap.png'), 'png');
+    $this->get('/daftar')->assertOk()->assertSee('images-uji/lambang.png', escape: false);
+});
 
-    expect(Logo::urlGelap())->toEndWith('/images-uji/logo-gelap.png');
-
-    $this->get('/daftar')->assertOk()->assertSee('images-uji/logo.png', escape: false);
+it('menampilkan merek teks di panel admin dan halaman login (PF-20)', function () {
+    $this->get('/admin/login')->assertOk()
+        ->assertSee(Instansi::NAMA)
+        ->assertDontSee('BBPD');
 });

@@ -6,7 +6,7 @@
             <div class="flex flex-col items-center gap-2 py-6 text-center">
                 <x-filament::icon :icon="\Filament\Support\Icons\Heroicon::OutlinedHomeModern" class="h-8 w-8 text-gray-400" />
                 <p class="text-sm font-semibold text-gray-950 dark:text-white">Pilih pelatihan</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Penempatan kamar hanya untuk pelatihan di BBPD Malang.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Hanya untuk pelatihan di Balai Besar.</p>
             </div>
         </x-filament::section>
     @else
@@ -15,7 +15,7 @@
         <x-filament::section
             heading="Ringkasan tempat tidur"
             :description="$this->bisaDiubah()
-                ? 'Tempat tidur di kamar kosong dapat dipakai laki-laki maupun perempuan.'
+                ? 'Kamar kosong bisa untuk laki-laki atau perempuan.'
                 : 'Pelatihan sudah selesai. Penempatan hanya dapat dilihat.'"
         >
             <dl class="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -114,7 +114,7 @@
             <x-filament::section>
                 <div class="flex flex-col items-center gap-2 py-6 text-center">
                     <p class="text-sm font-semibold text-gray-950 dark:text-white">Belum ada kamar aktif</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Superadmin dapat menambahkan asrama dan kamar di menu Data Master → Asrama &amp; Kamar.</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Tambahkan di Data Master → Asrama &amp; Kamar.</p>
                 </div>
             </x-filament::section>
         @endforelse

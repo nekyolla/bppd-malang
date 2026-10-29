@@ -42,7 +42,7 @@ class ListPendaftaran extends Page implements HasTable
 
     public function getSubheading(): ?string
     {
-        return 'Pilih pelatihan untuk melihat dan memverifikasi pendaftarnya.';
+        return 'Pilih pelatihan untuk memverifikasi pendaftarnya.';
     }
 
     public function table(Table $table): Table

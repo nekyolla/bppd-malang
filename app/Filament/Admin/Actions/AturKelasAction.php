@@ -40,7 +40,7 @@ class AturKelasAction extends Action
                     ->options(self::pilihanKelas($record->pelatihan_id))
                     ->placeholder('Belum dibagi')
                     ->helperText(self::pilihanKelas($record->pelatihan_id) === []
-                        ? 'Belum ada kelas di pelatihan ini. Buat kelas terlebih dahulu di halaman pelatihan.'
+                        ? 'Belum ada kelas. Buat dulu di sub-menu Kelas.'
                         : 'Kosongkan untuk melepas peserta dari kelas.'),
             ])
             ->authorize('aturKelas')

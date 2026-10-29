@@ -89,7 +89,7 @@ it('menolak peserta menunggu verifikasi atau batal', function (string $status) {
     $pendaftaran = pendaftaranBerstatus($status);
 
     expect(galatSertifikat(fn () => $this->service->unggah($pendaftaran, ($this->pdf)(), $this->admin))['status'][0])
-        ->toBe('Sertifikat hanya dapat diunggah untuk peserta terverifikasi atau selesai.')
+        ->toBe('Sertifikat hanya untuk peserta terverifikasi atau selesai.')
         ->and(SertifikatPeserta::count())->toBe(0)
         ->and(Storage::disk('local')->allFiles())->toBe([]);
 })->with(['terdaftar', 'batal']);

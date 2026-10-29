@@ -74,7 +74,7 @@ class PendaftaranService
             $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             if (! $terkunci->status->bisaMenjadi(StatusPendaftaran::Terverifikasi)) {
-                $this->tolak('status', 'Hanya pendaftaran yang menunggu verifikasi yang dapat diverifikasi.');
+                $this->tolak('status', 'Pendaftaran ini tidak sedang menunggu verifikasi.');
             }
 
             $peserta = $terkunci->peserta()->lockForUpdate()->firstOrFail();
@@ -173,7 +173,7 @@ class PendaftaranService
             $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             if (! $terkunci->status->bisaMenjadi(StatusPendaftaran::Batal)) {
-                $this->tolak('status', 'Hanya peserta yang menunggu verifikasi atau terverifikasi yang dapat dibatalkan.');
+                $this->tolak('status', 'Pendaftaran yang selesai atau batal tidak dapat dibatalkan.');
             }
 
             // Peserta batal tidak mendapat sertifikat (FR-SRT-04).
@@ -209,9 +209,9 @@ class PendaftaranService
             $terkunci = PelatihanPeserta::query()->with(['pelatihan', 'pengganti.peserta'])->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             match (true) {
-                $terkunci->status !== StatusPendaftaran::Batal => $this->tolak('status', 'Hanya pendaftaran yang batal yang dapat dikembalikan.'),
-                $terkunci->pelatihan->status === StatusPelatihan::Selesai => $this->tolak('status', 'Pelatihan sudah selesai, sehingga pembatalan tidak dapat dikembalikan.'),
-                $terkunci->pengganti !== null => $this->tolak('status', "Peserta ini sudah digantikan {$terkunci->pengganti->peserta->nama_lengkap}, sehingga pembatalannya tidak dapat dikembalikan."),
+                $terkunci->status !== StatusPendaftaran::Batal => $this->tolak('status', 'Hanya pendaftaran batal yang dapat dikembalikan.'),
+                $terkunci->pelatihan->status === StatusPelatihan::Selesai => $this->tolak('status', 'Pelatihan sudah selesai. Pembatalan tidak dapat dikembalikan.'),
+                $terkunci->pengganti !== null => $this->tolak('status', "Peserta ini sudah digantikan {$terkunci->pengganti->peserta->nama_lengkap}. Pembatalan tidak dapat dikembalikan."),
                 default => null,
             };
 
@@ -246,11 +246,11 @@ class PendaftaranService
             $terkunci = PelatihanPeserta::query()->with('peserta')->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             if ($terkunci->diverifikasi_pada !== null || ! in_array($terkunci->status, [StatusPendaftaran::Terdaftar, StatusPendaftaran::Batal], true)) {
-                $this->tolak('status', 'Hanya pendaftaran yang belum pernah diverifikasi yang dapat dihapus. Gunakan Batalkan untuk peserta yang sudah diverifikasi.');
+                $this->tolak('status', 'Pendaftaran yang pernah diverifikasi tidak dapat dihapus. Gunakan Batalkan.');
             }
 
             if ($terkunci->pengganti()->exists()) {
-                $this->tolak('status', 'Pendaftaran ini sudah punya pengganti, sehingga tidak dapat dihapus.');
+                $this->tolak('status', 'Pendaftaran ini sudah punya pengganti. Tidak dapat dihapus.');
             }
 
             $peserta = $terkunci->peserta;

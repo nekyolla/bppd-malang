@@ -35,7 +35,7 @@ class KamarRelationManager extends RelationManager
                     ->unique(modifyRuleUsing: fn (Unique $rule): Unique => $rule->where('asrama_id', $this->getOwnerRecord()->getKey())),
                 TextInput::make('kapasitas')
                     ->label('Kapasitas')
-                    ->helperText('Jumlah tempat tidur. Gender kamar ditentukan otomatis dari penghuni pertama.')
+                    ->helperText('Jumlah tempat tidur. Gender kamar ikut penghuni pertama.')
                     ->required()
                     ->integer()
                     ->minValue(1)
@@ -46,7 +46,7 @@ class KamarRelationManager extends RelationManager
                         $terbanyak = $record ? app(AsramaService::class)->penghuniTerbanyak($record) : 0;
 
                         if ((int) $value < $terbanyak) {
-                            $fail("Kamar ini sedang dihuni {$terbanyak} orang. Kapasitas tidak boleh kurang dari itu.");
+                            $fail("Kamar ini sedang dihuni {$terbanyak} orang. Kapasitas tidak boleh lebih kecil.");
                         }
                     }),
             ]);

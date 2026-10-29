@@ -71,7 +71,7 @@ class PenempatanKamar extends Page
             ->components([
                 Select::make('pelatihan')
                     ->label('Pelatihan')
-                    ->placeholder('Pilih pelatihan di BBPD Malang')
+                    ->placeholder('Pilih pelatihan di Balai Besar')
                     ->options(fn (): array => Pelatihan::query()
                         ->with('judulPelatihan')
                         ->where('tipe_lokasi', TipeLokasi::Bbpd)
@@ -163,11 +163,11 @@ class PenempatanKamar extends Page
                     ->options($this->calonPenghuni($arguments))
                     ->maxItems(max(1, $this->sisaTempat($arguments)))
                     ->helperText($this->calonPenghuni($arguments) === []
-                        ? 'Tidak ada peserta terverifikasi tanpa kamar yang cocok dengan kamar ini.'
-                        : 'Hanya peserta terverifikasi yang belum punya kamar dan cocok dengan gender kamar.'),
+                        ? 'Tidak ada peserta yang cocok untuk kamar ini.'
+                        : 'Peserta terverifikasi tanpa kamar, sesuai gender kamar.'),
                 Toggle::make('pasutri')
                     ->label('Jadikan kamar pasutri')
-                    ->helperText('Kamar dibatasi 2 orang: 1 laki-laki dan 1 perempuan.')
+                    ->helperText('Maksimal 2 orang: 1 laki-laki dan 1 perempuan.')
                     ->visible(fn (): bool => $this->keadaan($arguments)['tipe'] === null && $this->kamar($arguments)->kapasitas >= AsramaService::MAKS_PASUTRI),
             ])
             ->authorize(fn (): bool => auth()->user()->can('create', AsramaPeserta::class))
@@ -196,7 +196,7 @@ class PenempatanKamar extends Page
             ->link()
             ->requiresConfirmation()
             ->modalHeading(fn (array $arguments): string => "Keluarkan {$this->penempatan($arguments)->pelatihanPeserta->peserta->nama_lengkap}?")
-            ->modalDescription(fn (array $arguments): string => "Peserta dikeluarkan dari kamar {$this->penempatan($arguments)->penggunaanKamar->kamarAsrama->nama_tampilan}. Jika kamar menjadi kosong, gender kamar kembali netral.")
+            ->modalDescription(fn (array $arguments): string => "Peserta keluar dari kamar {$this->penempatan($arguments)->penggunaanKamar->kamarAsrama->nama_tampilan}. Kamar yang kosong kembali netral.")
             ->modalSubmitActionLabel('Keluarkan')
             ->authorize(fn (array $arguments): bool => auth()->user()->can('delete', $this->penempatan($arguments)))
             ->visible(fn (): bool => $this->bisaDiubah())
@@ -204,7 +204,7 @@ class PenempatanKamar extends Page
                 GalatService::jalankan($action, 'Peserta tidak dapat dikeluarkan', fn () => app(AsramaService::class)->keluarkan($this->penempatan($arguments)));
 
                 unset($this->denah);
-                Notification::make()->title('Peserta dikeluarkan dari kamar')->success()->send();
+                Notification::make()->title('Peserta keluar dari kamar')->success()->send();
             });
     }
 
@@ -257,8 +257,8 @@ class PenempatanKamar extends Page
         $keadaan = $this->keadaan($arguments);
 
         return match ($keadaan['tipe']) {
-            null => "Kamar kosong untuk {$keadaan['kapasitas']} orang. Gender kamar mengikuti penghuni pertama.",
-            TipeKamar::Pasutri => 'Kamar pasutri: maksimal 2 orang, 1 laki-laki dan 1 perempuan.',
+            null => "Kamar kosong untuk {$keadaan['kapasitas']} orang. Gender ikut penghuni pertama.",
+            TipeKamar::Pasutri => 'Kamar pasutri: 1 laki-laki dan 1 perempuan.',
             default => "Kamar {$keadaan['tipe']->getLabel()}, terisi {$keadaan['jumlah']}/{$keadaan['kapasitas']}.",
         };
     }

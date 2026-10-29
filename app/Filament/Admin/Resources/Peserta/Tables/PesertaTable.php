@@ -51,6 +51,6 @@ class PesertaTable
             ])
             ->toolbarActions([])
             ->emptyStateHeading('Belum ada peserta')
-            ->emptyStateDescription('Peserta tercatat otomatis saat mendaftar lewat form registrasi di /daftar.');
+            ->emptyStateDescription('Peserta tercatat otomatis saat mendaftar di /daftar.');
     }
 }

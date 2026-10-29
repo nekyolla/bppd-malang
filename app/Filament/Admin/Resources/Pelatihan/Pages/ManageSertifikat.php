@@ -106,7 +106,7 @@ class ManageSertifikat extends ManageRelatedRecords
             ])
             ->defaultPaginationPageOption(25)
             ->emptyStateHeading('Belum ada peserta terverifikasi')
-            ->emptyStateDescription('Sertifikat hanya dapat diunggah untuk peserta terverifikasi atau selesai.');
+            ->emptyStateDescription('Sertifikat hanya untuk peserta terverifikasi atau selesai.');
     }
 
     private function aksiUnggah(string $nama, string $label): Action
@@ -119,7 +119,7 @@ class ManageSertifikat extends ManageRelatedRecords
             ->schema([
                 FileUpload::make('berkas')
                     ->label('Berkas sertifikat (PDF)')
-                    ->helperText('Sertifikat dibuat di luar sistem. Unggah berkas PDF-nya di sini.')
+                    ->helperText('PDF, maksimal 2 MB.')
                     ->acceptedFileTypes(['application/pdf'])
                     ->maxSize(RegistrasiService::MAKS_UKURAN_BERKAS_KB)
                     ->storeFiles(false)

@@ -125,7 +125,7 @@ describe('pengganti', function () {
 
         expect($this->pengganti->kandidat($calonLain, $calonLain->peserta->desa_id))->toBeEmpty()
             ->and(galatBatal(fn () => $this->service->verifikasi($calonLain, $this->admin, menggantikanId: $this->batal->id))['menggantikan_id'][0])
-            ->toBe('Pengganti harus berasal dari desa yang sama dengan peserta yang digantikan.')
+            ->toBe('Pengganti harus dari desa yang sama.')
             ->and($calonLain->fresh()->status)->toBe(StatusPendaftaran::Terdaftar);
     });
 

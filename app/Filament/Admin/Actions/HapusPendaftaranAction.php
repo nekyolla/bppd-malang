@@ -29,7 +29,7 @@ class HapusPendaftaranAction extends Action
             ->color('danger')
             ->requiresConfirmation()
             ->modalHeading(fn (PelatihanPeserta $record): string => "Hapus pendaftaran {$record->peserta->nama_lengkap}?")
-            ->modalDescription('Pendaftaran dan berkasnya (KTP, pas foto, surat tugas) dihapus permanen. Gunakan untuk data iseng atau ganda, bukan untuk peserta yang batal hadir.')
+            ->modalDescription('Pendaftaran dan berkasnya dihapus permanen. Untuk peserta batal hadir, gunakan Batalkan.')
             ->modalSubmitActionLabel('Hapus permanen')
             ->authorize('hapus')
             ->visible(fn (PelatihanPeserta $record): bool => $record->diverifikasi_pada === null

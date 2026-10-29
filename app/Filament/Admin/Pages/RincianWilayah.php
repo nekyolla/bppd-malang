@@ -107,7 +107,7 @@ class RincianWilayah extends Page implements HasTable
             })
             ->paginated(false)
             ->emptyStateHeading('Belum ada desa terlatih')
-            ->emptyStateDescription('Desa dihitung terlatih setelah minimal satu pesertanya berstatus selesai.');
+            ->emptyStateDescription('Desa terlatih bila minimal satu pesertanya selesai.');
     }
 
     /**

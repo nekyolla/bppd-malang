@@ -98,7 +98,7 @@ class Registrasi extends Component implements HasActions, HasSchemas
                         ->schema([
                             Radio::make('pelatihan_id')
                                 ->label('Pelatihan yang Anda ikuti')
-                                ->helperText('Sesuai surat pemanggilan dari BBPD Malang.')
+                                ->helperText('Sesuai surat pemanggilan.')
                                 ->options(fn (): array => $this->pelatihanDibuka()->mapWithKeys(fn (Pelatihan $p): array => [$p->id => $p->nama_tampilan])->all())
                                 ->descriptions(fn (): array => $this->pelatihanDibuka()->mapWithKeys(fn (Pelatihan $p): array => [
                                     $p->id => FormatTanggal::rentang($p->tanggal_mulai, $p->tanggal_selesai).' · '.($p->keterangan_lokasi ?? $p->tipe_lokasi->getLabel()),
@@ -234,7 +234,7 @@ class Registrasi extends Component implements HasActions, HasSchemas
                         ->schema([
                             $langsung(TextInput::make('npwp')
                                 ->label('NPWP')
-                                ->helperText('15 atau 16 angka, tanpa titik dan strip. Boleh dikosongkan jika tidak punya.')
+                                ->helperText('15–16 angka tanpa titik. Kosongkan jika tidak punya.')
                                 ->regex('/^(\d{15}|\d{16})$/')
                                 ->validationMessages(['regex' => 'NPWP terdiri dari 15 atau 16 angka.'])
                                 ->mask(str_repeat('9', 16))
@@ -273,7 +273,7 @@ class Registrasi extends Component implements HasActions, HasSchemas
                                     Text::make(fn (Get $get): string => 'Nomor HP: '.($get('no_hp') ?: '–')),
                                 ]),
                             Checkbox::make('pernyataan')
-                                ->label('Saya menyatakan data yang saya isi benar dan sesuai KTP serta surat tugas.')
+                                ->label('Data yang saya isi benar dan sesuai KTP serta surat tugas.')
                                 ->accepted()
                                 ->dehydrated(false),
                         ]),

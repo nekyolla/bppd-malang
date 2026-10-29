@@ -95,7 +95,7 @@ class ManageKelas extends ManageRelatedRecords
                     ->using(fn (KelasPelatihan $record, array $data, Action $action): KelasPelatihan => GalatService::jalankan($action, 'Kelas tidak dapat disimpan', fn () => app(KelasService::class)
                         ->simpan($this->getOwnerRecord(), $data['nama_kelas'], $record))),
                 DeleteAction::make()
-                    ->modalDescription('Hanya kelas yang belum berisi peserta yang dapat dihapus.')
+                    ->modalDescription('Hanya kelas kosong yang dapat dihapus.')
                     ->visible(fn (): bool => $this->belumSelesai())
                     ->using(function (KelasPelatihan $record, Action $action): bool {
                         GalatService::jalankan($action, 'Kelas tidak dapat disimpan', fn () => app(KelasService::class)->hapus($record));
@@ -106,7 +106,7 @@ class ManageKelas extends ManageRelatedRecords
             ->toolbarActions([])
             ->paginated(false)
             ->emptyStateHeading('Belum ada kelas')
-            ->emptyStateDescription('Buat kelas terlebih dahulu sebelum membagi peserta.');
+            ->emptyStateDescription('Buat kelas dulu sebelum membagi peserta.');
     }
 
     /**

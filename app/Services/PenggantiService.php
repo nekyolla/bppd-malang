@@ -54,7 +54,7 @@ class PenggantiService
             $digantikan->status !== StatusPendaftaran::Batal => $gagal('Hanya peserta yang batal yang dapat digantikan.'),
             $digantikan->pelatihan_id !== $pengganti->pelatihan_id => $gagal('Peserta yang digantikan harus dari pelatihan yang sama.'),
             ! $this->masihBisaDiganti($pengganti) => $gagal('Pengganti tidak dapat ditetapkan karena pelatihan sudah dimulai.'),
-            $this->desa($digantikan) !== $this->desa($pengganti) => $gagal('Pengganti harus berasal dari desa yang sama dengan peserta yang digantikan.'),
+            $this->desa($digantikan) !== $this->desa($pengganti) => $gagal('Pengganti harus dari desa yang sama.'),
             $digantikan->pengganti()->whereKeyNot($pengganti->getKey())->exists() => $gagal('Peserta ini sudah memiliki pengganti.'),
             default => null,
         };

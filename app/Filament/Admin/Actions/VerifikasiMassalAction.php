@@ -23,7 +23,7 @@ class VerifikasiMassalAction extends BulkAction
             ->icon(Heroicon::OutlinedCheckBadge)
             ->color('info')
             ->requiresConfirmation()
-            ->modalDescription('Pendaftaran yang isiannya berbeda dengan data peserta sebelumnya akan dilewati agar diperiksa satu per satu.')
+            ->modalDescription('Isian yang berbeda dari data lama dilewati, untuk diperiksa satu per satu.')
             ->modalSubmitActionLabel('Verifikasi')
             ->authorizeIndividualRecords('verifikasi')
             ->deselectRecordsAfterCompletion()

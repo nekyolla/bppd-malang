@@ -47,7 +47,7 @@ class SumberDanaResource extends Resource
                     ->unique(),
                 Toggle::make('butuh_keterangan')
                     ->label('Wajib isi keterangan')
-                    ->helperText('Aktifkan untuk pilihan seperti "Lainnya": peserta wajib menuliskan sumber dananya.'),
+                    ->helperText('Untuk pilihan "Lainnya": peserta wajib menulis sumber dananya.'),
             ]);
     }
 

@@ -30,7 +30,7 @@ class BagiAcakKelasAction extends Action
             ->icon(Heroicon::OutlinedArrowsRightLeft)
             ->color('gray')
             ->modalHeading('Bagi peserta ke kelas secara acak')
-            ->modalDescription('Peserta terverifikasi dibagi rata ke semua kelas. Hasilnya tetap dapat diubah satu per satu.')
+            ->modalDescription('Peserta terverifikasi dibagi rata ke semua kelas. Masih bisa diubah satu per satu.')
             ->modalSubmitActionLabel('Bagi acak')
             ->modalWidth('lg')
             ->schema([
@@ -54,7 +54,7 @@ class BagiAcakKelasAction extends Action
 
                 $jumlah > 0
                     ? Notification::make()->title("{$jumlah} peserta dibagi ke kelas")->success()->send()
-                    : Notification::make()->title('Tidak ada peserta yang perlu dibagi')->body('Belum ada peserta terverifikasi tanpa kelas di pelatihan ini.')->warning()->send();
+                    : Notification::make()->title('Tidak ada peserta yang perlu dibagi')->body('Tidak ada peserta yang perlu dibagi.')->warning()->send();
             });
     }
 }

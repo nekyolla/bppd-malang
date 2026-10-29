@@ -99,7 +99,7 @@ describe('kelas', function () {
         PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->count(2)->create(['kelas_pelatihan_id' => $kelas->id]);
 
         expect(galatKelas(fn () => $this->service->hapus($kelas))['kelas'][0])
-            ->toBe('Kelas A masih berisi 2 peserta. Pindahkan pesertanya ke kelas lain terlebih dahulu.')
+            ->toBe('Kelas A masih berisi 2 peserta. Pindahkan dulu ke kelas lain.')
             ->and($kelas->fresh())->not->toBeNull();
     });
 
@@ -151,7 +151,7 @@ describe('penetapan kelas', function () {
             ->for($this->pelatihan)->create();
 
         expect(galatKelas(fn () => $this->service->tetapkan($pendaftaran, $this->kelas))['status'][0])
-            ->toBe('Hanya peserta terverifikasi yang dapat ditetapkan kelasnya.')
+            ->toBe('Hanya peserta terverifikasi yang dapat diberi kelas.')
             ->and($pendaftaran->fresh()->kelas_pelatihan_id)->toBeNull();
     })->with(['terdaftar', 'selesai', 'batal']);
 
@@ -160,7 +160,7 @@ describe('penetapan kelas', function () {
         $kelasLain = KelasPelatihan::factory()->create();
 
         expect(galatKelas(fn () => $this->service->tetapkan($pendaftaran, $kelasLain))['kelas_pelatihan_id'][0])
-            ->toBe('Kelas harus milik pelatihan yang sama dengan pendaftaran peserta.')
+            ->toBe('Kelas harus dari pelatihan yang sama.')
             ->and($pendaftaran->fresh()->kelas_pelatihan_id)->toBeNull();
     });
 
@@ -228,6 +228,6 @@ describe('bagi acak', function () {
         PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create();
 
         expect(galatKelas(fn () => $this->service->bagiAcak($this->pelatihan))['kelas'][0])
-            ->toBe('Buat kelas terlebih dahulu sebelum membagi peserta.');
+            ->toBe('Buat kelas dulu sebelum membagi peserta.');
     });
 });

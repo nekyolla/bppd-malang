@@ -80,7 +80,7 @@ class AsramaService
     private function pastikanPesertaBolehDitempatkan(PelatihanPeserta $pendaftaran): void
     {
         if ($pendaftaran->pelatihan->tipe_lokasi !== TipeLokasi::Bbpd) {
-            $this->tolak('pelatihan_peserta_id', 'Asrama hanya untuk pelatihan di BBPD Malang.');
+            $this->tolak('pelatihan_peserta_id', 'Asrama hanya untuk pelatihan di Balai Besar.');
         }
 
         if ($pendaftaran->status !== StatusPendaftaran::Terverifikasi) {
@@ -100,7 +100,7 @@ class AsramaService
     private function pastikanKamarTersedia(KamarAsrama $kamar, Pelatihan $pelatihan): void
     {
         if (! $kamar->is_aktif || ! $kamar->asrama->is_aktif) {
-            $this->tolak('kamar_asrama_id', "Kamar {$kamar->nama_tampilan} tidak tersedia karena sudah dinonaktifkan.");
+            $this->tolak('kamar_asrama_id', "Kamar {$kamar->nama_tampilan} sudah dinonaktifkan.");
         }
 
         if ($bentrok = $this->pemakaianBentrok($kamar->getKey(), $pelatihan->getKey(), $pelatihan->tanggal_mulai, $pelatihan->tanggal_selesai)) {
@@ -130,7 +130,7 @@ class AsramaService
         }
 
         if ($pasutri && $kamar->kapasitas < self::MAKS_PASUTRI) {
-            $this->tolak('kamar_asrama_id', "Kamar {$kamar->nama_tampilan} hanya untuk 1 orang, sehingga tidak dapat dijadikan kamar pasutri.");
+            $this->tolak('kamar_asrama_id', "Kamar {$kamar->nama_tampilan} hanya untuk 1 orang, tidak bisa jadi kamar pasutri.");
         }
 
         $penggunaan = new PenggunaanKamar([
@@ -179,7 +179,7 @@ class AsramaService
             KamarAsrama::query()->lockForUpdate()->findOrFail($penggunaan->kamar_asrama_id);
 
             if (PelatihanPeserta::query()->findOrFail($penempatan->pelatihan_peserta_id)->status === StatusPendaftaran::Selesai) {
-                $this->tolak('penempatan', 'Penempatan kamar peserta yang sudah selesai pelatihan tidak dapat diubah.');
+                $this->tolak('penempatan', 'Pelatihan sudah selesai. Penempatan tidak dapat diubah.');
             }
 
             $penempatan->delete();

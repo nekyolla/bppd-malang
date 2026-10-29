@@ -93,7 +93,7 @@ class PendaftaranInfolist
                         ->values()
                         ->all()),
                 Section::make('Isian berbeda dari data lama')
-                    ->description('Peserta ini pernah terdaftar. Periksa perubahan berikut saat verifikasi.')
+                    ->description('Peserta lama. Periksa perubahan berikut saat verifikasi.')
                     ->visible(fn (PelatihanPeserta $record): bool => $record->status === StatusPendaftaran::Terdaftar
                         && app(PendaftaranService::class)->perbedaanIsian($record) !== [])
                     ->schema([

@@ -116,7 +116,7 @@ describe('ubahStatus', function () {
         $terverifikasi = PelatihanPeserta::factory()->terverifikasi()->for($pelatihan)->create();
 
         expect(galatValidasi(fn () => $this->service->ubahStatus($pelatihan, StatusPelatihan::Selesai))['status'][0])
-            ->toBe('Masih ada 2 peserta yang menunggu verifikasi. Verifikasi atau batalkan terlebih dahulu.')
+            ->toBe('Masih ada 2 peserta menunggu verifikasi. Verifikasi atau batalkan dulu.')
             ->and($pelatihan->fresh()->status)->toBe(StatusPelatihan::Berjalan)
             ->and($terverifikasi->fresh()->status)->toBe(StatusPendaftaran::Terverifikasi);
     });

@@ -56,7 +56,7 @@ class SertifikatService
                 $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
                 if (! in_array($terkunci->status, [StatusPendaftaran::Terverifikasi, StatusPendaftaran::Selesai], true)) {
-                    $this->tolak('status', 'Sertifikat hanya dapat diunggah untuk peserta terverifikasi atau selesai.');
+                    $this->tolak('status', 'Sertifikat hanya untuk peserta terverifikasi atau selesai.');
                 }
 
                 $path = $this->pathBaru($terkunci);

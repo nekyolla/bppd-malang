@@ -43,6 +43,7 @@ it('menyusun satu lembar per hari terpilih dengan kolom L/P dan tanda tangan sel
 
     expect($lembar)->toHaveCount(2)
         ->and(array_column($lembar, 'namaLembar'))->toBe(['Sen 2 Nov', 'Rab 4 Nov'])
+        ->and(array_column($lembar, 'tanggal'))->toBe(['2026-11-02', '2026-11-04'])
         ->and($senin['keterangan'][1])->toStartWith('Kelas A')
         ->and($senin['keterangan'][2])->toBe('Hari/tanggal: Senin, 2 November 2026')
         ->and($senin['kolom'])->toBe(['No', 'Nama', 'L/P', 'Jabatan', 'Desa', 'Tanda tangan', ''])
@@ -62,6 +63,18 @@ it('menolak tanggal di luar jadwal atau pilihan kosong', function () {
         ->and(galatExport(fn () => $this->service->daftarHadirKelas($this->kelas, []))['tanggal'][0])
         ->toBe('Pilih minimal satu hari.');
 });
+
+it('menolak tanggal rusak tanpa galat server', function (mixed $nilai) {
+    expect(galatExport(fn () => $this->service->daftarHadirKelas($this->kelas, ['2026-11-02', $nilai]))['tanggal'][0])
+        ->toBe('Tanggal tidak valid.');
+})->with([
+    'bukan tanggal' => 'kemarin',
+    'tanggal tidak ada' => '2026-11-31',
+    'format lain' => '02/11/2026',
+    'dengan jam' => '2026-11-02 10:00',
+    'bukan string' => [['2026-11-02']],
+    'angka' => 20261102,
+]);
 
 it('tetap membuat lembar untuk kelas tanpa peserta aktif', function () {
     $lembar = $this->service->daftarHadirKelas($this->kelas, ['2026-11-02', '2026-11-03']);

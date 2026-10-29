@@ -134,7 +134,8 @@ class PesertaKelas extends Page implements HasTable
         $kelas = $this->kelas();
         $service = app(ExportService::class);
         $lembar = $service->daftarHadirKelas($kelas, $tanggal);
-        $akhiran = count($lembar) === 1 ? $tanggal[0] : count($lembar).' hari';
+        // Dari lembar hasil service (sudah divalidasi & dirapikan), bukan input mentah.
+        $akhiran = count($lembar) === 1 ? $lembar[0]['tanggal'] : count($lembar).' hari';
         $nama = Str::slug("daftar-hadir {$this->getRecord()->nama_tampilan} kelas {$kelas->nama_kelas} {$akhiran}");
 
         return $format === 'pdf'

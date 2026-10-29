@@ -38,10 +38,9 @@ it('mengunggah sertifikat PDF ke penyimpanan privat untuk peserta terverifikasi 
     $pendaftaran = pendaftaranBerstatus($state);
 
     $sertifikat = $this->service->unggah($pendaftaran, ($this->pdf)(), $this->admin);
-    $path = "sertifikat/{$pendaftaran->pelatihan_id}/{$pendaftaran->id}.pdf";
+    $path = $sertifikat->file_sertifikat;
 
-    expect($sertifikat->file_sertifikat)->toBe($path)
-        ->and($this->service->path($pendaftaran))->toBe($path)
+    expect($path)->toMatch("#^sertifikat/{$pendaftaran->pelatihan_id}/{$pendaftaran->id}-[a-z0-9]{10}\\.pdf$#")
         ->and($sertifikat->diuploadOleh->is($this->admin))->toBeTrue()
         ->and($pendaftaran->sertifikat()->exists())->toBeTrue();
 
@@ -49,16 +48,31 @@ it('mengunggah sertifikat PDF ke penyimpanan privat untuk peserta terverifikasi 
     Storage::disk('public')->assertMissing($path);
 })->with(['terverifikasi', 'selesai']);
 
-it('mengganti sertifikat dengan menimpa berkas yang sama', function () {
+it('mengganti sertifikat ke berkas baru lalu menghapus berkas lama', function () {
     $pendaftaran = PelatihanPeserta::factory()->selesai()->create();
     $adminLain = User::factory()->create();
 
-    $this->service->unggah($pendaftaran, ($this->pdf)('%PDF-lama'), $this->admin);
+    $lama = $this->service->unggah($pendaftaran, ($this->pdf)('%PDF-lama'), $this->admin)->file_sertifikat;
     $sertifikat = $this->service->unggah($pendaftaran, ($this->pdf)('%PDF-baru'), $adminLain);
 
     expect(SertifikatPeserta::count())->toBe(1)
         ->and($sertifikat->diupload_oleh)->toBe($adminLain->id)
-        ->and(Storage::disk('local')->get($sertifikat->file_sertifikat))->toBe('%PDF-baru');
+        ->and($sertifikat->file_sertifikat)->not->toBe($lama)
+        ->and(Storage::disk('local')->get($sertifikat->file_sertifikat))->toBe('%PDF-baru')
+        ->and(Storage::disk('local')->allFiles())->toBe([$sertifikat->file_sertifikat]);
+});
+
+it('mempertahankan sertifikat lama dan tidak menyisakan berkas baru bila penyimpanan baris gagal', function () {
+    $pendaftaran = PelatihanPeserta::factory()->selesai()->create();
+    $lama = $this->service->unggah($pendaftaran, ($this->pdf)('%PDF-lama'), $this->admin);
+    SertifikatPeserta::saving(fn () => throw new RuntimeException('DB gagal'));
+
+    expect(fn () => $this->service->unggah($pendaftaran, ($this->pdf)('%PDF-baru'), $this->admin))
+        ->toThrow(RuntimeException::class, 'DB gagal');
+
+    expect($lama->fresh()->file_sertifikat)->toBe($lama->file_sertifikat)
+        ->and(Storage::disk('local')->allFiles())->toBe([$lama->file_sertifikat])
+        ->and(Storage::disk('local')->get($lama->file_sertifikat))->toBe('%PDF-lama');
 });
 
 function pendaftaranBerstatus(string $status): PelatihanPeserta
@@ -119,5 +133,6 @@ it('mencatat penggantian sertifikat tepat satu kali di audit log, juga oleh admi
         ->and($baru->first()->event)->toBe('ganti')
         ->and($baru->first()->causer_id)->toBe($pengganti->id)
         ->and($baru->first()->properties['old']['diupload_oleh'])->toBe($this->admin->id)
+        ->and($baru->first()->properties['old']['file_sertifikat'])->toBe($sertifikat->file_sertifikat)
         ->and($baru->first()->properties['attributes']['diupload_oleh'])->toBe($pengganti->id);
 })->with(['admin sama' => true, 'admin lain' => false]);

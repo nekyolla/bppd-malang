@@ -28,10 +28,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Presensi diisi di kertas; sistem tidak menyimpannya (PF-22). Tidak memuat NIK
  * (CLAUDE.md aturan 9) dan setiap unduhan tercatat di audit log.
  *
- * Satu lembar = satu hari: judul, baris keterangan, nama lembar (sheet Excel), kolom,
- * baris isi, dan jumlah kolom tanda tangan di ujung kanan.
+ * Satu lembar = satu hari: tanggal `Y-m-d`, judul, baris keterangan, nama lembar (sheet
+ * Excel), kolom, baris isi, dan jumlah kolom tanda tangan di ujung kanan.
  *
- * @phpstan-type DataExport array{judul: string, keterangan: list<string>, namaLembar: string, kolom: list<string>, baris: list<list<string|int>>, kolomTtd: int}
+ * @phpstan-type DataExport array{tanggal: string, judul: string, keterangan: list<string>, namaLembar: string, kolom: list<string>, baris: list<list<string|int>>, kolomTtd: int}
  */
 class ExportService
 {
@@ -81,6 +81,7 @@ class ExportService
             ->all();
 
         return array_map(fn (CarbonInterface $tgl): array => [
+            'tanggal' => $tgl->toDateString(),
             'judul' => 'Daftar Hadir Peserta',
             'keterangan' => [
                 $pelatihan->nama_tampilan,
@@ -95,14 +96,23 @@ class ExportService
     }
 
     /**
-     * @param  list<string>  $tanggal
+     * @param  array<mixed>  $tanggal
      * @return list<CarbonInterface>
      *
      * @throws ValidationException
      */
     private function hariTerpilih(Pelatihan $pelatihan, array $tanggal): array
     {
-        $tanggal = array_values(array_unique(array_filter($tanggal, 'filled')));
+        $tanggal = array_filter($tanggal, 'filled');
+
+        // Hanya string `Y-m-d` yang benar-benar ada; tanggal rusak ditolak, bukan galat 500.
+        if (array_any($tanggal, fn (mixed $nilai): bool => ! is_string($nilai)
+            || ! Carbon::canBeCreatedFromFormat($nilai, '!Y-m-d')
+            || Carbon::createFromFormat('!Y-m-d', $nilai)->toDateString() !== $nilai)) {
+            $this->tolak('tanggal', 'Tanggal tidak valid.');
+        }
+
+        $tanggal = array_values(array_unique($tanggal));
         sort($tanggal);
 
         if ($tanggal === []) {
@@ -110,7 +120,7 @@ class ExportService
         }
 
         return array_map(function (string $nilai) use ($pelatihan): CarbonInterface {
-            $hari = Carbon::parse($nilai)->startOfDay();
+            $hari = Carbon::createFromFormat('!Y-m-d', $nilai);
 
             if ($hari->lt($pelatihan->tanggal_mulai) || $hari->gt($pelatihan->tanggal_selesai)) {
                 $this->tolak('tanggal', 'Tanggal '.FormatTanggal::tanggal($hari).' di luar jadwal pelatihan.');

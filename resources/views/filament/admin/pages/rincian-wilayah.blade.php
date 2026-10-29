@@ -4,7 +4,7 @@
             :heading="$peta['judul']"
             description="Klik wilayah untuk melihat rinciannya."
         >
-            @include('filament.admin.partials.peta-wilayah', [...$peta, 'klik' => 'buka'])
+            @include('filament.admin.partials.peta-wilayah', $peta)
         </x-filament::section>
     @endif
 

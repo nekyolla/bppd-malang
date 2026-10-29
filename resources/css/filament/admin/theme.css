@@ -117,9 +117,47 @@
     @apply after:border-white/10;
 }
 
-/* Kepala tabel: latar tipis agar terpisah dari isi. */
+/*
+ * Tabel ringkas: baris lebih rapat (py-4 → py-2.5), keterangan di bawah isi lebih kecil,
+ * kepala tabel huruf biasa berlatar tipis. Berlaku untuk semua tabel panel.
+ */
 .fi-ta-header-cell {
-    @apply bg-gray-50 text-xs font-semibold tracking-wide text-gray-600 uppercase dark:bg-white/5 dark:text-gray-300;
+    @apply py-2.5 text-xs font-medium text-gray-500 dark:text-gray-400;
+}
+
+/* Latar di seluruh baris kepala, termasuk sel kosong di atas kolom aksi/centang. */
+.fi-ta-table > thead > tr > th {
+    @apply bg-gray-50 dark:bg-white/5;
+}
+
+.fi-ta-text:not(.fi-inline),
+.fi-ta-icon:not(.fi-inline) {
+    @apply py-2.5;
+}
+
+.fi-ta-table-stacked-on-mobile .fi-ta-text,
+.fi-ta-table-stacked-on-mobile .fi-ta-icon {
+    @apply sm:py-2.5;
+}
+
+.fi-ta-cell:has(.fi-ta-actions),
+.fi-ta-cell:has(.fi-ta-record-checkbox),
+.fi-ta-table > tbody > tr > .fi-ta-selection-cell {
+    @apply py-2.5 sm:py-2.5;
+}
+
+.fi-ta-text {
+    &.fi-ta-text-has-descriptions:not(.fi-ta-text-has-badges) {
+        @apply gap-y-0;
+    }
+
+    & > .fi-ta-text-description {
+        @apply text-xs leading-5;
+    }
+}
+
+.fi-ta-row {
+    @apply transition-colors hover:bg-gray-50/70 dark:hover:bg-white/[0.03];
 }
 
 /* Login dua kolom: di layar lebar merek sudah ada di panel kiri. */
@@ -170,5 +208,22 @@
 
     & .fi-badge {
         @apply min-w-5 justify-center rounded-full bg-danger-600 px-1.5 py-0 text-[0.6875rem] leading-5 font-semibold text-white ring-2 ring-white dark:bg-danger-500 dark:ring-gray-900;
+    }
+}
+
+/* Detail ringkas (halaman Peserta): isian rapat, label sebaris dengan nilainya. */
+.fi-ringkas .fi-sc-has-gap {
+    @apply gap-3;
+}
+
+.fi-ringkas .fi-in-entry-has-inline-label {
+    @apply sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-x-3;
+
+    & .fi-in-entry-content-col {
+        @apply sm:col-span-1;
+    }
+
+    & .fi-in-entry-label {
+        @apply font-normal text-gray-500 dark:text-gray-400;
     }
 }

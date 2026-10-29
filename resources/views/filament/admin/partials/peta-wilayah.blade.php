@@ -1,17 +1,16 @@
 {{--
     Peta wilayah (resources/js/peta-wilayah.js).
-    Parameter: $data (statistik per kode), $geo ('provinsi' | 'kab-kota/{kode}'), $klik ('panel' | 'buka'),
-    $labelKosong, $kunci (berganti saat data berubah agar peta digambar ulang), $label (aria).
+    Parameter: $data (statistik per kode), $geo ('provinsi' | 'kab-kota/{kode}'), $labelKosong,
+    $kunci (berganti saat data berubah agar peta digambar ulang), $label (aria).
+    Klik wilayah berdata membuka rinciannya; angka singkat tampil di tooltip.
 --}}
-@php($klik ??= 'panel')
 
 <div wire:key="peta-{{ $kunci }}">
     <div
         wire:ignore
-        x-data="petaWilayah({ data: @js((object) $data), geo: @js($geo), klik: @js($klik), labelKosong: @js($labelKosong) })"
-        @class(['grid gap-4', 'lg:grid-cols-3' => $klik === 'panel'])
+        x-data="petaWilayah({ data: @js((object) $data), geo: @js($geo), labelKosong: @js($labelKosong) })"
     >
-        <div @class(['lg:col-span-2' => $klik === 'panel'])>
+        <div>
             {{-- `isolate`: z-index panel Leaflet (400+) tidak menimpa sidebar & topbar Filament di layar sempit. --}}
             <div class="relative isolate">
                 <div
@@ -41,48 +40,5 @@
             </div>
         </div>
 
-        @if ($klik === 'panel')
-            <div class="rounded-lg border border-gray-200 p-4 dark:border-white/10" aria-live="polite">
-                <template x-if="! terpilih">
-                    <p class="text-sm text-gray-600 dark:text-gray-300">Pilih wilayah di peta untuk melihat rinciannya.</p>
-                </template>
-
-                <template x-if="terpilih && terpilih.kosong">
-                    <div>
-                        <p class="text-base font-semibold text-gray-950 dark:text-white" x-text="terpilih.nama"></p>
-                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300"><span x-text="labelKosong"></span>. Tidak ada data.</p>
-                    </div>
-                </template>
-
-                <template x-if="terpilih && ! terpilih.kosong">
-                    <div>
-                        <p class="text-base font-semibold text-gray-950 dark:text-white" x-text="terpilih.nama"></p>
-                        <dl class="mt-3 space-y-3 text-sm">
-                            <template x-if="terpilih.total_kab_kota !== undefined">
-                                <div>
-                                    <dt class="text-gray-600 dark:text-gray-300">Kab/kota terlatih</dt>
-                                    <dd class="text-lg font-semibold text-gray-950 dark:text-white">
-                                        <span x-text="angka(terpilih.kab_kota_terlatih)"></span>
-                                        <span class="text-sm font-normal text-gray-600 dark:text-gray-300">dari <span x-text="angka(terpilih.total_kab_kota)"></span></span>
-                                    </dd>
-                                </div>
-                            </template>
-                            <div>
-                                <dt class="text-gray-600 dark:text-gray-300">Desa terlatih</dt>
-                                <dd class="text-lg font-semibold text-gray-950 dark:text-white" x-text="angka(terpilih.desa_terlatih)"></dd>
-                            </div>
-                            <div>
-                                <dt class="text-gray-600 dark:text-gray-300">Desa belum terlatih</dt>
-                                <dd class="text-lg font-semibold text-gray-950 dark:text-white" x-text="angka(terpilih.desa_belum_terlatih)"></dd>
-                            </div>
-                        </dl>
-                        <a
-                            :href="terpilih.url"
-                            class="mt-4 inline-block text-sm font-medium text-primary-600 underline hover:text-primary-500 dark:text-primary-400"
-                        >Lihat rincian</a>
-                    </div>
-                </template>
-            </div>
-        @endif
     </div>
 </div>

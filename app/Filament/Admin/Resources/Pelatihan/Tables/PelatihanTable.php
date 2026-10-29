@@ -10,6 +10,7 @@ use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
 use App\Models\KategoriPelatihan;
 use App\Models\Pelatihan;
 use App\Support\FormatTanggal;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -71,9 +72,12 @@ class PelatihanTable
             ])
             // Pekerjaan harian panitia ada di pendaftar; form ubah lewat tombol Ubah.
             ->recordUrl(fn (Pelatihan $record): string => ManagePendaftar::getUrl(['record' => $record]))
+            // Aksi dalam satu menu ⋮ agar kolom nama pelatihan tidak terjepit.
             ->recordActions([
-                UbahStatusPelatihanAction::make(),
-                EditAction::make(),
+                ActionGroup::make([
+                    UbahStatusPelatihanAction::make(),
+                    EditAction::make(),
+                ]),
             ])
             ->toolbarActions([])
             ->emptyStateHeading('Belum ada pelatihan')

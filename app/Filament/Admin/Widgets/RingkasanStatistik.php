@@ -21,9 +21,15 @@ class RingkasanStatistik extends StatsOverviewWidget
 
     protected ?string $pollingInterval = null;
 
-    protected function getColumns(): int
+    /**
+     * Kolom mengikuti lebar area widget (container query), bukan lebar layar, karena
+     * sidebar memakan ruang di layar sedang. Lima kartu sejajar baru muat di ≥ 56rem.
+     *
+     * @return array<string, int>
+     */
+    protected function getColumns(): array
     {
-        return 5;
+        return ['default' => 1, '@md' => 2, '@xl' => 3, '@4xl' => 5, '!@md' => 2, '!@lg' => 3];
     }
 
     /**

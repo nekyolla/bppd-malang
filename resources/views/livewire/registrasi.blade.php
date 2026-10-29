@@ -1,5 +1,5 @@
 <div>
-    <h1 class="text-2xl font-semibold">Registrasi Peserta Pelatihan</h1>
+    <h1 class="text-2xl font-bold">Registrasi Peserta Pelatihan</h1>
 
     @if ($terkirim)
         <div class="mt-6 rounded-xl border border-success-200 bg-white p-6" role="status">

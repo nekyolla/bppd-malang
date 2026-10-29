@@ -15,4 +15,6 @@ class Instansi
     public const KEMENTERIAN = 'Kementerian Dalam Negeri';
 
     public const DIREKTORAT = 'Direktorat Jenderal Bina Pemerintahan Desa';
+
+    public const APLIKASI = 'Sistem Informasi Pelatihan Aparatur Desa';
 }

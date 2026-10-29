@@ -24,10 +24,25 @@ class Login extends BaseLogin
     public const MAKS_PERCOBAAN_PER_USERNAME = 5;
 
     /**
-     * Batas percobaan per IP per menit. Dibuat longgar karena pegawai BBPD
+     * Batas percobaan per IP per menit. Dibuat longgar karena pegawai balai
      * memakai jaringan kantor yang sama (satu IP publik).
      */
     public const MAKS_PERCOBAAN_PER_IP = 60;
+
+    /**
+     * Dua kolom: panel instansi di kiri, form di kanan (PF-20).
+     */
+    protected static string $layout = 'filament.admin.auth.layout';
+
+    public function getHeading(): string
+    {
+        return 'Masuk';
+    }
+
+    public function getSubheading(): string
+    {
+        return 'Khusus panitia pelatihan.';
+    }
 
     public function authenticate(): ?LoginResponse
     {

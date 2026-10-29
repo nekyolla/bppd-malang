@@ -10,11 +10,14 @@ use App\Filament\Admin\Resources\Peserta\Schemas\PesertaInfolist;
 use App\Filament\Admin\Resources\Peserta\Tables\PesertaTable;
 use App\Filament\Admin\Support\IsianPesertaForm;
 use App\Models\Peserta;
+use App\Support\Masking;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 /**
@@ -40,6 +43,31 @@ class PesertaResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
 
     protected static ?string $recordTitleAttribute = 'nama_lengkap';
+
+    protected static bool $isGloballySearchable = true;
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['nama_lengkap', 'nik'];
+    }
+
+    /**
+     * NIK di hasil pencarian tetap disamarkan (DESIGN_SYSTEM §4).
+     *
+     * @param  Peserta  $record
+     */
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return array_filter([
+            'NIK' => Masking::nik($record->nik),
+            'Desa' => $record->desa?->nama,
+        ]);
+    }
+
+    public static function getGlobalSearchEloquentQuery(): Builder
+    {
+        return parent::getGlobalSearchEloquentQuery()->with('desa');
+    }
 
     public static function form(Schema $schema): Schema
     {

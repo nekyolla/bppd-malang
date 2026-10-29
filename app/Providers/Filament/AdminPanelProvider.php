@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Admin\Livewire\LoncengVerifikasi;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Admin\Pages\RincianWilayah;
 use App\Filament\Auth\Login;
@@ -44,6 +45,10 @@ class AdminPanelProvider extends PanelProvider
             ->font('Poppins', provider: LocalFontProvider::class)
             ->colors(Warna::semua())
             // Urutan grup menu mengikuti DESIGN_SYSTEM §5.1.
+            // Pencarian topbar hanya untuk resource yang ikut serta (Peserta, Pelatihan).
+            ->globalSearchResourceOptIn()
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
+            ->globalSearchFieldKeyBindingSuffix()
             ->navigationGroups(['Pelatihan', 'Asrama', 'Laporan', 'Data Master', 'Pengguna'])
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\Filament\Admin\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\Filament\Admin\Pages')
@@ -55,6 +60,11 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::HEAD_END,
                 fn (): string => Blade::render("@vite('resources/js/peta-wilayah.js')"),
                 scopes: [Dashboard::class, RincianWilayah::class],
+            )
+            // Lonceng pendaftar menunggu verifikasi, di kiri menu akun.
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => Blade::render('@livewire('.LoncengVerifikasi::class.'::class)'),
             )
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')
             ->middleware([

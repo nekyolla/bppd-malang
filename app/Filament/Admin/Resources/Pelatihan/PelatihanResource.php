@@ -13,6 +13,7 @@ use App\Filament\Admin\Resources\Pelatihan\Pages\PesertaKelas;
 use App\Filament\Admin\Resources\Pelatihan\Schemas\PelatihanForm;
 use App\Filament\Admin\Resources\Pelatihan\Tables\PelatihanTable;
 use App\Models\Pelatihan;
+use App\Support\FormatTanggal;
 use BackedEnum;
 use Filament\Navigation\NavigationItem;
 use Filament\Pages\Enums\SubNavigationPosition;
@@ -21,6 +22,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
@@ -47,6 +49,29 @@ class PelatihanResource extends Resource
     public static function getRecordTitle(?Model $record): string
     {
         return $record instanceof Pelatihan ? $record->nama_tampilan : 'Pelatihan';
+    }
+
+    protected static bool $isGloballySearchable = true;
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['judulPelatihan.judul', 'tahun_anggaran'];
+    }
+
+    /**
+     * @param  Pelatihan  $record
+     */
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Tanggal' => FormatTanggal::rentang($record->tanggal_mulai, $record->tanggal_selesai),
+            'Status' => $record->status->getLabel(),
+        ];
+    }
+
+    public static function getGlobalSearchEloquentQuery(): Builder
+    {
+        return parent::getGlobalSearchEloquentQuery()->with('judulPelatihan');
     }
 
     public static function form(Schema $schema): Schema

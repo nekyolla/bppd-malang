@@ -8,7 +8,9 @@ use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
 use App\Filament\Admin\Resources\Pendaftaran\Tables\PendaftaranTable;
 use App\Models\Pelatihan;
+use App\Services\PelatihanService;
 use BackedEnum;
+use Filament\Navigation\NavigationItem;
 use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
@@ -44,6 +46,25 @@ class ManagePendaftar extends ManageRelatedRecords
         return [
             KembaliAction::ke(PendaftaranResource::getUrl('index'), 'Kembali ke pendaftaran'),
         ];
+    }
+
+    /**
+     * Tab "Pendaftar" di sub-menu pelatihan diberi jumlah yang menunggu verifikasi.
+     *
+     * @param  array<string, mixed>  $urlParameters
+     * @return array<NavigationItem>
+     */
+    public static function getNavigationItems(array $urlParameters = []): array
+    {
+        $pelatihan = $urlParameters['record'] ?? null;
+        $menunggu = $pelatihan instanceof Pelatihan ? app(PelatihanService::class)->jumlahMenunggu($pelatihan) : 0;
+
+        return array_map(
+            fn (NavigationItem $item): NavigationItem => $item
+                ->badge($menunggu > 0 ? (string) $menunggu : null, color: 'warning')
+                ->badgeTooltip('Menunggu verifikasi'),
+            parent::getNavigationItems($urlParameters),
+        );
     }
 
     /**

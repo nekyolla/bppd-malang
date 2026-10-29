@@ -63,11 +63,22 @@ describe('menu pendaftaran', function () {
             ->assertSee(ManagePendaftar::getUrl(['record' => $this->pelatihan]), escape: false);
     });
 
-    it('menampilkan jumlah pendaftar yang menunggu verifikasi di menu', function () {
+    it('tidak lagi memberi badge di sidebar; jumlah menunggu pindah ke lonceng topbar', function () {
         PelatihanPeserta::factory()->count(3)->create();
-        PelatihanPeserta::factory()->terverifikasi()->create();
 
-        expect(PendaftaranResource::getNavigationBadge())->toBe('3');
+        expect(PendaftaranResource::getNavigationBadge())->toBeNull();
+    });
+
+    it('memberi jumlah menunggu verifikasi di tab Pendaftar pelatihan', function () {
+        PelatihanPeserta::factory()->count(2)->for($this->pelatihan)->create();
+        PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create();
+        PelatihanPeserta::factory()->create();
+
+        [$tab] = ManagePendaftar::getNavigationItems(['record' => $this->pelatihan]);
+        [$kosong] = ManagePendaftar::getNavigationItems(['record' => Pelatihan::factory()->dibuka()->create()]);
+
+        expect($tab->getBadge())->toBe('2')
+            ->and($kosong->getBadge())->toBeNull();
     });
 });
 

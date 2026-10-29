@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\Pendaftaran;
 
-use App\Enums\StatusPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ListPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ViewPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Schemas\PendaftaranInfolist;
@@ -41,23 +40,6 @@ class PendaftaranResource extends Resource
     public static function getRecordTitle(?Model $record): string
     {
         return $record instanceof PelatihanPeserta ? $record->peserta->nama_lengkap : 'Pendaftaran';
-    }
-
-    public static function getNavigationBadge(): ?string
-    {
-        $menunggu = PelatihanPeserta::query()->where('status', StatusPendaftaran::Terdaftar)->count();
-
-        return $menunggu > 0 ? (string) $menunggu : null;
-    }
-
-    public static function getNavigationBadgeColor(): string
-    {
-        return 'warning';
-    }
-
-    public static function getNavigationBadgeTooltip(): string
-    {
-        return 'Menunggu verifikasi';
     }
 
     public static function infolist(Schema $schema): Schema

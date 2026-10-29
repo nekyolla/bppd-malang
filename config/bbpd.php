@@ -25,4 +25,11 @@ return [
     */
     'logo_folder' => 'images',
 
+    /*
+    | Alamat reverse proxy di depan aplikasi (nginx, load balancer), dipisah koma, atau "*".
+    | Tanpa ini semua pengunjung tampak ber-IP proxy, sehingga batas registrasi & login per IP
+    | berlaku untuk semua orang sekaligus. Kosongkan bila aplikasi tidak di belakang proxy.
+    */
+    'proxy_tepercaya' => env('TRUSTED_PROXIES'),
+
 ];

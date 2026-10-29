@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BerkasController;
+use App\Http\Middleware\HeaderKeamanan;
 use App\Livewire\Registrasi;
 use Illuminate\Support\Facades\Route;
 
@@ -9,7 +10,7 @@ Route::redirect('/', '/daftar');
 
 Route::get('/daftar', Registrasi::class)->name('registrasi');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', HeaderKeamanan::class])->group(function () {
     Route::get('/berkas/pendaftaran/{pelatihanPeserta}/{jenis}', [BerkasController::class, 'pendaftaran'])
         ->whereIn('jenis', array_keys(BerkasController::JENIS_PENDAFTARAN))
         ->name('berkas.pendaftaran');

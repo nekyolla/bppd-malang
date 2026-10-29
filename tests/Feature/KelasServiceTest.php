@@ -94,13 +94,17 @@ describe('kelas', function () {
             ->and($batal->fresh()->status)->toBe(StatusPendaftaran::Batal);
     });
 
-    it('menolak menghapus kelas yang masih berisi peserta', function () {
+    it('menghapus kelas berisi peserta dan mengembalikan mereka menjadi tanpa kelas', function () {
         $kelas = $this->service->simpan($this->pelatihan, 'A');
-        PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->count(2)->create(['kelas_pelatihan_id' => $kelas->id]);
+        $lain = $this->service->simpan($this->pelatihan, 'B');
+        $peserta = PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->count(2)->create(['kelas_pelatihan_id' => $kelas->id]);
+        $diKelasLain = PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create(['kelas_pelatihan_id' => $lain->id]);
 
-        expect(galatKelas(fn () => $this->service->hapus($kelas))['kelas'][0])
-            ->toBe('Kelas A masih berisi 2 peserta. Pindahkan dulu ke kelas lain.')
-            ->and($kelas->fresh())->not->toBeNull();
+        expect($this->service->hapus($kelas))->toBe(2)
+            ->and(KelasPelatihan::find($kelas->id))->toBeNull()
+            ->and($peserta->map(fn (PelatihanPeserta $p) => $p->fresh()->kelas_pelatihan_id)->filter())->toBeEmpty()
+            ->and($peserta->map(fn (PelatihanPeserta $p) => $p->fresh()->status)->unique()->all())->toBe([StatusPendaftaran::Terverifikasi])
+            ->and($diKelasLain->fresh()->kelas_pelatihan_id)->toBe($lain->id);
     });
 
     it('menolak mengubah kelas setelah pelatihan selesai', function () {

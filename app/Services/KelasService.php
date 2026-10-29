@@ -61,27 +61,31 @@ class KelasService
     }
 
     /**
-     * Menghapus kelas yang belum dipakai. Peserta batal yang masih tercatat di kelas ini dilepas.
+     * Menghapus kelas. Semua peserta di dalamnya (termasuk yang batal) dilepas menjadi tanpa
+     * kelas, sehingga kelas yang salah dibuat dapat langsung dihapus lalu dibagi ulang.
+     *
+     * @return int Jumlah peserta aktif (bukan batal) yang dilepas.
      *
      * @throws ValidationException
      */
-    public function hapus(KelasPelatihan $kelas): void
+    public function hapus(KelasPelatihan $kelas): int
     {
-        DB::transaction(function () use ($kelas): void {
+        return DB::transaction(function () use ($kelas): int {
             $pelatihan = Pelatihan::query()->lockForUpdate()->findOrFail($kelas->pelatihan_id);
 
             $this->pastikanBelumSelesai($pelatihan);
 
-            $jumlah = $kelas->pendaftaran()->where('status', '!=', StatusPendaftaran::Batal)->count();
+            $dilepas = 0;
 
-            if ($jumlah > 0) {
-                $this->tolak('kelas', "Kelas {$kelas->nama_kelas} masih berisi {$jumlah} peserta. Pindahkan dulu ke kelas lain.");
-            }
-
-            $kelas->pendaftaran()->get()
-                ->each(fn (PelatihanPeserta $pendaftaran) => $pendaftaran->forceFill(['kelas_pelatihan_id' => null])->save());
+            // Disimpan per model (bukan query update massal) agar tercatat di audit log.
+            $kelas->pendaftaran()->get()->each(function (PelatihanPeserta $pendaftaran) use (&$dilepas): void {
+                $dilepas += $pendaftaran->status === StatusPendaftaran::Batal ? 0 : 1;
+                $pendaftaran->forceFill(['kelas_pelatihan_id' => null])->save();
+            });
 
             $kelas->delete();
+
+            return $dilepas;
         });
     }
 

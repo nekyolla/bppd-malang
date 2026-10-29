@@ -49,14 +49,11 @@ async function muatGeo(geo) {
  * @param {object} opsi
  * @param {object} opsi.data        Statistik per kode wilayah: desa_terlatih, url, dll.
  * @param {string} opsi.geo         'provinsi' atau 'kab-kota/{kode provinsi}'.
- * @param {'panel'|'buka'} opsi.klik 'panel' menampilkan rincian di samping peta; 'buka' pindah ke url wilayah.
  * @param {string} opsi.labelKosong  Keterangan wilayah tanpa data di legenda & tooltip.
  */
-window.petaWilayah = ({ data, geo = 'provinsi', klik = 'panel', labelKosong = 'Di luar wilayah kerja' }) => ({
+window.petaWilayah = ({ data, geo = 'provinsi', labelKosong = 'Di luar wilayah kerja' }) => ({
     data,
-    klik,
     labelKosong,
-    terpilih: null,
     modeAktif: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
     memuat: true,
     peta: null,
@@ -106,7 +103,6 @@ window.petaWilayah = ({ data, geo = 'provinsi', klik = 'panel', labelKosong = 'D
     gaya(fitur) {
         const w = WARNA[this.mode()];
         const d = this.data[fitur.properties.kode];
-        const dipilih = this.terpilih?.kode === fitur.properties.kode;
 
         if (!d) {
             return { fillColor: w.latar, fillOpacity: 1, color: w.garisKosong, weight: 1, dashArray: '3 3' };
@@ -115,8 +111,8 @@ window.petaWilayah = ({ data, geo = 'provinsi', klik = 'panel', labelKosong = 'D
         return {
             fillColor: w.skala[this.kelas(d.desa_terlatih)],
             fillOpacity: 1,
-            color: dipilih ? w.sorot : w.garis,
-            weight: dipilih ? 2.5 : 1,
+            color: w.garis,
+            weight: 1,
             dashArray: null,
         };
     },
@@ -174,17 +170,11 @@ window.petaWilayah = ({ data, geo = 'provinsi', klik = 'panel', labelKosong = 'D
         this.lapisan.setStyle((fitur) => this.gaya(fitur));
     },
 
-    pilih({ kode, nama }) {
-        const d = this.data[kode];
+    // Klik wilayah berdata membuka halaman rinciannya.
+    pilih({ kode }) {
+        const url = this.data[kode]?.url;
 
-        if (this.klik === 'buka') {
-            if (d?.url) window.location.href = d.url;
-
-            return;
-        }
-
-        this.terpilih = d ? { ...d, kode } : { kode, nama, kosong: true };
-        this.warnai();
+        if (url) window.location.href = url;
     },
 
     get legenda() {

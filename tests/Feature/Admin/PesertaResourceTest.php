@@ -74,6 +74,15 @@ it('menampilkan detail lengkap dengan NIK penuh, pratinjau berkas, dan tombol ke
         ->assertActionExists('kembali');
 });
 
+it('berjudul nama peserta dengan jabatan dan desa sebagai subjudul', function () {
+    $this->peserta->load('jabatan', 'desa');
+
+    $halaman = Livewire::test(ViewPeserta::class, ['record' => $this->peserta->getRouteKey()])->instance();
+
+    expect($halaman->getTitle())->toBe($this->peserta->nama_lengkap)
+        ->and($halaman->getSubheading())->toBe("{$this->peserta->jabatan->nama_jabatan} · Desa {$this->peserta->desa->nama}");
+});
+
 it('menampilkan riwayat seluruh pelatihan peserta', function () {
     $pertama = PelatihanPeserta::factory()->selesai()->for($this->peserta)->create();
     $kedua = PelatihanPeserta::factory()->for($this->peserta)->create();

@@ -6,7 +6,6 @@
         @include('filament.admin.partials.peta-wilayah', [
             'data' => $data,
             'geo' => 'provinsi',
-            'klik' => 'panel',
             'labelKosong' => 'Di luar wilayah kerja',
             'kunci' => 'dashboard-'.($tahun ?? 'semua'),
             'label' => 'Peta Indonesia per provinsi, diwarnai menurut jumlah desa terlatih',

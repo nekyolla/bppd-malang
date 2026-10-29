@@ -84,15 +84,18 @@ it('mengganti nama dan menghapus kelas kosong', function () {
     expect(KelasPelatihan::find($kelas->id))->toBeNull();
 });
 
-it('menolak menghapus kelas yang masih berisi peserta', function () {
+it('menghapus kelas berisi peserta dan memberi tahu jumlah yang kembali tanpa kelas', function () {
     $kelas = KelasPelatihan::factory()->for($this->pelatihan)->create(['nama_kelas' => 'A']);
-    PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create(['kelas_pelatihan_id' => $kelas->id]);
+    $peserta = PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->count(3)->create(['kelas_pelatihan_id' => $kelas->id]);
 
     ($this->kelas)()
-        ->callAction(TestAction::make('delete')->table($kelas))
-        ->assertNotified('Kelas tidak dapat disimpan');
+        ->mountAction(TestAction::make('delete')->table($kelas))
+        ->assertMountedActionModalSee('3 peserta di kelas ini kembali menjadi tanpa kelas')
+        ->callMountedAction()
+        ->assertNotified('Kelas dihapus. 3 peserta kembali tanpa kelas.');
 
-    expect($kelas->fresh())->not->toBeNull();
+    expect($kelas->fresh())->toBeNull()
+        ->and($peserta->first()->fresh()->kelas_pelatihan_id)->toBeNull();
 });
 
 it('membagi acak peserta dari tab kelas', function () {

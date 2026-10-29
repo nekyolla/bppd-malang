@@ -21,6 +21,7 @@ use App\Models\StatusPtkp;
 use App\Models\SumberDana;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
@@ -226,6 +227,38 @@ it('mencatat perubahan pendaftaran ke audit log beserta nilai lama', function ()
         ->and($log->causer->is($this->admin))->toBeTrue()
         ->and($log->attribute_changes['old']['status'])->toBe('terdaftar')
         ->and($log->attribute_changes['attributes']['status'])->toBe('terverifikasi');
+});
+
+it('memo daftar jabatan berperiode per request dan memperbaruinya saat jabatan berubah (PF-25)', function () {
+    $jabatan = Jabatan::factory()->create();
+    Jabatan::berperiode($jabatan->id);
+
+    DB::enableQueryLog();
+    $hasil = [Jabatan::berperiode($jabatan->id), Jabatan::berperiode((string) $jabatan->id)];
+    expect(DB::getQueryLog())->toBe([])
+        ->and($hasil)->toBe([false, false]);
+    DB::disableQueryLog();
+
+    $jabatan->update(['memiliki_periode' => true]);
+
+    expect(Jabatan::berperiode($jabatan->id))->toBeTrue();
+});
+
+it('mengosongkan periode di profil peserta saat tanda berperiode dicabut, tanpa mengubah snapshot (PF-25)', function () {
+    $kades = Jabatan::factory()->berperiode()->create();
+    $peserta = Peserta::factory()->create(['jabatan_id' => $kades->id, 'periode_jabatan' => 2]);
+    $lain = Peserta::factory()->create(['jabatan_id' => $this->jabatan->id, 'periode_jabatan' => 1]);
+    $pendaftaran = PelatihanPeserta::factory()->selesai()->for($peserta)->create();
+    $pendaftaran->forceFill(['jabatan_id_saat_pelatihan' => $kades->id, 'periode_jabatan_saat_pelatihan' => 2])->save();
+
+    $kades->update(['nama_jabatan' => 'Kepala Desa']);
+    expect($peserta->fresh()->periode_jabatan)->toBe(2);
+
+    $kades->update(['memiliki_periode' => false]);
+
+    expect($peserta->fresh()->periode_jabatan)->toBeNull()
+        ->and($lain->fresh()->periode_jabatan)->toBe(1)
+        ->and($pendaftaran->fresh()->periode_jabatan_saat_pelatihan)->toBe(2);
 });
 
 it('menampilkan jabatan beserta periodenya (PF-25)', function () {

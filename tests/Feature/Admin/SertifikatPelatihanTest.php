@@ -16,6 +16,7 @@ use Database\Seeders\RoleSeeder;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -62,6 +63,14 @@ it('mengunggah dan mengganti sertifikat dari aksi baris', function () {
 
     expect(Storage::disk('local')->get($this->sudah->sertifikat->file_sertifikat))->toBe('%PDF-ani-baru')
         ->and(SertifikatPeserta::count())->toBe(2);
+});
+
+it('memeriksa izin ubah sertifikat untuk Ganti dan izin buat untuk Unggah', function () {
+    Gate::before(fn (User $user, string $ability): ?bool => $ability === 'update' ? false : null);
+
+    ($this->halaman)()
+        ->assertActionHidden(TestAction::make('ganti')->table($this->sudah))
+        ->assertActionVisible(TestAction::make('unggah')->table($this->belum));
 });
 
 it('menolak berkas bukan PDF', function () {

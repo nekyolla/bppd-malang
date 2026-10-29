@@ -82,9 +82,11 @@ class ManageSertifikat extends ManageRelatedRecords
             ])
             ->recordActions([
                 $this->aksiUnggah('unggah', 'Unggah')
-                    ->visible(fn (PelatihanPeserta $record): bool => $record->sertifikat === null),
+                    ->visible(fn (PelatihanPeserta $record): bool => $record->sertifikat === null)
+                    ->authorize(fn (): bool => auth()->user()->can('create', SertifikatPeserta::class)),
                 $this->aksiUnggah('ganti', 'Ganti')
-                    ->visible(fn (PelatihanPeserta $record): bool => $record->sertifikat !== null),
+                    ->visible(fn (PelatihanPeserta $record): bool => $record->sertifikat !== null)
+                    ->authorize(fn (PelatihanPeserta $record): bool => $record->sertifikat !== null && auth()->user()->can('update', $record->sertifikat)),
                 Action::make('lihat')
                     ->label('Lihat')
                     ->icon(Heroicon::OutlinedEye)
@@ -123,7 +125,6 @@ class ManageSertifikat extends ManageRelatedRecords
                     ->storeFiles(false)
                     ->required(),
             ])
-            ->authorize(fn (): bool => auth()->user()->can('create', SertifikatPeserta::class))
             ->action(fn (Action $action, PelatihanPeserta $record, array $data) => GalatService::jalankan(
                 $action,
                 'Sertifikat tidak dapat diunggah',

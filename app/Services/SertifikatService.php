@@ -11,7 +11,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * Sertifikat dibuat manual di luar sistem; admin mengunggah satu PDF per peserta (PF-27).
@@ -21,13 +23,17 @@ class SertifikatService
 {
     use MenolakAturan;
 
-    public function path(PelatihanPeserta $pendaftaran): string
+    /**
+     * Path unik per unggahan, agar berkas lama tidak tertimpa sebelum baris tersimpan.
+     */
+    public function pathBaru(PelatihanPeserta $pendaftaran): string
     {
-        return "sertifikat/{$pendaftaran->pelatihan_id}/{$pendaftaran->getKey()}.pdf";
+        return "sertifikat/{$pendaftaran->pelatihan_id}/{$pendaftaran->getKey()}-".Str::lower(Str::random(10)).'.pdf';
     }
 
     /**
-     * Mengunggah atau mengganti (menimpa) sertifikat peserta terverifikasi/selesai.
+     * Mengunggah atau mengganti sertifikat peserta terverifikasi/selesai. Berkas baru ditulis
+     * ke path baru; berkas lama dihapus setelah transaksi berhasil, berkas baru dihapus bila gagal.
      *
      * @throws ValidationException
      */
@@ -40,46 +46,63 @@ class SertifikatService
             'berkas.max' => 'Ukuran sertifikat maksimal 2 MB.',
         ])->validate();
 
-        return DB::transaction(function () use ($pendaftaran, $berkas, $oleh): SertifikatPeserta {
-            // Kunci baris pendaftaran agar tidak bersamaan dengan pembatalan.
-            $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
+        $disk = Storage::disk(RegistrasiService::DISK);
+        $path = null;
+        $pathLama = null;
 
-            if (! in_array($terkunci->status, [StatusPendaftaran::Terverifikasi, StatusPendaftaran::Selesai], true)) {
-                $this->tolak('status', 'Sertifikat hanya dapat diunggah untuk peserta terverifikasi atau selesai.');
-            }
+        try {
+            $sertifikat = DB::transaction(function () use ($pendaftaran, $berkas, $oleh, $disk, &$path, &$pathLama): SertifikatPeserta {
+                // Kunci baris pendaftaran agar tidak bersamaan dengan pembatalan.
+                $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
-            $path = $this->path($terkunci);
-            Storage::disk(RegistrasiService::DISK)->putFileAs(dirname($path), $berkas, basename($path));
+                if (! in_array($terkunci->status, [StatusPendaftaran::Terverifikasi, StatusPendaftaran::Selesai], true)) {
+                    $this->tolak('status', 'Sertifikat hanya dapat diunggah untuk peserta terverifikasi atau selesai.');
+                }
 
-            $sertifikat = SertifikatPeserta::query()->firstOrNew(['pelatihan_peserta_id' => $terkunci->getKey()]);
+                $path = $this->pathBaru($terkunci);
+                $disk->putFileAs(dirname($path), $berkas, basename($path));
 
-            if (! $sertifikat->exists) {
+                $sertifikat = SertifikatPeserta::query()->firstOrNew(['pelatihan_peserta_id' => $terkunci->getKey()]);
+
+                if (! $sertifikat->exists) {
+                    $sertifikat->fill(['file_sertifikat' => $path, 'diupload_oleh' => $oleh->getKey()])->save();
+
+                    return $sertifikat;
+                }
+
+                // Ganti dicatat sebagai satu kejadian "ganti" agar selalu tampil di audit log
+                // dengan pengunggah lama, juga bila admin yang sama (FR-AUD-01).
+                $pathLama = $sertifikat->file_sertifikat;
+                $pengunggahLama = $sertifikat->diupload_oleh;
+                $sertifikat->disableLogging();
                 $sertifikat->fill(['file_sertifikat' => $path, 'diupload_oleh' => $oleh->getKey()])->save();
+                $sertifikat->enableLogging();
+
+                activity()
+                    ->performedOn($sertifikat)
+                    ->causedBy($oleh)
+                    ->event('ganti')
+                    ->withProperties([
+                        'old' => ['file_sertifikat' => $pathLama, 'diupload_oleh' => $pengunggahLama],
+                        'attributes' => ['file_sertifikat' => $path, 'diupload_oleh' => $oleh->getKey()],
+                    ])
+                    ->log('Mengganti sertifikat');
 
                 return $sertifikat;
+            });
+        } catch (Throwable $e) {
+            if ($path !== null) {
+                $disk->delete($path);
             }
 
-            // Ganti: berkas ditimpa di path yang sama, jadi perubahan kolom bisa kosong. Dicatat
-            // sebagai satu kejadian "ganti" agar selalu tampil di audit log (FR-AUD-01).
-            $pengunggahLama = $sertifikat->diupload_oleh;
-            $sertifikat->disableLogging();
-            $sertifikat->fill(['file_sertifikat' => $path, 'diupload_oleh' => $oleh->getKey()]);
-            $sertifikat->updated_at = now();
-            $sertifikat->save();
-            $sertifikat->enableLogging();
+            throw $e;
+        }
 
-            activity()
-                ->performedOn($sertifikat)
-                ->causedBy($oleh)
-                ->event('ganti')
-                ->withProperties([
-                    'old' => ['diupload_oleh' => $pengunggahLama],
-                    'attributes' => ['file_sertifikat' => $path, 'diupload_oleh' => $oleh->getKey()],
-                ])
-                ->log('Mengganti sertifikat');
+        if ($pathLama !== null && $pathLama !== $path) {
+            $disk->delete($pathLama);
+        }
 
-            return $sertifikat;
-        });
+        return $sertifikat;
     }
 
     /**

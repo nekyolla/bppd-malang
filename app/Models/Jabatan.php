@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Once;
 
 #[Fillable(['nama_jabatan', 'urutan', 'memiliki_periode', 'is_aktif'])]
 class Jabatan extends Model
@@ -29,13 +30,36 @@ class Jabatan extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Tanda periode dicabut: periode di profil peserta tidak berlaku lagi (PF-25).
+        // Snapshot `*_saat_pelatihan` tidak disentuh (CLAUDE.md aturan 6).
+        static::updated(function (Jabatan $jabatan): void {
+            if ($jabatan->wasChanged('memiliki_periode') && ! $jabatan->memiliki_periode) {
+                $jabatan->peserta()->whereNotNull('periode_jabatan')->update(['periode_jabatan' => null]);
+            }
+        });
+
+        // Memo berperiode() berlaku per request; dikosongkan begitu ada jabatan berubah.
+        static::saved(fn () => Once::flush());
+        static::deleted(fn () => Once::flush());
+    }
+
     /**
      * Jabatan dengan periode (mis. kepala desa) mewajibkan isian periode ke-1/ke-2 (PF-25).
+     * Dipanggil berulang kali per render form, jadi daftar id-nya dimemo.
      */
     public static function berperiode(mixed $id): bool
     {
-        return filled($id) && is_numeric($id)
-            && self::query()->whereKey($id)->where('memiliki_periode', true)->exists();
+        return filled($id) && is_numeric($id) && in_array((int) $id, self::idBerperiode(), true);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function idBerperiode(): array
+    {
+        return once(fn (): array => self::query()->where('memiliki_periode', true)->pluck('id')->map(fn (mixed $id): int => (int) $id)->all());
     }
 
     /**

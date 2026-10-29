@@ -81,7 +81,7 @@ describe('penempatan', function () {
         $luar = Pelatihan::factory()->dibuka()->tanggal('2026-10-05', '2026-10-08')->create(['tipe_lokasi' => TipeLokasi::Luar, 'keterangan_lokasi' => 'Surabaya']);
 
         expect(galatAsrama(fn () => $this->service->tempatkan(pesertaAsrama($luar), $this->kamar, $this->admin)))
-            ->toBe('Asrama hanya untuk pelatihan di BBPD Malang.');
+            ->toBe('Asrama hanya untuk pelatihan di Balai Besar.');
     });
 
     it('hanya menempatkan peserta terverifikasi', function (string $state) {
@@ -104,13 +104,13 @@ describe('penempatan', function () {
         $this->kamar->update(['is_aktif' => false]);
 
         expect(galatAsrama(fn () => $this->service->tempatkan(pesertaAsrama($this->pelatihan), $this->kamar, $this->admin)))
-            ->toBe('Kamar Anggrek-01 tidak tersedia karena sudah dinonaktifkan.');
+            ->toBe('Kamar Anggrek-01 sudah dinonaktifkan.');
 
         $this->kamar->update(['is_aktif' => true]);
         $this->asrama->update(['is_aktif' => false]);
 
         expect(galatAsrama(fn () => $this->service->tempatkan(pesertaAsrama($this->pelatihan), $this->kamar, $this->admin)))
-            ->toBe('Kamar Anggrek-01 tidak tersedia karena sudah dinonaktifkan.');
+            ->toBe('Kamar Anggrek-01 sudah dinonaktifkan.');
     });
 
     it('mencatat penempatan di audit log', function () {
@@ -161,7 +161,7 @@ describe('kamar pasutri', function () {
         expect(galatAsrama(fn () => $this->service->tempatkan(pesertaAsrama($this->pelatihan, JenisKelamin::Perempuan), $this->kamar, $this->admin, pasutri: true)))
             ->toBe('Kamar Anggrek-01 sudah ditempati peserta laki-laki, sehingga tidak dapat dijadikan kamar pasutri.')
             ->and(galatAsrama(fn () => $this->service->tempatkan(pesertaAsrama($this->pelatihan), $tunggal, $this->admin, pasutri: true)))
-            ->toBe('Kamar Anggrek-02 hanya untuk 1 orang, sehingga tidak dapat dijadikan kamar pasutri.');
+            ->toBe('Kamar Anggrek-02 hanya untuk 1 orang, tidak bisa jadi kamar pasutri.');
     });
 });
 
@@ -241,7 +241,7 @@ describe('mengeluarkan', function () {
         $penempatan->pelatihanPeserta->forceFill(['status' => 'selesai'])->save();
 
         expect(galatAsrama(fn () => $this->service->keluarkan($penempatan)))
-            ->toBe('Penempatan kamar peserta yang sudah selesai pelatihan tidak dapat diubah.')
+            ->toBe('Pelatihan sudah selesai. Penempatan tidak dapat diubah.')
             ->and($penempatan->fresh())->not->toBeNull();
     });
 });

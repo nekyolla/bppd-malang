@@ -1,7 +1,7 @@
 <x-filament-widgets::widget>
     <x-filament::section
         heading="Peta desa terlatih"
-        description="Klik provinsi untuk melihat jumlah kab/kota dan desa terlatih. Data yang sama tersedia di tabel di bawah peta."
+        description="Klik provinsi untuk melihat rinciannya."
     >
         @include('filament.admin.partials.peta-wilayah', [
             'data' => $data,

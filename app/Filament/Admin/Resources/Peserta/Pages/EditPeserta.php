@@ -21,7 +21,7 @@ class EditPeserta extends EditRecord
 
     public function getSubheading(): ?string
     {
-        return 'Perubahan berlaku untuk pelatihan berikutnya; data saat pelatihan yang sudah diverifikasi tidak berubah.';
+        return 'Berlaku untuk pelatihan berikutnya. Data pelatihan yang sudah diverifikasi tidak berubah.';
     }
 
     protected function getHeaderActions(): array

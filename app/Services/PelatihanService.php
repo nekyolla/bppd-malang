@@ -49,7 +49,7 @@ class PelatihanService
         }
 
         if ($tipeLokasi === TipeLokasi::Luar && $keterangan === '') {
-            throw ValidationException::withMessages(['keterangan_lokasi' => 'Keterangan lokasi wajib diisi untuk pelatihan di luar BBPD.']);
+            throw ValidationException::withMessages(['keterangan_lokasi' => 'Isi keterangan lokasi untuk pelatihan di luar Balai Besar.']);
         }
 
         $sudahAda = Pelatihan::query()
@@ -64,12 +64,12 @@ class PelatihanService
         }
 
         if ($pelatihan && $pelatihan->tipe_lokasi !== $tipeLokasi && $this->sudahAdaPenghuniKamar($pelatihan)) {
-            throw ValidationException::withMessages(['tipe_lokasi' => 'Tipe lokasi tidak dapat diubah karena sudah ada peserta yang ditempatkan di kamar asrama.']);
+            throw ValidationException::withMessages(['tipe_lokasi' => 'Tipe lokasi terkunci: sudah ada peserta di kamar asrama.']);
         }
 
         // Kamar yang sudah dipakai tidak boleh jadi bentrok dengan pelatihan lain (FR-ASR-07).
         if ($pelatihan && ($bentrok = $this->asrama->bentrokJadwal($pelatihan, $mulai, $selesai))) {
-            throw ValidationException::withMessages(['tanggal_mulai' => "Tanggal tidak dapat diubah. {$bentrok} Pindahkan peserta ke kamar lain terlebih dahulu."]);
+            throw ValidationException::withMessages(['tanggal_mulai' => "Tanggal tidak dapat diubah. {$bentrok} Pindahkan pesertanya ke kamar lain dulu."]);
         }
 
         $pelatihan ??= new Pelatihan;
@@ -127,7 +127,7 @@ class PelatihanService
 
         if ($menunggu > 0) {
             throw ValidationException::withMessages([
-                'status' => "Masih ada {$menunggu} peserta yang menunggu verifikasi. Verifikasi atau batalkan terlebih dahulu.",
+                'status' => "Masih ada {$menunggu} peserta menunggu verifikasi. Verifikasi atau batalkan dulu.",
             ]);
         }
 

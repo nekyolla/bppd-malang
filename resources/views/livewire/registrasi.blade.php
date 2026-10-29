@@ -5,7 +5,7 @@
         <div class="mt-6 rounded-xl border border-success-200 bg-white p-6" role="status">
             <p class="text-lg font-semibold text-success-700">Terima kasih, pendaftaran Anda sudah kami terima.</p>
             <p class="mt-2 text-gray-700">
-                Panitia akan memeriksa data Anda berdasarkan KTP dan surat tugas.
+                Panitia akan memeriksa data Anda.
             </p>
         </div>
     @elseif (! $adaPelatihan)
@@ -14,7 +14,7 @@
         </div>
     @else
         <p class="mt-2 text-gray-700">
-            Isi data Anda sesuai KTP dan surat tugas dari desa. Siapkan scan KTP, pas foto, dan surat tugas.
+            Siapkan scan KTP, pas foto, dan surat tugas sebelum mengisi.
         </p>
 
         @if ($galatUmum)

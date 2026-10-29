@@ -88,8 +88,8 @@ class VerifikasiAction extends Action
                 PratinjauBerkas::pendaftaran($record)->columnSpan(['lg' => 2]),
                 Group::make([
                     Text::make($perbedaan === []
-                        ? 'Periksa isian dengan KTP dan surat tugas. Perbaiki bila ada salah ketik.'
-                        : 'Peserta ini pernah terdaftar. Isian bertanda "Data lama" berbeda dari data sebelumnya.')
+                        ? 'Cocokkan dengan KTP dan surat tugas. Perbaiki bila ada salah ketik.'
+                        : 'Peserta lama. Isian bertanda "Data lama" berbeda dari data sebelumnya.')
                         ->color($perbedaan === [] ? 'gray' : 'warning'),
                     ...IsianPesertaForm::bagian($dataLama),
                     $this->bagianSumberDana(),
@@ -106,7 +106,7 @@ class VerifikasiAction extends Action
     private function bagianSumberDana(): Section
     {
         return Section::make('Sumber dana')
-            ->description('Perbaiki bila peserta salah memilih, misal ternyata dibiayai APBN.')
+            ->description('Ubah bila peserta salah memilih.')
             ->columns(2)
             ->schema([
                 Select::make('sumber_dana_id')
@@ -125,7 +125,7 @@ class VerifikasiAction extends Action
     private function bagianPengganti(PelatihanPeserta $record): Section
     {
         return Section::make('Pengganti')
-            ->description('Peserta batal dari desa yang sama di pelatihan ini. Kosongkan jika peserta ini bukan pengganti.')
+            ->description('Peserta batal dari desa yang sama. Kosongkan jika bukan pengganti.')
             ->visible(fn (Get $get): bool => $this->kandidatPengganti($record, $get('desa_id')) !== [])
             ->schema([
                 Select::make('menggantikan_id')
@@ -135,7 +135,7 @@ class VerifikasiAction extends Action
                     ->helperText('Pengganti otomatis masuk kelas peserta yang digantikan.')
                     ->hint(fn (Get $get): ?string => filled($get('menggantikan_id'))
                         && app(PenggantiService::class)->bedaJenisKelamin((int) $get('menggantikan_id'), $get('jenis_kelamin'))
-                            ? 'Jenis kelamin berbeda dengan peserta yang digantikan. Pilih kamar lain saat penempatan.'
+                            ? 'Jenis kelamin berbeda dari yang digantikan. Pilih kamar lain saat penempatan.'
                             : null)
                     ->hintColor('warning'),
             ]);

@@ -98,7 +98,7 @@ class Login extends BaseLogin
     {
         return parent::getPasswordFormComponent()
             ->hint(null)
-            ->helperText('Lupa kata sandi? Hubungi panitia BBPD untuk mengatur ulang.');
+            ->helperText('Lupa kata sandi? Hubungi superadmin.');
     }
 
     /**

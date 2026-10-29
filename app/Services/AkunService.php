@@ -23,7 +23,7 @@ class AkunService
      */
     public const POLA_USERNAME = '/^(?=.*[a-z])[a-z0-9._-]{3,50}$/';
 
-    public const PESAN_USERNAME = 'Username 3–50 karakter: huruf kecil, angka, titik, garis bawah, atau tanda hubung, dan memuat minimal satu huruf.';
+    public const PESAN_USERNAME = 'Username 3–50 karakter: huruf kecil, angka, titik, _ atau -, minimal satu huruf.';
 
     /**
      * @param  array{username: string, email?: ?string, peran: Peran|string, password: string}  $data
@@ -67,7 +67,7 @@ class AkunService
         $peran = Peran::from($data['peran']);
 
         if ($peran !== Peran::Superadmin && $user->hasRole(Peran::Superadmin)) {
-            $this->pastikanBukanDiriSendiri($user, $oleh, 'Anda tidak dapat menurunkan peran akun Anda sendiri.');
+            $this->pastikanBukanDiriSendiri($user, $oleh, 'Peran akun sendiri tidak dapat diturunkan.');
             $this->pastikanMasihAdaSuperadminLain($user);
         }
 

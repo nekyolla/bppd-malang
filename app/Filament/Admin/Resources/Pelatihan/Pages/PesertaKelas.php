@@ -87,7 +87,7 @@ class PesertaKelas extends Page implements HasTable
             ])
             ->paginated(false)
             ->emptyStateHeading('Kelas ini belum berisi peserta')
-            ->emptyStateDescription('Tetapkan peserta di sub-menu Pembagian Kelas, atau gunakan Bagi acak.');
+            ->emptyStateDescription('Bagi peserta di sub-menu Pembagian Kelas.');
     }
 
     protected function getHeaderActions(): array

@@ -32,8 +32,8 @@ class BatalkanAction extends Action
             ->modalHeading(fn (PelatihanPeserta $record): string => "Batalkan {$record->peserta->nama_lengkap}?")
             ->modalDescription(fn (PelatihanPeserta $record): string => 'Jatah kamar peserta akan dilepas. '
                 .(app(PenggantiService::class)->masihBisaDiganti($record)
-                    ? 'Pengganti dari desa yang sama dapat ditetapkan saat verifikasi pendaftarannya.'
-                    : 'Pelatihan sudah dimulai, sehingga peserta ini tidak dapat digantikan.'))
+                    ? 'Pengganti dari desa yang sama bisa ditetapkan saat verifikasi.'
+                    : 'Pelatihan sudah dimulai. Peserta ini tidak dapat digantikan.'))
             ->modalSubmitActionLabel('Batalkan peserta')
             ->schema([
                 Textarea::make('alasan_batal')

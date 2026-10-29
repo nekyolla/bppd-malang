@@ -90,7 +90,7 @@ class PendaftaranTable
                 VerifikasiMassalAction::make(),
             ])
             ->emptyStateHeading('Belum ada pendaftar')
-            ->emptyStateDescription('Belum ada peserta yang mendaftar di pelatihan ini. Pendaftar muncul setelah mengisi form registrasi di /daftar.');
+            ->emptyStateDescription('Pendaftar muncul setelah mengisi form di /daftar.');
     }
 
     /**

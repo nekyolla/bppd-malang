@@ -77,6 +77,6 @@ class PelatihanTable
             ])
             ->toolbarActions([])
             ->emptyStateHeading('Belum ada pelatihan')
-            ->emptyStateDescription('Buat pelatihan, lalu buka pendaftarannya agar muncul di form registrasi peserta.');
+            ->emptyStateDescription('Buat pelatihan, lalu buka pendaftarannya.');
     }
 }

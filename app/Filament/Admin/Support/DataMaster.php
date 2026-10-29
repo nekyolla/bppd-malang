@@ -46,7 +46,7 @@ class DataMaster
             ])
             ->toolbarActions([])
             ->emptyStateHeading($kosong)
-            ->emptyStateDescription('Tambahkan data baru, atau ubah filter Status untuk melihat data nonaktif.');
+            ->emptyStateDescription('Tambah data, atau ubah filter Status untuk melihat yang nonaktif.');
     }
 
     /**

@@ -56,6 +56,6 @@
         </div>
     @endforeach
 
-    <p class="kaki">BBPD Malang · Dicetak {{ $dicetak }}</p>
+    <p class="kaki">{{ \App\Support\Instansi::NAMA }} · Dicetak {{ $dicetak }}</p>
 </body>
 </html>

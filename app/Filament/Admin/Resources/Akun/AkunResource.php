@@ -122,7 +122,7 @@ class AkunResource extends Resource
                     ->label('Atur ulang kata sandi')
                     ->icon(Heroicon::OutlinedKey)
                     ->color('gray')
-                    ->modalDescription('Pastikan identitas pemilik akun sebelum mengatur ulang kata sandinya.')
+                    ->modalDescription('Pastikan dulu identitas pemilik akun.')
                     ->schema([
                         TextInput::make('password')->label('Kata sandi baru')->password()->revealable()->required()->minLength(8)->confirmed(),
                         TextInput::make('password_confirmation')->label('Ulangi kata sandi baru')->password()->revealable()->required()->dehydrated(false),
@@ -137,7 +137,7 @@ class AkunResource extends Resource
                     ->icon(Heroicon::OutlinedNoSymbol)
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalDescription('Akun tidak dapat login lagi sampai diaktifkan kembali. Riwayat aktivitasnya tetap tersimpan.')
+                    ->modalDescription('Akun tidak bisa login sampai diaktifkan lagi. Riwayatnya tetap tersimpan.')
                     ->authorize('update')
                     ->visible(fn (User $record): bool => $record->is_aktif && ! $record->is(auth()->user()))
                     ->action(function (User $record, Action $action): void {

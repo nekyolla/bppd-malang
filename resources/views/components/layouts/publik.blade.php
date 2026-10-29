@@ -6,7 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="robots" content="noindex">
 
-        <title>{{ $title ?? 'Registrasi Peserta' }} · BBPD Malang</title>
+        <title>{{ $title ?? 'Registrasi Peserta' }} · {{ \App\Support\Instansi::NAMA }}</title>
 
         @if ($favicon = \App\Support\Logo::favicon())
             <link rel="icon" href="{{ $favicon }}">
@@ -24,13 +24,8 @@
 
     <body class="fi-publik min-h-screen bg-gray-50 text-gray-950 antialiased">
         <header class="border-b border-gray-200 bg-white">
-            <div class="mx-auto max-w-2xl px-4 py-4">
-                @if ($logo = \App\Support\Logo::url())
-                    <img src="{{ $logo }}" alt="BBPD Malang — Balai Besar Pemerintahan Desa" class="h-12 w-auto">
-                @else
-                    <p class="text-lg font-semibold">BBPD Malang</p>
-                    <p class="text-sm text-gray-600">Balai Besar Pemerintahan Desa</p>
-                @endif
+            <div class="mx-auto h-16 max-w-2xl px-4 py-3">
+                <x-merek />
             </div>
         </header>
 

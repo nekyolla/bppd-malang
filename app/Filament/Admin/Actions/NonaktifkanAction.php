@@ -26,7 +26,7 @@ class NonaktifkanAction extends Action
             ->icon(Heroicon::OutlinedNoSymbol)
             ->color('danger')
             ->requiresConfirmation()
-            ->modalDescription('Data tetap tampil di riwayat, tetapi tidak muncul di pilihan form baru.')
+            ->modalDescription('Tetap tampil di riwayat, tapi tidak muncul di pilihan form.')
             ->modalSubmitActionLabel('Nonaktifkan')
             ->authorize('update')
             ->visible(fn (Model $record): bool => $record->is_aktif)

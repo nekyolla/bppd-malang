@@ -49,7 +49,7 @@ class JudulPelatihanResource extends Resource
                     ->preload(),
                 TextInput::make('judul')
                     ->label('Judul pelatihan')
-                    ->helperText('Tanpa tahun dan batch, misal "Pelatihan Pengelolaan Keuangan Desa".')
+                    ->helperText('Tanpa tahun dan batch, mis. "Pelatihan Pengelolaan Keuangan Desa".')
                     ->required()
                     ->maxLength(255)
                     ->unique(),

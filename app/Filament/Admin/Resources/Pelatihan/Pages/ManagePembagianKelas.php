@@ -86,7 +86,7 @@ class ManagePembagianKelas extends ManageRelatedRecords
             ])
             ->defaultPaginationPageOption(25)
             ->emptyStateHeading('Belum ada peserta terverifikasi')
-            ->emptyStateDescription('Hanya peserta terverifikasi yang dapat dibagi ke kelas. Verifikasi pendaftar di menu Pendaftaran.');
+            ->emptyStateDescription('Verifikasi pendaftar dulu di sub-menu Pendaftar.');
     }
 
     public function getTitle(): string|Htmlable

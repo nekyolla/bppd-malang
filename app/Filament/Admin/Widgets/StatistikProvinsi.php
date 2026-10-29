@@ -28,7 +28,7 @@ class StatistikProvinsi extends TableWidget
 
         return $table
             ->heading('Sebaran per provinsi')
-            ->description('Klik provinsi untuk melihat rincian kab/kota dan desa terlatih.')
+            ->description('Klik provinsi untuk melihat rinciannya.')
             ->records(fn (): array => app(StatistikService::class)->perProvinsi($this->tahun())->keyBy('id')->all())
             ->columns([
                 TextColumn::make('nama')->label('Provinsi'),

@@ -5,14 +5,15 @@ namespace App\Providers\Filament;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Admin\Pages\RincianWilayah;
 use App\Filament\Auth\Login;
+use App\Support\Instansi;
 use App\Support\Logo;
+use App\Support\Warna;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -20,6 +21,7 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -32,20 +34,12 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login(Login::class)
-            ->brandName('BBPD Malang')
-            // Logo dari public/images/ (PF-20); tanpa berkas, merek tetap berupa teks.
-            ->brandLogo(fn (): ?string => Logo::url())
-            ->darkModeBrandLogo(fn (): ?string => Logo::urlGelap())
-            ->brandLogoHeight('2.5rem')
+            ->brandName(Instansi::NAMA)
+            // Lambang + nama instansi sebagai teks HTML agar terbaca di mode gelap (PF-20, PF-21).
+            ->brandLogo(fn (): HtmlString => new HtmlString(Blade::render('<x-merek />')))
+            ->brandLogoHeight('3rem')
             ->favicon(fn (): ?string => Logo::favicon())
-            ->colors([
-                'primary' => Color::Blue,
-                'gray' => Color::Slate,
-                'success' => Color::Emerald,
-                'warning' => Color::Amber,
-                'danger' => Color::Rose,
-                'info' => Color::Sky,
-            ])
+            ->colors(Warna::semua())
             // Urutan grup menu mengikuti DESIGN_SYSTEM §5.1.
             ->navigationGroups(['Pelatihan', 'Asrama', 'Laporan', 'Data Master', 'Pengguna'])
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\Filament\Admin\Resources')

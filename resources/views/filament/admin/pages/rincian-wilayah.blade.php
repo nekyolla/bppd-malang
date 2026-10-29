@@ -2,7 +2,7 @@
     @if ($peta = $this->peta())
         <x-filament::section
             :heading="$peta['judul']"
-            description="Klik wilayah di peta untuk membuka rinciannya. Data yang sama tersedia di tabel di bawah."
+            description="Klik wilayah untuk melihat rinciannya."
         >
             @include('filament.admin.partials.peta-wilayah', [...$peta, 'klik' => 'buka'])
         </x-filament::section>

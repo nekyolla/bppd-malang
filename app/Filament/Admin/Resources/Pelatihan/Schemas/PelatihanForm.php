@@ -69,8 +69,8 @@ class PelatihanForm
                             ->live()
                             ->disabled(fn (?Pelatihan $record): bool => (bool) $record?->penggunaanKamar()->whereHas('penghuni')->exists())
                             ->helperText(fn (?Pelatihan $record): ?string => $record?->penggunaanKamar()->whereHas('penghuni')->exists()
-                                ? 'Tidak dapat diubah karena sudah ada peserta yang ditempatkan di kamar asrama.'
-                                : 'Fitur asrama hanya aktif untuk pelatihan di BBPD Malang.'),
+                                ? 'Terkunci: sudah ada peserta di kamar asrama.'
+                                : 'Asrama hanya untuk pelatihan di Balai Besar.'),
                         TextInput::make('keterangan_lokasi')
                             ->label('Keterangan lokasi')
                             ->placeholder('Nama tempat dan kota')

@@ -59,7 +59,7 @@ it('tidak menampilkan pelatihan di luar BBPD', function () {
     $luar = Pelatihan::factory()->dibuka()->create(['tipe_lokasi' => TipeLokasi::Luar, 'keterangan_lokasi' => 'Surabaya']);
 
     Livewire::test(PenempatanKamar::class, ['pelatihan' => $luar->id])
-        ->assertSee('Penempatan kamar hanya untuk pelatihan di BBPD Malang.')
+        ->assertSee('Hanya untuk pelatihan di Balai Besar.')
         ->assertDontSee('Asrama Anggrek');
 });
 
@@ -146,7 +146,7 @@ it('mengeluarkan peserta dari kamar dan mengembalikan kamar menjadi kosong', fun
 
     ($this->halaman)()
         ->callAction(TestAction::make('keluarkan')->arguments(['penempatan' => $penempatan->id]))
-        ->assertNotified('Peserta dikeluarkan dari kamar')
+        ->assertNotified('Peserta keluar dari kamar')
         ->assertSee('Kosong · 0/4');
 
     expect(AsramaPeserta::count())->toBe(0)->and(PenggunaanKamar::count())->toBe(0);

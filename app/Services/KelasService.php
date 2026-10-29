@@ -75,7 +75,7 @@ class KelasService
             $jumlah = $kelas->pendaftaran()->where('status', '!=', StatusPendaftaran::Batal)->count();
 
             if ($jumlah > 0) {
-                $this->tolak('kelas', "Kelas {$kelas->nama_kelas} masih berisi {$jumlah} peserta. Pindahkan pesertanya ke kelas lain terlebih dahulu.");
+                $this->tolak('kelas', "Kelas {$kelas->nama_kelas} masih berisi {$jumlah} peserta. Pindahkan dulu ke kelas lain.");
             }
 
             $kelas->pendaftaran()->get()
@@ -97,11 +97,11 @@ class KelasService
             $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             if ($terkunci->status !== StatusPendaftaran::Terverifikasi) {
-                $this->tolak('status', 'Hanya peserta terverifikasi yang dapat ditetapkan kelasnya.');
+                $this->tolak('status', 'Hanya peserta terverifikasi yang dapat diberi kelas.');
             }
 
             if ($kelas !== null && $kelas->pelatihan_id !== $terkunci->pelatihan_id) {
-                $this->tolak('kelas_pelatihan_id', 'Kelas harus milik pelatihan yang sama dengan pendaftaran peserta.');
+                $this->tolak('kelas_pelatihan_id', 'Kelas harus dari pelatihan yang sama.');
             }
 
             $terkunci->forceFill(['kelas_pelatihan_id' => $kelas?->getKey()])->save();
@@ -153,7 +153,7 @@ class KelasService
             $isi = $terkunci->kelas()->orderBy('nama_kelas')->pluck('id')->mapWithKeys(fn (int $id): array => [$id => 0])->all();
 
             if ($isi === []) {
-                $this->tolak('kelas', 'Buat kelas terlebih dahulu sebelum membagi peserta.');
+                $this->tolak('kelas', 'Buat kelas dulu sebelum membagi peserta.');
             }
 
             $terverifikasi = fn () => $terkunci->pendaftaran()->where('status', StatusPendaftaran::Terverifikasi);

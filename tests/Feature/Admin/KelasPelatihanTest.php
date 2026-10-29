@@ -41,7 +41,7 @@ it('menampilkan sub-menu pelatihan: data, pendaftar, kelas, pembagian kelas', fu
 
 it('membuat kelas dengan usulan nama berikutnya dan menolak nama yang sama', function () {
     ($this->kelas)()
-        ->assertSee('Buat kelas terlebih dahulu sebelum membagi peserta.')
+        ->assertSee('Buat kelas dulu sebelum membagi peserta.')
         ->mountAction(TestAction::make('create')->table())
         ->assertSchemaStateSet(['nama_kelas' => 'A']);
 

@@ -3,27 +3,20 @@
 namespace App\Support;
 
 /**
- * Logo instansi di `public/images/` (PF-20). Selama berkasnya belum ada, panel dan
- * form registrasi memakai teks "BBPD Malang".
+ * Lambang instansi di `public/images/` (PF-20). Nama instansi di sebelahnya ditulis sebagai
+ * teks HTML (lihat `components/merek`) agar terbaca di mode terang & gelap. Tanpa berkas,
+ * merek cukup berupa teks.
  */
 class Logo
 {
     private const EKSTENSI = ['svg', 'png', 'webp', 'jpg'];
 
     /**
-     * URL logo terang, atau null jika belum ada.
+     * URL lambang, atau null jika belum ada.
      */
-    public static function url(): ?string
+    public static function lambang(): ?string
     {
-        return self::cari('logo');
-    }
-
-    /**
-     * URL logo untuk mode gelap; memakai logo terang jika varian gelap tidak ada.
-     */
-    public static function urlGelap(): ?string
-    {
-        return self::cari('logo-gelap') ?? self::url();
+        return self::cari('lambang');
     }
 
     public static function favicon(): ?string

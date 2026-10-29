@@ -1,4 +1,103 @@
 @import '../../../../vendor/filament/filament/resources/css/theme.css';
+@import '@fontsource/poppins/latin-600.css';
+@import '@fontsource/poppins/latin-700.css';
 
 @source '../../../../app/Filament/Admin/**/*';
 @source '../../../../resources/views/filament/admin/**/*';
+@source '../../../../resources/views/components/merek.blade.php';
+
+/*
+ * Tema panel (PF-20, DESIGN_SYSTEM §2–3): topbar putih, sidebar biru tua, aksen emas
+ * lambang untuk menu aktif. Hanya menimpa kelas `.fi-*`; markup Filament tidak diubah.
+ */
+
+:root {
+    --emas: #f0c010;
+    --font-judul: 'Poppins', var(--font-family, ui-sans-serif), sans-serif;
+}
+
+.fi-body {
+    --topbar-height: 4.5rem;
+}
+
+/* Judul memakai Poppins, senada dengan teks logo. */
+.fi-header-heading,
+.fi-simple-header-heading,
+.fi-section-header-heading,
+.fi-modal-heading,
+.fi-wi-stats-overview-stat-value,
+.fi-merek-nama {
+    font-family: var(--font-judul);
+}
+
+.fi-header-heading {
+    @apply text-2xl font-semibold tracking-normal text-primary-950 sm:text-[1.75rem] dark:text-white;
+}
+
+.fi-header-subheading {
+    @apply mt-1 text-base;
+}
+
+/* Topbar */
+.fi-topbar {
+    @apply shadow-none ring-0 border-b border-gray-200 dark:border-white/10;
+}
+
+/* Sidebar biru tua */
+.fi-sidebar {
+    @apply bg-primary-900 lg:bg-primary-900 dark:bg-primary-950 dark:lg:bg-primary-950;
+}
+
+.fi-body-has-topbar .fi-sidebar-header {
+    @apply bg-white dark:bg-gray-900;
+}
+
+.fi-sidebar-nav {
+    @apply px-4 py-6;
+}
+
+.fi-sidebar-nav-groups {
+    @apply gap-y-5;
+}
+
+.fi-sidebar-group-label {
+    @apply text-[0.6875rem] font-semibold tracking-wider text-white/50 uppercase;
+}
+
+.fi-sidebar-group-btn .fi-icon,
+.fi-sidebar-group-collapse-btn .fi-icon {
+    @apply text-white/40;
+}
+
+.fi-sidebar-item-btn {
+    & > .fi-icon {
+        @apply text-white/55;
+    }
+}
+
+.fi-sidebar-item-label {
+    @apply text-white/85;
+}
+
+.fi-sidebar-item.fi-sidebar-item-has-url > .fi-sidebar-item-btn {
+    @apply hover:bg-white/10 focus-visible:bg-white/10;
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    @apply bg-white/12 dark:bg-white/10;
+    box-shadow: inset 3px 0 0 var(--emas);
+
+    & > .fi-icon,
+    & > .fi-sidebar-item-label {
+        @apply text-white;
+    }
+}
+
+.fi-sidebar-header-controls {
+    @apply after:border-white/10;
+}
+
+/* Kepala tabel: latar tipis agar terpisah dari isi. */
+.fi-ta-header-cell {
+    @apply bg-gray-50 text-xs font-semibold tracking-wide text-gray-600 uppercase dark:bg-white/5 dark:text-gray-300;
+}

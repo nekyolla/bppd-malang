@@ -54,7 +54,7 @@ class JabatanResource extends Resource
                     ->default(fn (): int => (int) Jabatan::max('urutan') + 1),
                 Toggle::make('memiliki_periode')
                     ->label('Memiliki periode jabatan')
-                    ->helperText('Centang untuk jabatan yang dibatasi periode, mis. Kepala Desa (maks. 2 periode).'),
+                    ->helperText('Untuk jabatan berperiode, mis. Kepala Desa (maks. 2 periode).'),
             ]);
     }
 

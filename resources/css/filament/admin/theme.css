@@ -227,3 +227,8 @@
         @apply font-normal text-gray-500 dark:text-gray-400;
     }
 }
+
+/* Pintasan ⌘K tidak berguna di layar sentuh; sembunyikan di ponsel. */
+.fi-global-search-field .fi-input-wrp-suffix {
+    @apply max-sm:hidden;
+}

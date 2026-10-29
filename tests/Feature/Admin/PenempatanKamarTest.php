@@ -152,6 +152,47 @@ it('mengeluarkan peserta dari kamar dan mengembalikan kamar menjadi kosong', fun
     expect(AsramaPeserta::count())->toBe(0)->and(PenggunaanKamar::count())->toBe(0);
 });
 
+it('mengosongkan kamar sekaligus dengan penghuni tercentang semua secara bawaan', function () {
+    app(AsramaService::class)->tempatkanBanyak([pesertaKamar($this->pelatihan), pesertaKamar($this->pelatihan), pesertaKamar($this->pelatihan)], $this->kamar, $this->admin);
+
+    ($this->halaman)()
+        ->mountAction(TestAction::make('kosongkan')->arguments(['kamar' => $this->kamar->id]))
+        // Urutan mengikuti denah (nama penghuni).
+        ->assertSchemaStateSet(['penempatan' => AsramaPeserta::query()->with('pelatihanPeserta.peserta')->get()->sortBy('pelatihanPeserta.peserta.nama_lengkap')->pluck('id')->values()->all()])
+        ->callMountedAction()
+        ->assertNotified('3 peserta keluar dari kamar Anggrek-01')
+        ->assertSee('Kosong · 0/4');
+
+    expect(AsramaPeserta::count())->toBe(0)->and(PenggunaanKamar::count())->toBe(0);
+});
+
+it('mengeluarkan sebagian penghuni lewat kosongkan kamar', function () {
+    [$a, $b] = [pesertaKamar($this->pelatihan), pesertaKamar($this->pelatihan)];
+    app(AsramaService::class)->tempatkanBanyak([$a, $b], $this->kamar, $this->admin);
+
+    ($this->halaman)()
+        ->callAction(TestAction::make('kosongkan')->arguments(['kamar' => $this->kamar->id]), data: ['penempatan' => [$a->fresh()->penempatanKamar->id]])
+        ->assertNotified('1 peserta keluar dari kamar Anggrek-01');
+
+    expect($a->fresh()->penempatanKamar)->toBeNull()->and($b->fresh()->penempatanKamar)->not->toBeNull();
+});
+
+it('mengisi kamar otomatis dari tombol di kepala halaman', function () {
+    pesertaKamar($this->pelatihan);
+    pesertaKamar($this->pelatihan, JenisKelamin::Perempuan);
+    KamarAsrama::factory()->for($this->asrama)->create(['no_kamar' => '02', 'kapasitas' => 4]);
+
+    ($this->halaman)()
+        ->callAction('isiOtomatis')
+        ->assertNotified('2 peserta ditempatkan otomatis');
+
+    expect(AsramaPeserta::count())->toBe(2)->and(PenggunaanKamar::count())->toBe(2);
+});
+
+it('menonaktifkan isi otomatis bila semua peserta sudah dapat kamar', function () {
+    ($this->halaman)()->assertActionDisabled('isiOtomatis');
+});
+
 it('menandai kamar yang dipakai pelatihan lain sebagai tidak tersedia', function () {
     $lain = Pelatihan::factory()->dibuka()->tanggal('2026-10-07', '2026-10-09')->create();
     app(AsramaService::class)->tempatkan(pesertaKamar($lain), $this->kamar, $this->admin);
@@ -169,7 +210,8 @@ it('hanya menampilkan penempatan tanpa aksi setelah pelatihan selesai', function
         ->assertSee('Pelatihan sudah selesai. Penempatan hanya dapat dilihat.')
         ->assertSee($penempatan->pelatihanPeserta->peserta->nama_lengkap)
         ->assertActionHidden(TestAction::make('keluarkan')->arguments(['penempatan' => $penempatan->id]))
-        ->assertActionHidden(TestAction::make('tempatkan')->arguments(['kamar' => $this->kamar->id]));
+        ->assertActionHidden(TestAction::make('tempatkan')->arguments(['kamar' => $this->kamar->id]))
+        ->assertActionHidden('isiOtomatis');
 });
 
 it('menolak menurunkan kapasitas kamar di bawah jumlah penghuni', function () {

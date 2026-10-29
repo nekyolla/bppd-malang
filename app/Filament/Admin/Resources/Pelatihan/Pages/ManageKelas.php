@@ -5,7 +5,6 @@ namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 use App\Enums\StatusPelatihan;
 use App\Enums\StatusPendaftaran;
 use App\Filament\Admin\Actions\BagiAcakKelasAction;
-use App\Filament\Admin\Actions\KembaliAction;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Filament\Admin\Support\GalatService;
 use App\Models\KelasPelatihan;
@@ -122,13 +121,6 @@ class ManageKelas extends ManageRelatedRecords
     public function getTitle(): string|Htmlable
     {
         return "Kelas {$this->getOwnerRecord()->nama_tampilan}";
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            KembaliAction::ke(PelatihanResource::getUrl('index'), 'Kembali ke daftar pelatihan'),
-        ];
     }
 
     private function belumSelesai(): bool

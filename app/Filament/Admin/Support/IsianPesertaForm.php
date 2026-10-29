@@ -49,8 +49,23 @@ class IsianPesertaForm
                     $isian(Select::make('agama')->label('Agama')->options(array_combine(Peserta::AGAMA, Peserta::AGAMA))->required()),
                     $isian(TextInput::make('no_hp')->label('Nomor HP')->required()->tel()),
                     $isian(TextInput::make('email')->label('Email')->email()),
-                    $isian(Select::make('jenjang_pendidikan')->label('Pendidikan terakhir')->options(array_combine(Peserta::JENJANG_PENDIDIKAN, Peserta::JENJANG_PENDIDIKAN))->required()),
-                    $isian(TextInput::make('jurusan_pendidikan')->label('Jurusan')),
+                    $isian(Select::make('jenjang_pendidikan')
+                        ->label('Pendidikan terakhir')
+                        ->options(array_combine(Peserta::JENJANG_PENDIDIKAN, Peserta::JENJANG_PENDIDIKAN))
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function (Set $set, ?string $state): void {
+                            if (! Peserta::jenjangKuliah($state)) {
+                                $set('jurusan_pendidikan', null);
+                            }
+                        })),
+                    // Hanya untuk jenjang kuliah (PF-28).
+                    $isian(TextInput::make('jurusan_pendidikan')
+                        ->label('Jurusan')
+                        ->required()
+                        ->maxLength(255)
+                        ->validationMessages(['required' => 'Jurusan wajib diisi untuk pendidikan D1–S3.'])
+                        ->visible(fn (Get $get): bool => Peserta::jenjangKuliah($get('jenjang_pendidikan')))),
                     $isian(Textarea::make('alamat_domisili')->label('Alamat domisili')->required()->rows(2)->columnSpanFull()),
                 ]),
             Section::make('Jabatan, desa & pajak')

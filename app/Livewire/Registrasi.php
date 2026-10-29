@@ -15,6 +15,7 @@ use App\Models\StatusPtkp;
 use App\Models\SumberDana;
 use App\Services\RegistrasiService;
 use App\Support\FormatTanggal;
+use Closure;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\Checkbox;
@@ -26,8 +27,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Wizard;
@@ -82,8 +83,16 @@ class Registrasi extends Component implements HasActions, HasSchemas
             ->helperText($bantuan)
             ->required()
             ->acceptedFileTypes($tipe)
+            // Teks bawaan FilePond ("Seret & Jatuhkan…") kurang jelas di ponsel.
+            ->placeholder('<span class="filepond--label-action">Pilih berkas</span> atau seret ke sini')
             ->maxSize(RegistrasiService::MAKS_UKURAN_BERKAS_KB)
             ->storeFiles(false);
+
+        // Baris ringkasan sebelum kirim: label sebaris dengan isiannya.
+        $ringkasan = fn (string $nama, string $label, Closure $isi): TextEntry => TextEntry::make("ringkasan_{$nama}")
+            ->label($label)
+            ->inlineLabel()
+            ->state(fn (Get $get): string => filled($nilai = $isi($get)) ? $nilai : '–');
 
         // Galat tampil saat isian ditinggalkan, tidak menunggu tombol "Selanjutnya" (PF-12).
         $langsung = fn (Field $isian): Field => $isian
@@ -162,11 +171,21 @@ class Registrasi extends Component implements HasActions, HasSchemas
                             Select::make('jenjang_pendidikan')
                                 ->label('Pendidikan terakhir')
                                 ->options(array_combine(Peserta::JENJANG_PENDIDIKAN, Peserta::JENJANG_PENDIDIKAN))
-                                ->required(),
-                            TextInput::make('jurusan_pendidikan')
+                                ->required()
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                    if (! Peserta::jenjangKuliah($state)) {
+                                        $set('jurusan_pendidikan', null);
+                                    }
+                                }),
+                            // Hanya untuk jenjang kuliah (PF-28).
+                            $langsung(TextInput::make('jurusan_pendidikan')
                                 ->label('Jurusan')
-                                ->helperText('Boleh dikosongkan.')
-                                ->maxLength(255),
+                                ->placeholder('Mis. Ilmu Pemerintahan')
+                                ->required()
+                                ->maxLength(255)
+                                ->validationMessages(['required' => 'Jurusan wajib diisi untuk pendidikan D1–S3.'])
+                                ->visible(fn (Get $get): bool => Peserta::jenjangKuliah($get('jenjang_pendidikan')))),
                         ]),
                     Step::make('Jabatan & Desa')
                         ->schema([
@@ -256,21 +275,22 @@ class Registrasi extends Component implements HasActions, HasSchemas
                                 ->required(fn (Get $get): bool => $this->butuhKeterangan($get('sumber_dana_id'))),
                         ]),
                     Step::make('Berkas')
-                        ->description('Setiap berkas maksimal 2 MB.')
                         ->schema([
-                            $berkas('ktp', 'Scan KTP', ['application/pdf', 'image/jpeg'], 'Format PDF atau JPG.'),
-                            $berkas('foto', 'Pas foto 3x4', ['image/jpeg'], 'Format JPG, latar polos.'),
-                            $berkas('surat_tugas', 'Surat tugas dari desa', ['application/pdf'], 'Format PDF.'),
+                            $berkas('ktp', 'Scan KTP', ['application/pdf', 'image/jpeg'], 'PDF atau JPG, maksimal 2 MB.'),
+                            $berkas('foto', 'Pas foto 3x4', ['image/jpeg'], 'JPG latar polos, maksimal 2 MB.'),
+                            $berkas('surat_tugas', 'Surat tugas dari desa', ['application/pdf'], 'PDF, maksimal 2 MB.'),
                         ]),
                     Step::make('Periksa & Kirim')
                         ->schema([
                             Section::make('Ringkasan')
+                                ->compact()
+                                ->extraAttributes(['class' => 'fi-ringkasan'])
                                 ->schema([
-                                    Text::make(fn (Get $get): string => 'Pelatihan: '.($this->pelatihanDibuka()->firstWhere('id', $get('pelatihan_id'))?->nama_tampilan ?? '–')),
-                                    Text::make(fn (Get $get): string => 'Nama: '.($get('nama_lengkap') ?: '–')),
-                                    Text::make(fn (Get $get): string => 'NIK: '.($get('nik') ?: '–')),
-                                    Text::make(fn (Get $get): string => 'Desa: '.(Desa::find($get('desa_id'))?->nama ?? '–')),
-                                    Text::make(fn (Get $get): string => 'Nomor HP: '.($get('no_hp') ?: '–')),
+                                    $ringkasan('pelatihan', 'Pelatihan', fn (Get $get): ?string => $this->pelatihanDibuka()->firstWhere('id', $get('pelatihan_id'))?->nama_tampilan),
+                                    $ringkasan('nama', 'Nama', fn (Get $get): ?string => $get('nama_lengkap')),
+                                    $ringkasan('nik', 'NIK', fn (Get $get): ?string => $get('nik')),
+                                    $ringkasan('desa', 'Desa', fn (Get $get): ?string => Desa::find($get('desa_id'))?->nama),
+                                    $ringkasan('no_hp', 'Nomor HP', fn (Get $get): ?string => $get('no_hp')),
                                 ]),
                             Checkbox::make('pernyataan')
                                 ->label('Data yang saya isi benar dan sesuai KTP serta surat tugas.')

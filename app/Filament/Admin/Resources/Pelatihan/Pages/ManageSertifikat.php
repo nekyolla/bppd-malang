@@ -3,7 +3,6 @@
 namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 
 use App\Enums\StatusPendaftaran;
-use App\Filament\Admin\Actions\KembaliAction;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Filament\Admin\Support\GalatService;
 use App\Models\PelatihanPeserta;
@@ -144,12 +143,5 @@ class ManageSertifikat extends ManageRelatedRecords
         $jumlah = $peserta->count();
 
         return $jumlah === 0 ? null : (clone $peserta)->whereHas('sertifikat')->count()." dari {$jumlah} peserta sudah bersertifikat";
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            KembaliAction::ke(PelatihanResource::getUrl('index'), 'Kembali ke daftar pelatihan'),
-        ];
     }
 }

@@ -58,10 +58,13 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        // permission 0664: artisan (user deploy) dan web (www-data) berbagi grup; berkas log
+        // yang hanya bisa ditulis pembuatnya membuat galat web tidak tercatat.
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
+            'permission' => 0664,
             'replace_placeholders' => true,
         ],
 
@@ -70,6 +73,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'max_files' => env('LOG_DAILY_DAYS', 14),
+            'permission' => 0664,
             'replace_placeholders' => true,
         ],
 

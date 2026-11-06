@@ -15,10 +15,12 @@ use Illuminate\Database\Eloquent\Builder;
 class FilterWilayah
 {
     /**
-     * @param  string  $relasiDesa  Path relasi dari baris tabel ke desa, mis. `peserta.desa` atau `desa`.
+     * @param  string|null  $relasiDesa  Path relasi dari baris tabel ke desa, mis. `peserta.desa` atau `desa`; `null` bila barisnya desa itu sendiri.
      */
-    public static function make(string $relasiDesa): Filter
+    public static function make(?string $relasiDesa): Filter
     {
+        $awalan = filled($relasiDesa) ? "{$relasiDesa}." : '';
+
         return Filter::make('wilayah')
             ->schema([
                 Select::make('provinsi_id')
@@ -32,8 +34,8 @@ class FilterWilayah
                     ->searchable(),
             ])
             ->query(fn (Builder $query, array $data): Builder => match (true) {
-                filled($data['kab_kota_id'] ?? null) => $query->whereHas("{$relasiDesa}.kecamatan", fn (Builder $q) => $q->where('kab_kota_id', $data['kab_kota_id'])),
-                filled($data['provinsi_id'] ?? null) => $query->whereHas("{$relasiDesa}.kecamatan.kabKota", fn (Builder $q) => $q->where('provinsi_id', $data['provinsi_id'])),
+                filled($data['kab_kota_id'] ?? null) => $query->whereHas("{$awalan}kecamatan", fn (Builder $q) => $q->where('kab_kota_id', $data['kab_kota_id'])),
+                filled($data['provinsi_id'] ?? null) => $query->whereHas("{$awalan}kecamatan.kabKota", fn (Builder $q) => $q->where('provinsi_id', $data['provinsi_id'])),
                 default => $query,
             })
             ->indicateUsing(fn (array $data): ?string => match (true) {

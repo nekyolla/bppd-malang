@@ -266,3 +266,10 @@ it('memunculkan jurusan hanya untuk jenjang kuliah dan mengosongkannya saat jenj
         ->assertFormFieldHidden('jurusan_pendidikan')
         ->assertFormSet(['jurusan_pendidikan' => null]);
 });
+
+it('membacakan status langkah wizard dalam bahasa Indonesia', function () {
+    $this->get('/daftar')
+        ->assertOk()
+        ->assertSee('Belum selesai')
+        ->assertDontSee('Not completed');
+});

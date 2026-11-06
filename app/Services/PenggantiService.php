@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\JenisKelamin;
 use App\Enums\StatusPendaftaran;
 use App\Models\PelatihanPeserta;
+use App\Services\Concerns\MenolakAturan;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -14,6 +15,8 @@ use Illuminate\Validation\ValidationException;
  */
 class PenggantiService
 {
+    use MenolakAturan;
+
     /**
      * Pendaftaran batal yang dapat digantikan oleh pendaftaran ini, untuk desa tertentu
      * (desa pengganti setelah dirapikan admin).
@@ -48,14 +51,13 @@ class PenggantiService
     public function tetapkan(PelatihanPeserta $pengganti, PelatihanPeserta $digantikan): void
     {
         $digantikan = PelatihanPeserta::query()->with('peserta')->lockForUpdate()->findOrFail($digantikan->getKey());
-        $gagal = fn (string $pesan) => throw ValidationException::withMessages(['menggantikan_id' => $pesan]);
 
         match (true) {
-            $digantikan->status !== StatusPendaftaran::Batal => $gagal('Hanya peserta yang batal yang dapat digantikan.'),
-            $digantikan->pelatihan_id !== $pengganti->pelatihan_id => $gagal('Peserta yang digantikan harus dari pelatihan yang sama.'),
-            ! $this->masihBisaDiganti($pengganti) => $gagal('Pengganti tidak dapat ditetapkan karena pelatihan sudah dimulai.'),
-            $this->desa($digantikan) !== $this->desa($pengganti) => $gagal('Pengganti harus dari desa yang sama.'),
-            $digantikan->pengganti()->whereKeyNot($pengganti->getKey())->exists() => $gagal('Peserta ini sudah memiliki pengganti.'),
+            $digantikan->status !== StatusPendaftaran::Batal => $this->tolak('menggantikan_id', 'Hanya peserta yang batal yang dapat digantikan.'),
+            $digantikan->pelatihan_id !== $pengganti->pelatihan_id => $this->tolak('menggantikan_id', 'Peserta yang digantikan harus dari pelatihan yang sama.'),
+            ! $this->masihBisaDiganti($pengganti) => $this->tolak('menggantikan_id', 'Pengganti tidak dapat ditetapkan karena pelatihan sudah dimulai.'),
+            $this->desa($digantikan) !== $this->desa($pengganti) => $this->tolak('menggantikan_id', 'Pengganti harus dari desa yang sama.'),
+            $digantikan->pengganti()->whereKeyNot($pengganti->getKey())->exists() => $this->tolak('menggantikan_id', 'Peserta ini sudah memiliki pengganti.'),
             default => null,
         };
 

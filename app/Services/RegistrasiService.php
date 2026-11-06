@@ -6,6 +6,7 @@ use App\Enums\StatusPelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
 use App\Models\SumberDana;
+use App\Services\Concerns\MenolakAturan;
 use App\Support\IsianPeserta;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
@@ -25,6 +26,8 @@ use Throwable;
  */
 class RegistrasiService
 {
+    use MenolakAturan;
+
     public const DISK = 'local';
 
     /**
@@ -68,7 +71,7 @@ class RegistrasiService
                 $pesertaBaru = $peserta === null;
 
                 if (! $pesertaBaru && $peserta->pendaftaran()->where('pelatihan_id', $data['pelatihan_id'])->exists()) {
-                    throw ValidationException::withMessages(['nik' => self::PESAN_NIK_GANDA]);
+                    $this->tolak('nik', self::PESAN_NIK_GANDA);
                 }
 
                 $peserta ??= Peserta::create($isianPeserta);
@@ -103,7 +106,7 @@ class RegistrasiService
             $this->hapusFolder($folder);
 
             // Dua kiriman bersamaan dengan NIK yang sama.
-            throw ValidationException::withMessages(['nik' => self::PESAN_NIK_GANDA]);
+            $this->tolak('nik', self::PESAN_NIK_GANDA);
         } catch (Throwable $exception) {
             $this->hapusFolder($folder);
 
@@ -179,7 +182,7 @@ class RegistrasiService
 
         foreach (array_keys(self::BERKAS) as $isian) {
             if (! $data[$isian] instanceof UploadedFile) {
-                throw ValidationException::withMessages([$isian => 'Unggah ulang berkas ini.']);
+                $this->tolak($isian, 'Unggah ulang berkas ini.');
             }
         }
 

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\Peran;
 use App\Models\User;
+use App\Services\Concerns\MenolakAturan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -17,6 +18,8 @@ use SensitiveParameter;
  */
 class AkunService
 {
+    use MenolakAturan;
+
     /**
      * Username akun internal: huruf kecil, angka, titik, garis bawah, atau
      * tanda hubung, dan wajib memuat minimal satu huruf.
@@ -154,7 +157,7 @@ class AkunService
     private function pastikanBukanDiriSendiri(User $user, User $oleh, string $pesan): void
     {
         if ($user->is($oleh)) {
-            throw ValidationException::withMessages(['akun' => $pesan]);
+            $this->tolak('akun', $pesan);
         }
     }
 
@@ -166,7 +169,7 @@ class AkunService
         $lain = User::role(Peran::Superadmin)->where('is_aktif', true)->whereKeyNot($user->getKey())->exists();
 
         if (! $lain) {
-            throw ValidationException::withMessages(['akun' => 'Harus tetap ada minimal satu superadmin yang aktif.']);
+            $this->tolak('akun', 'Harus tetap ada minimal satu superadmin yang aktif.');
         }
     }
 }

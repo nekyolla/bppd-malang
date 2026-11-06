@@ -7,6 +7,7 @@ use App\Enums\StatusPendaftaran;
 use App\Enums\TipeLokasi;
 use App\Models\JudulPelatihan;
 use App\Models\Pelatihan;
+use App\Services\Concerns\MenolakAturan;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -19,6 +20,8 @@ use Illuminate\Validation\ValidationException;
  */
 class PelatihanService
 {
+    use MenolakAturan;
+
     public function __construct(private readonly AsramaService $asrama) {}
 
     /**
@@ -47,11 +50,11 @@ class PelatihanService
         ];
 
         if ($selesai->lt($mulai)) {
-            throw ValidationException::withMessages(['tanggal_selesai' => 'Tanggal selesai tidak boleh sebelum tanggal mulai.']);
+            $this->tolak('tanggal_selesai', 'Tanggal selesai tidak boleh sebelum tanggal mulai.');
         }
 
         if ($tipeLokasi === TipeLokasi::Luar && $keterangan === '') {
-            throw ValidationException::withMessages(['keterangan_lokasi' => 'Isi keterangan lokasi untuk pelatihan di luar Balai Besar.']);
+            $this->tolak('keterangan_lokasi', 'Isi keterangan lokasi untuk pelatihan di luar Balai Besar.');
         }
 
         $sudahAda = Pelatihan::query()
@@ -66,12 +69,12 @@ class PelatihanService
         }
 
         if ($pelatihan && $pelatihan->tipe_lokasi !== $tipeLokasi && $this->sudahAdaPenghuniKamar($pelatihan)) {
-            throw ValidationException::withMessages(['tipe_lokasi' => 'Tipe lokasi terkunci: sudah ada peserta di kamar asrama.']);
+            $this->tolak('tipe_lokasi', 'Tipe lokasi terkunci: sudah ada peserta di kamar asrama.');
         }
 
         // Kamar yang sudah dipakai tidak boleh jadi bentrok dengan pelatihan lain (FR-ASR-07).
         if ($pelatihan && ($bentrok = $this->asrama->bentrokJadwal($pelatihan, $mulai, $selesai))) {
-            throw ValidationException::withMessages(['tanggal_mulai' => "Tanggal tidak dapat diubah. {$bentrok} Pindahkan pesertanya ke kamar lain dulu."]);
+            $this->tolak('tanggal_mulai', "Tanggal tidak dapat diubah. {$bentrok} Pindahkan pesertanya ke kamar lain dulu.");
         }
 
         $pelatihan ??= new Pelatihan;
@@ -97,9 +100,7 @@ class PelatihanService
             $terkunci = Pelatihan::query()->lockForUpdate()->findOrFail($pelatihan->getKey());
 
             if ($terkunci->status->berikutnya() !== $tujuan) {
-                throw ValidationException::withMessages([
-                    'status' => "Status pelatihan tidak dapat diubah dari \"{$terkunci->status->getLabel()}\" menjadi \"{$tujuan->getLabel()}\".",
-                ]);
+                $this->tolak('status', "Status pelatihan tidak dapat diubah dari \"{$terkunci->status->getLabel()}\" menjadi \"{$tujuan->getLabel()}\".");
             }
 
             if ($tujuan === StatusPelatihan::Selesai) {
@@ -146,9 +147,7 @@ class PelatihanService
         $menunggu = $this->jumlahMenunggu($pelatihan);
 
         if ($menunggu > 0) {
-            throw ValidationException::withMessages([
-                'status' => "Masih ada {$menunggu} peserta menunggu verifikasi. Verifikasi atau batalkan dulu.",
-            ]);
+            $this->tolak('status', "Masih ada {$menunggu} peserta menunggu verifikasi. Verifikasi atau batalkan dulu.");
         }
 
         // Disimpan per model (bukan query update massal) agar tercatat di audit log.
@@ -172,8 +171,6 @@ class PelatihanService
     {
         $judul = JudulPelatihan::find($atribut['judul_pelatihan_id'])?->judul;
 
-        throw ValidationException::withMessages([
-            'batch_ke' => "{$judul} {$atribut['tahun_anggaran']} Batch {$atribut['batch_ke']} sudah ada. Gunakan nomor batch lain.",
-        ]);
+        $this->tolak('batch_ke', "{$judul} {$atribut['tahun_anggaran']} Batch {$atribut['batch_ke']} sudah ada. Gunakan nomor batch lain.");
     }
 }

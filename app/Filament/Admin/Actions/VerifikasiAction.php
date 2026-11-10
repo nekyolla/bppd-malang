@@ -10,7 +10,6 @@ use App\Filament\Admin\Support\PratinjauBerkas;
 use App\Models\PelatihanPeserta;
 use App\Models\SumberDana;
 use App\Services\PendaftaranService;
-use App\Services\PenggantiService;
 use App\Support\IsianPeserta;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -64,7 +63,6 @@ class VerifikasiAction extends Action
                     auth()->user(),
                     Arr::only($data, IsianPeserta::KOLOM),
                     $data['catatan_panitia'] ?? null,
-                    filled($data['menggantikan_id'] ?? null) ? (int) $data['menggantikan_id'] : null,
                     Arr::only($data, ['sumber_dana_id', 'sumber_dana_keterangan']),
                 ));
 
@@ -95,7 +93,6 @@ class VerifikasiAction extends Action
                         ->color($perbedaan === [] ? 'gray' : 'warning'),
                     ...IsianPesertaForm::bagian($dataLama),
                     $this->bagianSumberDana(),
-                    $this->bagianPengganti($record),
                     Textarea::make('catatan_panitia')
                         ->label('Catatan panitia')
                         ->helperText('Opsional, misal data yang dirapikan.')
@@ -122,38 +119,6 @@ class VerifikasiAction extends Action
                     ->visible(fn (Get $get): bool => $this->butuhKeterangan($get('sumber_dana_id')))
                     ->required(fn (Get $get): bool => $this->butuhKeterangan($get('sumber_dana_id'))),
             ]);
-    }
-
-    private function bagianPengganti(PelatihanPeserta $record): Section
-    {
-        return Section::make('Pengganti')
-            ->description('Peserta batal dari desa yang sama. Kosongkan jika bukan pengganti.')
-            ->visible(fn (Get $get): bool => $this->kandidatPengganti($record, $get('desa_id')) !== [])
-            ->schema([
-                Select::make('menggantikan_id')
-                    ->label('Menggantikan')
-                    ->options(fn (Get $get): array => $this->kandidatPengganti($record, $get('desa_id')))
-                    ->live()
-                    ->helperText('Pengganti otomatis masuk kelas peserta yang digantikan.')
-                    ->hint(fn (Get $get): ?string => filled($get('menggantikan_id'))
-                        && app(PenggantiService::class)->bedaJenisKelamin((int) $get('menggantikan_id'), $get('jenis_kelamin'))
-                            ? 'Jenis kelamin berbeda dari yang digantikan. Pilih kamar lain saat penempatan.'
-                            : null)
-                    ->hintColor('warning'),
-            ]);
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function kandidatPengganti(PelatihanPeserta $record, mixed $desaId): array
-    {
-        return app(PenggantiService::class)
-            ->kandidat($record, filled($desaId) ? (int) $desaId : null)
-            ->mapWithKeys(fn (PelatihanPeserta $batal): array => [
-                $batal->id => "{$batal->peserta->nama_lengkap} — batal: {$batal->alasan_batal}",
-            ])
-            ->all();
     }
 
     private function butuhKeterangan(mixed $sumberDanaId): bool

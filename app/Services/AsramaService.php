@@ -368,7 +368,7 @@ class AsramaService
             ->where('status', StatusPendaftaran::Terverifikasi)
             ->whereDoesntHave('penempatanKamar')
             ->when($jenisKelamin, fn (Builder $query) => $query->whereHas('peserta', fn (Builder $q) => $q->where('jenis_kelamin', $jenisKelamin)))
-            ->with(['peserta', 'kelasPelatihan', 'menggantikan.peserta'])
+            ->with(['peserta', 'kelasPelatihan'])
             ->get()
             ->sortBy('peserta.nama_lengkap')
             ->values();

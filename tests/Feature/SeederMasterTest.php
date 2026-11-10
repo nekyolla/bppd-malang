@@ -107,33 +107,29 @@ describe('skenario pelatihan', function () {
             ->and(Auth::user())->toBeNull();
     });
 
-    it('mengisi status pendaftaran, kelas, pengganti, kamar, dan sertifikat sesuai skenario', function () {
+    it('mengisi status pendaftaran, kelas, kamar, dan sertifikat sesuai skenario', function () {
         $ringkasan = Pelatihan::orderBy('tanggal_mulai')->get()->map(fn (Pelatihan $p): array => [
             ...$p->pendaftaran()->toBase()->selectRaw('status, count(*) as jumlah')->groupBy('status')->pluck('jumlah', 'status')->map(fn ($n): int => (int) $n)->sortKeys()->all(),
             'kelas' => $p->kelas()->count(),
-            'pengganti' => $p->pendaftaran()->whereNotNull('menggantikan_id')->count(),
             'kamar' => AsramaPeserta::whereHas('pelatihanPeserta', fn ($q) => $q->where('pelatihan_id', $p->id))->count(),
             'sertifikat' => SertifikatPeserta::whereHas('pelatihanPeserta', fn ($q) => $q->where('pelatihan_id', $p->id))->count(),
         ])->all();
 
         expect($ringkasan)->toBe([
-            ['batal' => 1, 'selesai' => 19, 'kelas' => 1, 'pengganti' => 0, 'kamar' => 0, 'sertifikat' => 19],
-            ['batal' => 2, 'selesai' => 22, 'kelas' => 2, 'pengganti' => 0, 'kamar' => 22, 'sertifikat' => 22],
-            ['batal' => 1, 'terdaftar' => 2, 'terverifikasi' => 30, 'kelas' => 2, 'pengganti' => 1, 'kamar' => 30, 'sertifikat' => 5],
-            ['terdaftar' => 19, 'terverifikasi' => 7, 'kelas' => 0, 'pengganti' => 0, 'kamar' => 0, 'sertifikat' => 0],
-            ['kelas' => 0, 'pengganti' => 0, 'kamar' => 0, 'sertifikat' => 0],
+            ['batal' => 1, 'selesai' => 19, 'kelas' => 1, 'kamar' => 0, 'sertifikat' => 19],
+            ['batal' => 2, 'selesai' => 22, 'kelas' => 2, 'kamar' => 22, 'sertifikat' => 22],
+            ['batal' => 1, 'terdaftar' => 2, 'terverifikasi' => 29, 'kelas' => 2, 'kamar' => 29, 'sertifikat' => 5],
+            ['terdaftar' => 19, 'terverifikasi' => 7, 'kelas' => 0, 'kamar' => 0, 'sertifikat' => 0],
+            ['kelas' => 0, 'kamar' => 0, 'sertifikat' => 0],
         ]);
     });
 
-    it('mengikuti aturan bisnis: snapshot, kapasitas kamar, pengganti sedesa, berkas privat', function () {
+    it('mengikuti aturan bisnis: snapshot, kapasitas kamar, berkas privat', function () {
         $diverifikasi = PelatihanPeserta::whereIn('status', ['terverifikasi', 'selesai'])->get();
-        $pengganti = PelatihanPeserta::whereNotNull('menggantikan_id')->sole();
 
         expect($diverifikasi->every(fn (PelatihanPeserta $p): bool => $p->desa_id_saat_pelatihan && $p->jabatan_id_saat_pelatihan && $p->diverifikasi_oleh))->toBeTrue()
             ->and(PenggunaanKamar::withCount('penghuni')->with('kamarAsrama')->get()->every(fn ($k): bool => $k->penghuni_count <= $k->kamarAsrama->kapasitas))->toBeTrue()
             ->and(PelatihanPeserta::where('status', 'batal')->whereHas('penempatanKamar')->exists())->toBeFalse()
-            ->and($pengganti->desa_id_saat_pelatihan)->toBe($pengganti->menggantikan->desa_id_saat_pelatihan)
-            ->and($pengganti->kelas_pelatihan_id)->toBe($pengganti->menggantikan->kelas_pelatihan_id)
             ->and(Storage::disk('public')->allFiles())->toBeEmpty();
 
         Storage::disk('local')->assertExists([

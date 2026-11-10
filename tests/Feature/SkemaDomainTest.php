@@ -78,8 +78,9 @@ it('membuat seluruh tabel domain', function () {
     expect(Schema::hasTable('user_profiles'))->toBeFalse()
         ->and(Schema::hasColumns('pelatihan_peserta', [
             'peserta_id', 'data_isian', 'jabatan_id_saat_pelatihan', 'desa_id_saat_pelatihan',
-            'status_ptkp_id_saat_pelatihan', 'waktu_pelantikan_saat_pelatihan', 'menggantikan_id',
+            'status_ptkp_id_saat_pelatihan', 'waktu_pelantikan_saat_pelatihan',
         ]))->toBeTrue()
+        ->and(Schema::hasColumn('pelatihan_peserta', 'menggantikan_id'))->toBeFalse()
         ->and(Schema::hasColumn('peserta', 'sumber_dana_default_id'))->toBeFalse();
 
     foreach (['sertifikat_peserta', 'penggunaan_kamar', 'asrama_peserta'] as $tabel) {
@@ -159,15 +160,6 @@ it('menolak peserta terdaftar dua kali di pelatihan yang sama', function () {
     barisPendaftaran($this->master, barisPelatihan($this->master, ['batch_ke' => 2]), $peserta);
 
     expect(DB::table('pelatihan_peserta')->count())->toBe(2);
-});
-
-it('hanya mengizinkan satu pengganti untuk satu peserta batal', function () {
-    $pelatihan = barisPelatihan($this->master);
-    $batal = barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master), ['status' => 'batal']);
-    barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master, '3507010101900002'), ['menggantikan_id' => $batal]);
-
-    expect(fn () => barisPendaftaran($this->master, $pelatihan, barisPeserta($this->master, '3507010101900003'), ['menggantikan_id' => $batal]))
-        ->toThrow(QueryException::class);
 });
 
 it('mencegah data master yang dipakai terhapus', function () {

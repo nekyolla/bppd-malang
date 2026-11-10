@@ -26,7 +26,6 @@ class PendaftaranService
     use MenolakAturan;
 
     public function __construct(
-        private readonly PenggantiService $pengganti,
         private readonly AsramaService $asrama,
     ) {}
 
@@ -63,14 +62,13 @@ class PendaftaranService
      * (jika ada), memakai KTP & foto terbaru, lalu mengisi snapshot (CLAUDE.md aturan 6).
      *
      * @param  array<string, mixed>|null  $dataPeserta  Data peserta hasil pemeriksaan admin; null = data peserta tidak diubah.
-     * @param  int|null  $menggantikanId  Pendaftaran batal yang digantikan (FR-BTL-04).
      * @param  array{sumber_dana_id: int|string|null, sumber_dana_keterangan?: ?string}|null  $sumberDana  Sumber dana hasil pemeriksaan admin (PF-16); null = tidak diubah.
      *
      * @throws ValidationException
      */
-    public function verifikasi(PelatihanPeserta $pendaftaran, User $oleh, ?array $dataPeserta = null, ?string $catatan = null, ?int $menggantikanId = null, ?array $sumberDana = null): void
+    public function verifikasi(PelatihanPeserta $pendaftaran, User $oleh, ?array $dataPeserta = null, ?string $catatan = null, ?array $sumberDana = null): void
     {
-        DB::transaction(function () use ($pendaftaran, $oleh, $dataPeserta, $catatan, $menggantikanId, $sumberDana): void {
+        DB::transaction(function () use ($pendaftaran, $oleh, $dataPeserta, $catatan, $sumberDana): void {
             $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             if (! $terkunci->status->bisaMenjadi(StatusPendaftaran::Terverifikasi)) {
@@ -114,10 +112,6 @@ class PendaftaranService
                 'diverifikasi_pada' => now(),
                 'catatan_panitia' => filled($catatan) ? trim($catatan) : $terkunci->catatan_panitia,
             ])->save();
-
-            if ($menggantikanId !== null) {
-                $this->pengganti->tetapkan($terkunci, PelatihanPeserta::query()->findOrFail($menggantikanId));
-            }
         });
 
         $pendaftaran->refresh();
@@ -206,12 +200,11 @@ class PendaftaranService
     public function kembalikan(PelatihanPeserta $pendaftaran): StatusPendaftaran
     {
         $tujuan = DB::transaction(function () use ($pendaftaran): StatusPendaftaran {
-            $terkunci = PelatihanPeserta::query()->with(['pelatihan', 'pengganti.peserta'])->lockForUpdate()->findOrFail($pendaftaran->getKey());
+            $terkunci = PelatihanPeserta::query()->with('pelatihan')->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
             match (true) {
                 $terkunci->status !== StatusPendaftaran::Batal => $this->tolak('status', 'Hanya pendaftaran batal yang dapat dikembalikan.'),
                 $terkunci->pelatihan->status === StatusPelatihan::Selesai => $this->tolak('status', 'Pelatihan sudah selesai. Pembatalan tidak dapat dikembalikan.'),
-                $terkunci->pengganti !== null => $this->tolak('status', "Peserta ini sudah digantikan {$terkunci->pengganti->peserta->nama_lengkap}. Pembatalan tidak dapat dikembalikan."),
                 default => null,
             };
 
@@ -235,7 +228,7 @@ class PendaftaranService
 
     /**
      * Menghapus pendaftaran tidak sah, misal data iseng dari form publik (PF-14). Hanya untuk
-     * pendaftaran yang belum pernah diverifikasi dan tidak punya pengganti. Berkasnya ikut
+     * pendaftaran yang belum pernah diverifikasi. Berkasnya ikut
      * dihapus, begitu juga data peserta bila tidak punya pendaftaran lain. Tercatat di audit log.
      *
      * @throws ValidationException
@@ -247,10 +240,6 @@ class PendaftaranService
 
             if ($terkunci->diverifikasi_pada !== null || ! in_array($terkunci->status, [StatusPendaftaran::Terdaftar, StatusPendaftaran::Batal], true)) {
                 $this->tolak('status', 'Pendaftaran yang pernah diverifikasi tidak dapat dihapus. Gunakan Batalkan.');
-            }
-
-            if ($terkunci->pengganti()->exists()) {
-                $this->tolak('status', 'Pendaftaran ini sudah punya pengganti. Tidak dapat dihapus.');
             }
 
             $peserta = $terkunci->peserta;

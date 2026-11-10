@@ -11,7 +11,6 @@ use App\Models\KamarAsrama;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Services\AsramaService;
-use App\Services\PenggantiService;
 use App\Support\FormatTanggal;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -353,16 +352,12 @@ class PenempatanKamar extends Page
      */
     private function calonPenghuni(array $arguments): array
     {
-        $pengganti = app(PenggantiService::class);
-
         return app(AsramaService::class)
             ->calonPenghuni($this->pelatihanTerpilih, $this->kamar($arguments))
             ->mapWithKeys(fn (PelatihanPeserta $p): array => [$p->id => collect([
                 $p->peserta->nama_lengkap,
                 $p->peserta->jenis_kelamin->getLabel(),
                 $p->kelasPelatihan ? "Kelas {$p->kelasPelatihan->nama_kelas}" : null,
-                $p->menggantikan ? "pengganti {$p->menggantikan->peserta->nama_lengkap}"
-                    .($pengganti->bedaJenisKelamin($p->menggantikan->id, $p->peserta->jenis_kelamin) ? ' (beda jenis kelamin, pilih kamar lain)' : '') : null,
             ])->filter()->implode(' · ')])
             ->all();
     }

@@ -39,7 +39,7 @@ use Illuminate\Support\Str;
  *
  * - tahun lalu, selesai: dashboard per tahun;
  * - bulan lalu, selesai: kelas, kamar, sertifikat, 2 batal;
- * - minggu ini, berjalan: kelas, kamar, 1 batal + pengganti, sebagian sertifikat, pendaftar terlambat;
+ * - minggu ini, berjalan: kelas, kamar, 1 batal, sebagian sertifikat, pendaftar terlambat;
  * - bulan depan, dibuka: bahan UAT (menunggu verifikasi, NIK lama dengan isian berbeda, kepala
  *   desa, satu data iseng, terverifikasi tanpa kelas & kamar);
  * - draft di luar Balai Besar.
@@ -108,7 +108,7 @@ class DemoPelatihanSeeder extends Seeder
                 'peserta' => 24, 'kelas' => ['A', 'B'], 'batal' => 2, 'kamar' => true, 'sertifikat' => 'semua',
             ]);
             $this->skenario('Pelatihan Pengelolaan Keuangan Desa', 2, $hariIni->copy()->subDay(), [
-                'peserta' => 28, 'kelas' => ['A', 'B'], 'batal' => 1, 'pengganti' => true, 'kamar' => true,
+                'peserta' => 28, 'kelas' => ['A', 'B'], 'batal' => 1, 'kamar' => true,
                 'sertifikat' => 5, 'terlambat' => 2, 'nikLama' => $tahunLalu->take(2),
             ]);
             $this->pelatihanDibuka($hariIni->copy()->addDays(28), $tahunLalu->slice(2, 2)->merge($bulanLalu->take(1)));
@@ -125,7 +125,7 @@ class DemoPelatihanSeeder extends Seeder
      * Menjalankan alur pelatihan dari dibuka sampai (bila tanggalnya sudah lewat) selesai.
      * Langkah yang jatuh setelah saat ini tidak dijalankan.
      *
-     * @param  array{peserta: int, kelas: list<string>, batal: int, pengganti?: bool, kamar?: bool, sertifikat: 'semua'|int, terlambat?: int, nikLama?: Collection<int, Peserta>}  $opsi
+     * @param  array{peserta: int, kelas: list<string>, batal: int, kamar?: bool, sertifikat: 'semua'|int, terlambat?: int, nikLama?: Collection<int, Peserta>}  $opsi
      * @return Collection<int, Peserta> Peserta yang selesai, untuk dipakai ulang sebagai NIK lama.
      */
     private function skenario(string $judul, int $batch, Carbon $mulai, array $opsi): Collection
@@ -157,16 +157,8 @@ class DemoPelatihanSeeder extends Seeder
 
         $batal = collect($this->faker->randomElements($pendaftaran->all(), $opsi['batal']));
 
-        foreach ($batal as $i => $digantikan) {
-            $this->pada($mulai->copy()->subDays(4)->setTime(9, $i * 10), $admin, fn () => app(PendaftaranService::class)->batalkan($digantikan, $admin, self::ALASAN_BATAL[$i % count(self::ALASAN_BATAL)]));
-        }
-
-        if (($opsi['pengganti'] ?? false) && ($digantikan = $batal->first())) {
-            $pengganti = $this->pada($mulai->copy()->subDays(4)->setTime(13, 0), null, fn () => $this->daftar($pelatihan, $this->isian(
-                $digantikan->peserta->desa,
-                jabatan: $digantikan->peserta->jabatan->nama_jabatan,
-            )));
-            $this->pada($mulai->copy()->subDays(3)->setTime(9, 0), $admin, fn () => app(PendaftaranService::class)->verifikasi($pengganti, $admin, menggantikanId: $digantikan->id));
+        foreach ($batal as $i => $dibatalkan) {
+            $this->pada($mulai->copy()->subDays(4)->setTime(9, $i * 10), $admin, fn () => app(PendaftaranService::class)->batalkan($dibatalkan, $admin, self::ALASAN_BATAL[$i % count(self::ALASAN_BATAL)]));
         }
 
         if ($opsi['kamar'] ?? false) {

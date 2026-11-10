@@ -4,7 +4,6 @@ namespace App\Filament\Admin\Resources\Pendaftaran\Schemas;
 
 use App\Enums\StatusPendaftaran;
 use App\Enums\TipeLokasi;
-use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
 use App\Models\PelatihanPeserta;
 use App\Services\PendaftaranService;
 use App\Support\FormatTanggal;
@@ -69,18 +68,6 @@ class PendaftaranInfolist
                         TextEntry::make('dibatalkan_pada')
                             ->label('Dibatalkan')
                             ->state(fn (PelatihanPeserta $record): ?string => $record->dibatalkan_pada?->translatedFormat('j F Y, H:i').' oleh '.$record->dibatalkanOleh?->username),
-                        TextEntry::make('pengganti.peserta.nama_lengkap')
-                            ->label('Digantikan oleh')
-                            ->placeholder('Belum ada pengganti')
-                            ->url(fn (PelatihanPeserta $record): ?string => $record->pengganti ? PendaftaranResource::getUrl('view', ['record' => $record->pengganti]) : null),
-                    ]),
-                Section::make('Pengganti')
-                    ->visible(fn (PelatihanPeserta $record): bool => $record->menggantikan_id !== null)
-                    ->schema([
-                        TextEntry::make('menggantikan.peserta.nama_lengkap')
-                            ->label('Menggantikan')
-                            ->suffix(fn (PelatihanPeserta $record): string => " (batal: {$record->menggantikan->alasan_batal})")
-                            ->url(fn (PelatihanPeserta $record): string => PendaftaranResource::getUrl('view', ['record' => $record->menggantikan])),
                     ]),
                 Section::make('Berkas')
                     ->columns(3)

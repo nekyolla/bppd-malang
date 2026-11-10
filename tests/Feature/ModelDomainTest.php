@@ -160,7 +160,7 @@ it('menampilkan pelatihan dibuka dan berjalan di form registrasi', function () {
     expect(Pelatihan::menerimaPendaftaran()->orderBy('batch_ke')->pluck('batch_ke')->all())->toBe([2, 3]);
 });
 
-it('mengabaikan status, snapshot, dan pengganti dari mass assignment', function () {
+it('mengabaikan status dan snapshot dari mass assignment', function () {
     $pelatihan = Pelatihan::create([
         ...$this->pelatihan->only(['judul_pelatihan_id', 'tahun_anggaran', 'tanggal_mulai', 'tanggal_selesai', 'tipe_lokasi']),
         'batch_ke' => 9,
@@ -171,18 +171,16 @@ it('mengabaikan status, snapshot, dan pengganti dari mass assignment', function 
         'status' => StatusPendaftaran::Selesai,
         'desa_id_saat_pelatihan' => $this->desa->id,
         'waktu_pelantikan_saat_pelatihan' => '2020-01-01',
-        'menggantikan_id' => $this->pendaftaran->id,
     ]);
     $pendaftaran = $this->pendaftaran->fresh();
 
     expect($pelatihan->fresh()->status)->toBe(StatusPelatihan::Draft)
         ->and($pendaftaran->status)->toBe(StatusPendaftaran::Terdaftar)
         ->and($pendaftaran->desa_id_saat_pelatihan)->toBeNull()
-        ->and($pendaftaran->waktu_pelantikan_saat_pelatihan)->toBeNull()
-        ->and($pendaftaran->menggantikan_id)->toBeNull();
+        ->and($pendaftaran->waktu_pelantikan_saat_pelatihan)->toBeNull();
 });
 
-it('menghubungkan pendaftaran dengan snapshot, pengganti, dan sertifikat', function () {
+it('menghubungkan pendaftaran dengan snapshot dan sertifikat', function () {
     $batal = $this->pendaftaran;
     $batal->forceFill([
         'status' => StatusPendaftaran::Batal,
@@ -193,24 +191,21 @@ it('menghubungkan pendaftaran dengan snapshot, pengganti, dan sertifikat', funct
         'dibatalkan_pada' => now(),
     ])->save();
 
-    $pengganti = ($this->daftarkan)(($this->buatPeserta)('3507010101900002', JenisKelamin::LakiLaki));
-    $pengganti->forceFill(['menggantikan_id' => $batal->id])->save();
+    $lain = ($this->daftarkan)(($this->buatPeserta)('3507010101900002', JenisKelamin::LakiLaki));
 
     SertifikatPeserta::create([
-        'pelatihan_peserta_id' => $pengganti->id,
+        'pelatihan_peserta_id' => $lain->id,
         'file_sertifikat' => 'sertifikat/1/2.pdf',
         'diupload_oleh' => $this->admin->id,
     ]);
 
     $batal->refresh();
 
-    expect($batal->pengganti->is($pengganti))->toBeTrue()
-        ->and($pengganti->menggantikan->is($batal))->toBeTrue()
-        ->and($batal->jabatanSaatPelatihan->is($this->jabatan))->toBeTrue()
+    expect($batal->jabatanSaatPelatihan->is($this->jabatan))->toBeTrue()
         ->and($batal->desaSaatPelatihan->is($this->desa))->toBeTrue()
         ->and($batal->statusPtkpSaatPelatihan->is($this->ptkp))->toBeTrue()
         ->and($batal->dibatalkanOleh->is($this->admin))->toBeTrue()
-        ->and($pengganti->sertifikat->file_sertifikat)->toBe('sertifikat/1/2.pdf')
+        ->and($lain->sertifikat->file_sertifikat)->toBe('sertifikat/1/2.pdf')
         ->and($this->peserta->pendaftaran()->count())->toBe(1)
         ->and($this->pelatihan->pendaftaran()->count())->toBe(2)
         ->and($this->pelatihan->judulPelatihan->kategoriPelatihan->nama_kategori)->toBe('Teknis');

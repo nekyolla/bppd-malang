@@ -37,8 +37,7 @@ class KembalikanPendaftaranAction extends Action
             ->modalSubmitActionLabel('Kembalikan')
             ->authorize('kembalikan')
             ->visible(fn (PelatihanPeserta $record): bool => $record->status === StatusPendaftaran::Batal
-                && $record->pelatihan->status !== StatusPelatihan::Selesai
-                && $record->pengganti === null)
+                && $record->pelatihan->status !== StatusPelatihan::Selesai)
             ->after(LoncengVerifikasi::perbarui(...))
             ->action(function (PelatihanPeserta $record): void {
                 $status = GalatService::jalankan($this, 'Pembatalan tidak dapat dikembalikan', fn () => app(PendaftaranService::class)->kembalikan($record));

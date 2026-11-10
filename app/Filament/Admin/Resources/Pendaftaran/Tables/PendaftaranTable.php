@@ -36,8 +36,6 @@ class PendaftaranTable
                 'desaSaatPelatihan.kecamatan.kabKota',
                 'pelatihan.judulPelatihan',
                 'kelasPelatihan',
-                'menggantikan.peserta',
-                'pengganti.peserta',
             ]))
             ->columns([
                 TextColumn::make('created_at')
@@ -61,12 +59,9 @@ class PendaftaranTable
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->description(fn (PelatihanPeserta $record): ?string => match (true) {
-                        $record->status === StatusPendaftaran::Terdaftar && app(PendaftaranService::class)->perbedaanIsian($record) !== [] => 'Isian berbeda dari data lama',
-                        $record->pengganti !== null => "Digantikan {$record->pengganti->peserta->nama_lengkap}",
-                        $record->menggantikan !== null => "Pengganti {$record->menggantikan->peserta->nama_lengkap}",
-                        default => null,
-                    }),
+                    ->description(fn (PelatihanPeserta $record): ?string => $record->status === StatusPendaftaran::Terdaftar && app(PendaftaranService::class)->perbedaanIsian($record) !== []
+                        ? 'Isian berbeda dari data lama'
+                        : null),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([

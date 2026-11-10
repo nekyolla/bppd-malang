@@ -7,7 +7,6 @@ use App\Filament\Admin\Livewire\LoncengVerifikasi;
 use App\Filament\Admin\Support\GalatService;
 use App\Models\PelatihanPeserta;
 use App\Services\PendaftaranService;
-use App\Services\PenggantiService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -31,10 +30,7 @@ class BatalkanAction extends Action
             ->icon(Heroicon::OutlinedXCircle)
             ->color('danger')
             ->modalHeading(fn (PelatihanPeserta $record): string => "Batalkan {$record->peserta->nama_lengkap}?")
-            ->modalDescription(fn (PelatihanPeserta $record): string => 'Jatah kamar peserta akan dilepas. '
-                .(app(PenggantiService::class)->masihBisaDiganti($record)
-                    ? 'Pengganti dari desa yang sama bisa ditetapkan saat verifikasi.'
-                    : 'Pelatihan sudah dimulai. Peserta ini tidak dapat digantikan.'))
+            ->modalDescription('Jatah kamar peserta akan dilepas. Bila ada penggantinya, orang tersebut mendaftar sendiri lewat form pendaftaran.')
             ->modalSubmitActionLabel('Batalkan peserta')
             ->schema([
                 Textarea::make('alasan_batal')

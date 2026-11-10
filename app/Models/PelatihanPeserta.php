@@ -15,8 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Pendaftaran satu peserta di satu pelatihan (ARCHITECTURE §5.5).
- * Status, snapshot `*_saat_pelatihan`, data verifikasi/pembatalan, `menggantikan_id`,
- * dan `kelas_pelatihan_id` tidak fillable: hanya diisi lewat service.
+ * Status, snapshot `*_saat_pelatihan`, data verifikasi/pembatalan, dan
+ * `kelas_pelatihan_id` tidak fillable: hanya diisi lewat service.
  */
 #[Fillable([
     'pelatihan_id', 'peserta_id', 'data_isian', 'file_surat_tugas',
@@ -153,26 +153,6 @@ class PelatihanPeserta extends Model
     public function dibatalkanOleh(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dibatalkan_oleh');
-    }
-
-    /**
-     * Pendaftaran batal yang digantikan oleh pendaftaran ini.
-     *
-     * @return BelongsTo<PelatihanPeserta, $this>
-     */
-    public function menggantikan(): BelongsTo
-    {
-        return $this->belongsTo(self::class, 'menggantikan_id');
-    }
-
-    /**
-     * Pendaftaran yang menggantikan pendaftaran (batal) ini.
-     *
-     * @return HasOne<PelatihanPeserta, $this>
-     */
-    public function pengganti(): HasOne
-    {
-        return $this->hasOne(self::class, 'menggantikan_id');
     }
 
     /**

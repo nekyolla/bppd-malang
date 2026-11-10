@@ -201,14 +201,11 @@ describe('kembalikan pembatalan', function () {
         'belum diverifikasi' => ['terdaftar', StatusPendaftaran::Terdaftar],
     ]);
 
-    it('menolak pendaftaran yang tidak batal, sudah digantikan, atau pelatihannya selesai', function () {
+    it('menolak pendaftaran yang tidak batal atau pelatihannya selesai', function () {
         $aktif = PelatihanPeserta::factory()->create();
-        $digantikan = PelatihanPeserta::factory()->batal()->create();
-        PelatihanPeserta::factory()->terverifikasi()->for($digantikan->pelatihan)->create(['menggantikan_id' => $digantikan->id]);
         $selesai = PelatihanPeserta::factory()->batal()->for(Pelatihan::factory()->selesai())->create();
 
         expect(galatVerifikasi(fn () => $this->service->kembalikan($aktif)))->toHaveKey('status')
-            ->and(galatVerifikasi(fn () => $this->service->kembalikan($digantikan))['status'][0])->toContain('sudah digantikan')
             ->and(galatVerifikasi(fn () => $this->service->kembalikan($selesai))['status'][0])->toContain('sudah selesai');
     });
 });
@@ -235,16 +232,13 @@ describe('hapus pendaftaran tidak sah', function () {
         expect(Peserta::find($lama->peserta_id))->not->toBeNull();
     });
 
-    it('menolak pendaftaran yang pernah diverifikasi atau sudah punya pengganti', function () {
+    it('menolak pendaftaran yang pernah diverifikasi', function () {
         $terverifikasi = PelatihanPeserta::factory()->terverifikasi()->create();
         $batalTerverifikasi = PelatihanPeserta::factory()->terverifikasi()->batal()->create();
-        $punyaPengganti = PelatihanPeserta::factory()->batal()->create();
-        PelatihanPeserta::factory()->terverifikasi()->for($punyaPengganti->pelatihan)->create(['menggantikan_id' => $punyaPengganti->id]);
 
         expect(galatVerifikasi(fn () => $this->service->hapus($terverifikasi)))->toHaveKey('status')
             ->and(galatVerifikasi(fn () => $this->service->hapus($batalTerverifikasi)))->toHaveKey('status')
-            ->and(galatVerifikasi(fn () => $this->service->hapus($punyaPengganti))['status'][0])->toContain('pengganti')
-            ->and(PelatihanPeserta::count())->toBe(4);
+            ->and(PelatihanPeserta::count())->toBe(2);
     });
 
     it('mencatat penghapusan di audit log', function () {

@@ -96,6 +96,24 @@ it('menunjukkan dan menerapkan isian berbeda dari NIK yang pernah terdaftar', fu
         ->and($lama->fresh()->jabatan_id_saat_pelatihan)->not->toBe($jabatanBaru->id);
 });
 
+it('tidak menimpa KTP dan foto peserta dengan berkas pendaftaran yang lebih lama', function (bool $lamaDulu) {
+    $peserta = Peserta::factory()->create();
+    $isian = fn (string $versi): array => [
+        ...IsianPeserta::dariPeserta($peserta),
+        'file_ktp' => "pendaftaran/{$versi}/ktp.pdf",
+        'foto' => "pendaftaran/{$versi}/foto.jpg",
+    ];
+    $lama = PelatihanPeserta::factory()->for($peserta)->create(['data_isian' => $isian('lama')]);
+    $baru = PelatihanPeserta::factory()->for($peserta)->create(['data_isian' => $isian('baru')]);
+
+    foreach ($lamaDulu ? [$lama, $baru] : [$baru, $lama] as $pendaftaran) {
+        $this->service->verifikasi($pendaftaran, $this->admin);
+    }
+
+    expect($peserta->refresh()->file_ktp)->toBe('pendaftaran/baru/ktp.pdf')
+        ->and($peserta->foto)->toBe('pendaftaran/baru/foto.jpg');
+})->with(['lama diverifikasi dulu' => true, 'baru diverifikasi dulu' => false]);
+
 it('hanya memverifikasi pendaftaran yang menunggu verifikasi', function (string $state) {
     $pendaftaran = PelatihanPeserta::factory()->{$state}()->create();
     $status = $pendaftaran->status;

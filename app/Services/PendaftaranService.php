@@ -86,11 +86,15 @@ class PendaftaranService
                 $peserta->fill(Arr::only($data, IsianPeserta::KOLOM));
             }
 
-            // KTP dan foto dari pendaftaran ini adalah yang paling baru.
-            $peserta->fill(array_filter([
-                'file_ktp' => $terkunci->data_isian['file_ktp'] ?? null,
-                'foto' => $terkunci->data_isian['foto'] ?? null,
-            ]));
+            // KTP dan foto peserta mengikuti pendaftaran terbaru yang sudah diverifikasi, sehingga
+            // memverifikasi pendaftaran lama sesudah yang baru tidak memundurkan berkasnya.
+            if (! $this->adaPendaftaranLebihBaruTerverifikasi($terkunci)) {
+                $peserta->fill(array_filter([
+                    'file_ktp' => $terkunci->data_isian['file_ktp'] ?? null,
+                    'foto' => $terkunci->data_isian['foto'] ?? null,
+                ]));
+            }
+
             $peserta->save();
 
             if ($this->periodeBelumDiisi($peserta)) {
@@ -282,6 +286,18 @@ class PendaftaranService
         }
 
         return $hasil;
+    }
+
+    /**
+     * Pendaftaran peserta yang sama, dikirim sesudah pendaftaran ini, dan sudah pernah diverifikasi.
+     */
+    private function adaPendaftaranLebihBaruTerverifikasi(PelatihanPeserta $pendaftaran): bool
+    {
+        return PelatihanPeserta::query()
+            ->where('peserta_id', $pendaftaran->peserta_id)
+            ->where('id', '>', $pendaftaran->getKey())
+            ->whereNotNull('diverifikasi_pada')
+            ->exists();
     }
 
     /**

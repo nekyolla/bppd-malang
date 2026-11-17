@@ -77,15 +77,18 @@ class UnduhSertifikat extends Component implements HasSchemas
         $kunci = 'sertifikat-publik:'.request()->ip();
         $kunciGagal = 'sertifikat-publik-gagal:'.request()->ip();
 
-        foreach ([$kunciGagal => config('bbpd.sertifikat_publik.maks_gagal_per_jam'), $kunci => config('bbpd.sertifikat_publik.maks_per_jam')] as $k => $maks) {
-            if (RateLimiter::tooManyAttempts($k, $maks)) {
-                $this->galatUmum = 'Terlalu banyak percobaan. Coba lagi dalam '.(int) ceil(RateLimiter::availableIn($k) / 60).' menit.';
+        // Potong jatah dulu (atomik), baru cek: permintaan serentak tidak dapat melewati batas.
+        // Jatah gagal dikembalikan bila sertifikat ditemukan.
+        $lewat = [
+            $kunciGagal => RateLimiter::increment($kunciGagal, 3600) > config('bbpd.sertifikat_publik.maks_gagal_per_jam'),
+            $kunci => RateLimiter::increment($kunci, 3600) > config('bbpd.sertifikat_publik.maks_per_jam'),
+        ];
 
-                return;
-            }
+        foreach (array_keys(array_filter($lewat)) as $k) {
+            $this->galatUmum = 'Terlalu banyak percobaan. Coba lagi dalam '.(int) ceil(RateLimiter::availableIn($k) / 60).' menit.';
+
+            return;
         }
-
-        RateLimiter::hit($kunci, 3600);
 
         // Bot yang mengisi honeypot mendapat pesan yang sama tanpa pencarian.
         if (filled($this->website)) {
@@ -97,9 +100,12 @@ class UnduhSertifikat extends Component implements HasSchemas
         $this->hasil = app(SertifikatService::class)->untukPublik($nik);
 
         if ($this->hasil === null) {
-            RateLimiter::hit($kunciGagal, 3600);
             $this->tidakDitemukan = true;
+
+            return;
         }
+
+        RateLimiter::decrement($kunciGagal, 3600);
     }
 
     public function render(): View

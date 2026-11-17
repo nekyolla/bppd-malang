@@ -196,6 +196,32 @@ describe('halaman /sertifikat', function () {
             ->assertDontSee('Bu** Sa*****');
     });
 
+    it('memotong jatah gagal sebelum mencari, agar permintaan serentak tidak melewati batas', function () {
+        $dilihat = null;
+        app()->instance(SertifikatService::class, new class($dilihat) extends SertifikatService
+        {
+            public function __construct(public mixed &$dilihat) {}
+
+            public function untukPublik(string $nik): ?array
+            {
+                $this->dilihat = RateLimiter::attempts('sertifikat-publik-gagal:127.0.0.1');
+
+                return null;
+            }
+        });
+
+        Livewire::test(UnduhSertifikat::class)->fillForm(['nik' => '3507999999999999'])->call('cari');
+
+        expect($dilihat)->toBe(1)
+            ->and(RateLimiter::attempts('sertifikat-publik-gagal:127.0.0.1'))->toBe(1);
+    });
+
+    it('mengembalikan jatah gagal bila sertifikat ditemukan', function () {
+        Livewire::test(UnduhSertifikat::class)->fillForm(['nik' => '3507000000000001'])->call('cari')->assertSee('Bu** Sa*****');
+
+        expect(RateLimiter::attempts('sertifikat-publik-gagal:127.0.0.1'))->toBe(0);
+    });
+
     it('tidak memblokir satu kelas yang mencari bersamaan dari satu jaringan', function () {
         foreach (range(1, 11) as $i) {
             Livewire::test(UnduhSertifikat::class)->fillForm(['nik' => '3507000000000001'])->call('cari')->assertSee('Bu** Sa*****');

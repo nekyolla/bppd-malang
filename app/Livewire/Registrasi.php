@@ -298,6 +298,8 @@ class Registrasi extends Component implements HasActions, HasSchemas
                                 ->dehydrated(false),
                         ]),
                 ])
+                    // Langkah wizard hanya ada di browser; kabarkan agar kartu unduh sertifikat hanya tampil di langkah 1.
+                    ->extraAlpineAttributes(['x-effect' => "\$dispatch('langkah-registrasi', { pertama: getStepIndex(step) <= 0 })"])
                     ->submitAction(new HtmlString(Blade::render('<x-filament::button type="submit" size="lg">Kirim pendaftaran</x-filament::button>'))),
             ]);
     }

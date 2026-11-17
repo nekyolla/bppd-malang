@@ -35,4 +35,17 @@
 
         <x-filament-actions::modals />
     @endif
+
+    {{-- Hanya di langkah 1 wizard (atau saat wizard tidak tampil), agar langkah 2–6 bersih. --}}
+    <div
+        x-data="{ tampil: true }"
+        x-show="tampil"
+        x-on:langkah-registrasi.window="tampil = $event.detail.pertama"
+        class="mt-8 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+    >
+        <p class="text-sm text-gray-700">Sudah selesai pelatihan? Unduh sertifikat Anda cukup dengan NIK.</p>
+        <x-filament::button tag="a" :href="route('sertifikat.publik', absolute: false)" icon="heroicon-o-arrow-down-tray" class="shrink-0">
+            Unduh sertifikat
+        </x-filament::button>
+    </div>
 </div>

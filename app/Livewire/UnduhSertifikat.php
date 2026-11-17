@@ -59,6 +59,8 @@ class UnduhSertifikat extends Component implements HasSchemas
                     ->required()
                     ->regex('/^\d{16}$/')
                     ->validationMessages(['regex' => 'NIK harus 16 angka.'])
+                    // Sama seperti form registrasi: hanya angka, maksimal 16; spasi saat menempel dibuang.
+                    ->mask(str_repeat('9', 16))
                     ->inputMode('numeric')
                     ->autocomplete('off'),
             ]);

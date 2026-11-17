@@ -53,4 +53,11 @@
             <p class="mt-3 text-xs text-gray-500">Tautan unduh berlaku 15 menit. Bila kedaluwarsa, cari ulang.</p>
         @endif
     </div>
+
+    <div class="mt-8 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-gray-700">Mendapat surat pemanggilan pelatihan? Daftarkan diri Anda.</p>
+        <x-filament::button tag="a" :href="route('registrasi', absolute: false)" icon="heroicon-o-pencil-square" class="shrink-0">
+            Form registrasi
+        </x-filament::button>
+    </div>
 </div>

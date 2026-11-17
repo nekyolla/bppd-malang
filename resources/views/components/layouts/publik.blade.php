@@ -24,13 +24,9 @@
 
     <body class="fi-publik min-h-screen bg-gray-50 text-gray-950 antialiased">
         <header class="border-b border-gray-200 bg-white">
-            {{-- Tautan di baris kedua: kolom publik sempit, nama instansi tidak muat bersebelahan dengan tautan. --}}
-            <div class="mx-auto flex max-w-2xl flex-col gap-2 px-4 py-3">
+            {{-- Perpindahan /daftar ↔ /sertifikat lewat tombol di isi halaman, bukan menu header (revisi 17 Nov). --}}
+            <div class="mx-auto max-w-2xl px-4 py-3">
                 <div class="h-10"><x-merek /></div>
-                <nav aria-label="Halaman publik" class="flex shrink-0 gap-4 text-sm font-medium">
-                    <a href="{{ route('registrasi') }}" @class(['text-gray-600 hover:text-primary-600', 'text-primary-600' => request()->routeIs('registrasi')])>Daftar</a>
-                    <a href="{{ route('sertifikat.publik') }}" @class(['text-gray-600 hover:text-primary-600', 'text-primary-600' => request()->routeIs('sertifikat.publik')])>Unduh sertifikat</a>
-                </nav>
             </div>
         </header>
 

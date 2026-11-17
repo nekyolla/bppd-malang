@@ -122,9 +122,25 @@ describe('halaman /sertifikat', function () {
         $this->pesanSeragam = 'Sertifikat untuk NIK ini belum tersedia. Bila Anda sudah menyelesaikan pelatihan, hubungi panitia.';
     });
 
-    it('dapat dibuka dan ditautkan dari halaman registrasi', function () {
-        $this->get('/sertifikat')->assertOk()->assertSee('Unduh Sertifikat');
-        $this->get('/daftar')->assertOk()->assertSee(route('sertifikat.publik'), escape: false);
+    it('dapat dibuka dan ditautkan dari halaman registrasi lewat tombol, bukan menu di header', function () {
+        $this->get('/sertifikat')->assertOk()->assertSee('Unduh Sertifikat')
+            ->assertSee('href="/daftar"', escape: false)
+            ->assertDontSee('aria-label="Halaman publik"', escape: false);
+        $this->get('/daftar')->assertOk()
+            ->assertSee('href="/sertifikat"', escape: false)
+            ->assertSee('Unduh sertifikat')
+            ->assertDontSee('aria-label="Halaman publik"', escape: false);
+
+        // Kartu unduh sertifikat di bawah isi form registrasi, agar form tetap yang utama.
+        Pelatihan::factory()->dibuka()->create();
+        $this->get('/daftar')->assertSeeInOrder(['Siapkan scan KTP', 'Selanjutnya', 'Sudah selesai pelatihan?'])
+            // Hanya tampil di langkah 1: wizard mengabarkan langkahnya, kartu mendengarkan.
+            ->assertSee('x-effect="$dispatch(\'langkah-registrasi\', { pertama: getStepIndex(step) <= 0 })"', escape: false)
+            ->assertSee('x-on:langkah-registrasi.window="tampil = $event.detail.pertama"', escape: false);
+    });
+
+    it('membatasi isian NIK 16 angka di browser', function () {
+        $this->get('/sertifikat')->assertSee('x-mask="9999999999999999"', escape: false);
     });
 
     it('menampilkan sertifikat dengan nama tersamar tanpa data pribadi lain', function () {

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
 /**
- * Data master tidak dihapus permanen, hanya dinonaktifkan (CLAUDE.md aturan 2).
+ * Data master tidak dihapus permanen, hanya dinonaktifkan (README aturan 2).
  */
 class DataMasterService
 {

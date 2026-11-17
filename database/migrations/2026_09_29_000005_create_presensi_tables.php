@@ -28,7 +28,7 @@ return new class extends Migration
         Schema::create('presensi', function (Blueprint $table) {
             $table->id();
             $table->foreignId('lembar_presensi_id')->constrained('lembar_presensi')->cascadeOnDelete();
-            // Pembatalan peserta tidak menghapus presensi (CLAUDE.md aturan 7).
+            // Pembatalan peserta tidak menghapus presensi (README aturan 7).
             $table->foreignId('pelatihan_peserta_id')->constrained('pelatihan_peserta')->restrictOnDelete();
             $table->enum('status', ['hadir', 'izin', 'sakit', 'alpa']);
             $table->timestamps();

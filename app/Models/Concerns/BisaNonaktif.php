@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Data master tidak dihapus permanen, hanya dinonaktifkan (CLAUDE.md aturan 2).
+ * Data master tidak dihapus permanen, hanya dinonaktifkan (README aturan 2).
  * Form baru memakai `Model::aktif()` agar data nonaktif tidak muncul di pilihan.
  */
 trait BisaNonaktif

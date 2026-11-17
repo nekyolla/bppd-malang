@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Satu-satunya jalan membuka berkas pribadi di disk privat, setelah policy
- * diperiksa (CLAUDE.md aturan 1, NFR-02).
+ * diperiksa (README aturan 1, NFR-02).
  */
 class BerkasController extends Controller
 {

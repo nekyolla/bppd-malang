@@ -14,7 +14,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 /**
- * Status tidak ada di form: berubah hanya lewat tombol status (CLAUDE.md aturan 3).
+ * Status tidak ada di form: berubah hanya lewat tombol status (README aturan 3).
  */
 class PelatihanForm
 {

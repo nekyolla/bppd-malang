@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Perapian data peserta oleh admin di luar verifikasi (FR-PST-02). Snapshot
- * `*_saat_pelatihan` di pendaftaran tidak ikut berubah (CLAUDE.md aturan 6).
+ * `*_saat_pelatihan` di pendaftaran tidak ikut berubah (README aturan 6).
  */
 class PesertaService
 {

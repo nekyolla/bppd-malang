@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Data master hanya dikelola superadmin (PRD §10) dan tidak pernah dihapus
- * permanen (CLAUDE.md aturan 2). Setiap model master punya turunan sendiri.
+ * permanen (README aturan 2). Setiap model master punya turunan sendiri.
  */
 abstract class DataMasterPolicy
 {

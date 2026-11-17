@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Pemakaian satu kamar oleh satu pelatihan. `tipe` tidak fillable karena
- * ditentukan AsramaService dari penghuni pertama (CLAUDE.md aturan 5).
+ * ditentukan AsramaService dari penghuni pertama (README aturan 5).
  */
 #[Fillable(['pelatihan_id', 'kamar_asrama_id', 'disetujui_oleh', 'catatan'])]
 class PenggunaanKamar extends Model

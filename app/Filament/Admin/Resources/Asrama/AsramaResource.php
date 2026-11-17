@@ -20,7 +20,7 @@ use UnitEnum;
 
 /**
  * Asrama & kamar BBPD (FR-MSTR-01). Gender kamar tidak diinput di sini:
- * ditentukan otomatis dari penghuni pertama (CLAUDE.md aturan 5).
+ * ditentukan otomatis dari penghuni pertama (README aturan 5).
  */
 class AsramaResource extends Resource
 {

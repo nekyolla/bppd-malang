@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Riwayat seluruh pelatihan seorang peserta (FR-PST-01), hanya-baca. Jabatan memakai
- * snapshot saat pelatihan (CLAUDE.md aturan 6).
+ * snapshot saat pelatihan (README aturan 6).
  */
 class RiwayatPelatihanRelationManager extends RelationManager
 {

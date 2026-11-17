@@ -8,7 +8,7 @@ use Filament\Schemas\Components\View;
 
 /**
  * Pratinjau KTP & pas foto di samping isian (modal verifikasi, halaman Peserta). Berkas tetap
- * dibuka lewat route privat `berkas.*` yang memeriksa policy (CLAUDE.md aturan 1).
+ * dibuka lewat route privat `berkas.*` yang memeriksa policy (README aturan 1).
  */
 class PratinjauBerkas
 {

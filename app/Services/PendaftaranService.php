@@ -59,7 +59,7 @@ class PendaftaranService
 
     /**
      * Memverifikasi pendaftaran: menerapkan data peserta yang sudah diperiksa admin
-     * (jika ada), memakai KTP & foto terbaru, lalu mengisi snapshot (CLAUDE.md aturan 6).
+     * (jika ada), memakai KTP & foto terbaru, lalu mengisi snapshot (README aturan 6).
      *
      * @param  array<string, mixed>|null  $dataPeserta  Data peserta hasil pemeriksaan admin; null = data peserta tidak diubah.
      * @param  array{sumber_dana_id: int|string|null, sumber_dana_keterangan?: ?string}|null  $sumberDana  Sumber dana hasil pemeriksaan admin (PF-16); null = tidak diubah.

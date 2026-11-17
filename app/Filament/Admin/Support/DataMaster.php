@@ -19,7 +19,7 @@ class DataMaster
 {
     /**
      * Kolom status, filter aktif (default), aksi ubah/nonaktifkan/aktifkan,
-     * tanpa aksi hapus maupun bulk action (CLAUDE.md aturan 2).
+     * tanpa aksi hapus maupun bulk action (README aturan 2).
      */
     public static function tabel(Table $table, string $kosong): Table
     {

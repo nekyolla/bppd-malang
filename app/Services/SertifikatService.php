@@ -21,7 +21,7 @@ use Throwable;
 
 /**
  * Sertifikat dibuat manual di luar sistem; admin mengunggah satu PDF per peserta (PF-27)
- * beserta nomornya bila ada (opsional, unik; PF-37). Berkas disimpan privat (CLAUDE.md
+ * beserta nomornya bila ada (opsional, unik; PF-37). Berkas disimpan privat (README
  * aturan 1); peserta batal tidak mendapat sertifikat.
  */
 class SertifikatService

@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Satu penyelenggaraan pelatihan (judul + tahun anggaran + batch).
- * `status` tidak fillable: hanya berubah lewat service (CLAUDE.md aturan 3).
+ * `status` tidak fillable: hanya berubah lewat service (README aturan 3).
  */
 #[Fillable([
     'judul_pelatihan_id', 'tahun_anggaran', 'batch_ke', 'tanggal_mulai', 'tanggal_selesai',

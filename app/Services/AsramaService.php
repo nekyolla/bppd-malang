@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Penempatan peserta di kamar asrama (PRD §8.9, ARCHITECTURE §7.3, CLAUDE.md aturan 4–5).
+ * Penempatan peserta di kamar asrama (PRD §8.9, ARCHITECTURE §7.3, README aturan 4–5).
  */
 class AsramaService
 {
@@ -175,7 +175,7 @@ class AsramaService
         DB::transaction(function () use ($penempatan): void {
             $penggunaan = PenggunaanKamar::query()->findOrFail($penempatan->penggunaan_kamar_id);
 
-            // Kunci baris kamar yang sama dengan penempatan (CLAUDE.md aturan 4).
+            // Kunci baris kamar yang sama dengan penempatan (README aturan 4).
             KamarAsrama::query()->lockForUpdate()->findOrFail($penggunaan->kamar_asrama_id);
 
             if (PelatihanPeserta::query()->findOrFail($penempatan->pelatihan_peserta_id)->status === StatusPendaftaran::Selesai) {

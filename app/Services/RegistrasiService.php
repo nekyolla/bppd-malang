@@ -22,7 +22,7 @@ use Throwable;
  * Registrasi peserta dari form publik tanpa login (PRD §8.2, ARCHITECTURE §7.0).
  *
  * NIK baru membuat baris `peserta`. NIK lama TIDAK mengubah `peserta`: isian disimpan
- * di `data_isian` dan diterapkan admin saat verifikasi (CLAUDE.md aturan 12).
+ * di `data_isian` dan diterapkan admin saat verifikasi (README aturan 12).
  */
 class RegistrasiService
 {

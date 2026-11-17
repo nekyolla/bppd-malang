@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /*
- * Penempatan bersamaan (ARCHITECTURE §11 butir 1, CLAUDE.md aturan 4).
+ * Penempatan bersamaan (ARCHITECTURE §11 butir 1, README aturan 4).
  *
  * RefreshDatabase membungkus test dalam satu transaksi yang tidak terlihat koneksi lain. Di sini
  * koneksi bawaan dialihkan ke `kunci_a` (autocommit) supaya data ter-commit dan bisa dikunci oleh

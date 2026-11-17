@@ -6,7 +6,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Service menolak aturan bisnis dengan ValidationException berkunci nama kolom biasa;
- * panel memetakannya ke form atau notifikasi (CLAUDE.md, "Galat service").
+ * panel memetakannya ke form atau notifikasi (README, "Galat service").
  */
 trait MenolakAturan
 {

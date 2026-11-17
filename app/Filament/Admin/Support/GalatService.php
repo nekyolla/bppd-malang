@@ -10,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Aturan yang ditolak service (ValidationException) di dalam aksi modal: pesannya tampil
- * sebagai notifikasi dan aksi dihentikan sehingga modal tetap terbuka (CLAUDE.md, "Galat
+ * sebagai notifikasi dan aksi dihentikan sehingga modal tetap terbuka (README, "Galat
  * service"). Untuk form halaman, pakai App\Filament\Concerns\MemetakanGalatService.
  */
 class GalatService

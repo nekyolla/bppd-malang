@@ -27,7 +27,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * Export daftar hadir per kelas per hari (PF-18, PF-23), dicetak di kertas A4 tegak.
  * Presensi diisi di kertas; sistem tidak menyimpannya (PF-22). Daftar hadir tidak memuat
- * NIK (CLAUDE.md aturan 9). Data peserta per pelatihan (PF-37) khusus internal dan memuat
+ * NIK (README aturan 9). Data peserta per pelatihan (PF-37) khusus internal dan memuat
  * NIK lengkap. Setiap unduhan tercatat di audit log.
  *
  * Satu lembar = satu hari: tanggal `Y-m-d`, judul, baris keterangan, nama lembar (sheet
@@ -134,7 +134,7 @@ class ExportService
 
     /**
      * Data peserta satu pelatihan untuk Excel (PF-37): pendaftaran terverifikasi dan selesai,
-     * urut nama. Jabatan, PTKP, dan pelantikan dari snapshot (CLAUDE.md aturan 6); usia per
+     * urut nama. Jabatan, PTKP, dan pelantikan dari snapshot (README aturan 6); usia per
      * tanggal mulai pelatihan.
      *
      * @return DataExport

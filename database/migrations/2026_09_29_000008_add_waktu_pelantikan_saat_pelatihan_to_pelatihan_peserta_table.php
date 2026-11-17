@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Snapshot tanggal pelantikan agar tahun menjabat di riwayat pelatihan
- * tidak berubah saat peserta dilantik ulang (CLAUDE.md aturan 6).
+ * tidak berubah saat peserta dilantik ulang (README aturan 6).
  */
 return new class extends Migration
 {

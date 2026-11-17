@@ -20,7 +20,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('pelatihan_id')->constrained('pelatihan')->restrictOnDelete();
             $table->foreignId('kamar_asrama_id')->constrained('kamar_asrama')->restrictOnDelete();
-            // Dikunci otomatis oleh penghuni pertama, kecuali PASUTRI (CLAUDE.md aturan 5).
+            // Dikunci otomatis oleh penghuni pertama, kecuali PASUTRI (README aturan 5).
             $table->enum('tipe', ['L', 'P', 'PASUTRI']);
             $table->foreignId('disetujui_oleh')->nullable()->constrained('users')->restrictOnDelete();
             $table->text('catatan')->nullable();

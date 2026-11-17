@@ -13,7 +13,7 @@ use Filament\Schemas\Schema;
 /**
  * Detail peserta (FR-PST-03): tiga kolom ringkas (identitas · jabatan & desa · berkas), label
  * sebaris dengan nilainya. NIK tampil penuh karena halaman ini hanya untuk akun internal
- * (CLAUDE.md aturan 9).
+ * (README aturan 9).
  */
 class PesertaInfolist
 {

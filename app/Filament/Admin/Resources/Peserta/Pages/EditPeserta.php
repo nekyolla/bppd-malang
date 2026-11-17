@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\Peserta\Pages;
 use App\Filament\Admin\Actions\KembaliAction;
 use App\Filament\Admin\Resources\Peserta\PesertaResource;
 use App\Filament\Concerns\MemetakanGalatService;
+use App\Models\Peserta;
 use App\Services\PesertaService;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -31,6 +32,9 @@ class EditPeserta extends EditRecord
         ];
     }
 
+    /**
+     * @param  Peserta  $record
+     */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         return $this->jalankanService(fn () => app(PesertaService::class)->ubah($record, $data));

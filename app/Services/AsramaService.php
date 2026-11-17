@@ -25,6 +25,13 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Penempatan peserta di kamar asrama (PRD §8.9, ARCHITECTURE §7.3, README aturan 4–5).
+ *
+ * Bentuk data denah (dipakai halaman Penempatan Kamar dan ringkasan):
+ *
+ * @phpstan-type Penghuni array{id: int, nama: string, jenis_kelamin: JenisKelamin, kelas: string|null}
+ * @phpstan-type KeadaanKamar array{id: int, nama: string, no_kamar: string, kapasitas: int, tipe: TipeKamar|null, penghuni: list<Penghuni>, jumlah: int, penuh: bool, tersedia: bool, keterangan: string|null}
+ * @phpstan-type DenahAsrama array{id: int, nama: string, kamar: list<KeadaanKamar>}
+ * @phpstan-type RingkasanTempatTidur array{peserta: array{L: int, P: int}, belum: array{L: int, P: int}, sisa: array{L: int, P: int}, kosong: int, kurang: int}
  */
 class AsramaService
 {
@@ -268,7 +275,7 @@ class AsramaService
      * Denah kamar satu pelatihan, dikelompokkan per asrama (FR-ASR-10). Memuat kamar aktif
      * ditambah kamar nonaktif yang sudah berpenghuni di pelatihan ini.
      *
-     * @return list<array{id: int, nama: string, kamar: list<array<string, mixed>>}>
+     * @return list<DenahAsrama>
      */
     public function denah(Pelatihan $pelatihan): array
     {
@@ -310,8 +317,8 @@ class AsramaService
      * Ringkasan kecukupan tempat tidur (FR-ASR-11). Tempat tidur di kamar kosong dapat dipakai
      * laki-laki maupun perempuan, sehingga `kurang` adalah perkiraan.
      *
-     * @param  list<array{kamar: list<array<string, mixed>>}>|null  $denah
-     * @return array{peserta: array{L: int, P: int}, belum: array{L: int, P: int}, sisa: array{L: int, P: int}, kosong: int, kurang: int}
+     * @param  list<DenahAsrama>|null  $denah
+     * @return RingkasanTempatTidur
      */
     public function ringkasan(Pelatihan $pelatihan, ?array $denah = null): array
     {
@@ -415,13 +422,13 @@ class AsramaService
     /**
      * @param  PenggunaanKamar|null  $penggunaan  Pemakaian kamar oleh pelatihan ini.
      * @param  PenggunaanKamar|null  $bentrok  Pemakaian oleh pelatihan lain yang tanggalnya tumpang tindih.
-     * @return array<string, mixed>
+     * @return KeadaanKamar
      */
     private function keadaanKamar(KamarAsrama $kamar, ?PenggunaanKamar $penggunaan, ?PenggunaanKamar $bentrok): array
     {
         $tipe = $penggunaan?->tipe;
         $kapasitas = $this->kapasitasEfektif($kamar, $tipe);
-        $penghuni = ($penggunaan?->penghuni ?? new Collection)
+        $penghuni = ($penggunaan->penghuni ?? new Collection)
             ->map(fn (AsramaPeserta $p): array => [
                 'id' => $p->id,
                 'nama' => $p->pelatihanPeserta->peserta->nama_lengkap,

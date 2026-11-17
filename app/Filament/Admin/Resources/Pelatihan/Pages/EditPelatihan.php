@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 use App\Filament\Admin\Actions\UbahStatusPelatihanAction;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Filament\Concerns\MemetakanGalatService;
+use App\Models\Pelatihan;
 use App\Services\PelatihanService;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -25,6 +26,9 @@ class EditPelatihan extends EditRecord
         ];
     }
 
+    /**
+     * @param  Pelatihan  $record
+     */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         // Tipe lokasi yang dikunci (disabled) tidak ikut terkirim; pakai nilai lama.

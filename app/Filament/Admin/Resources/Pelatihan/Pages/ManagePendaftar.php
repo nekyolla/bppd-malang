@@ -40,7 +40,7 @@ class ManagePendaftar extends ManageRelatedRecords
 
     public function getTitle(): string|Htmlable
     {
-        return "Pendaftar {$this->getOwnerRecord()->nama_tampilan}";
+        return "Pendaftar {$this->pelatihan()->nama_tampilan}";
     }
 
     /**
@@ -60,7 +60,7 @@ class ManagePendaftar extends ManageRelatedRecords
 
     private function unduhDataPeserta(): StreamedResponse
     {
-        $pelatihan = $this->getOwnerRecord();
+        $pelatihan = $this->pelatihan();
         $service = app(ExportService::class);
 
         return $service->unduhExcel(

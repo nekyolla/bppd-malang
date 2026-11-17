@@ -10,6 +10,8 @@ use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
  */
 trait HalamanKerjaPelatihan
 {
+    use MembacaPelatihan;
+
     /**
      * @return array<string>
      */

@@ -3,12 +3,13 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Enums\StatusPelatihan;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManageKelas;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePembagianKelas;
 use App\Filament\Admin\Support\GalatService;
 use App\Services\KelasService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Radio;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Support\Icons\Heroicon;
 
 /**
@@ -47,14 +48,14 @@ class BagiAcakKelasAction extends Action
                     ->default('belum')
                     ->required(),
             ])
-            ->authorize(fn (ManageRelatedRecords $livewire): bool => auth()->user()->can('update', $livewire->getOwnerRecord()))
-            ->visible(fn (ManageRelatedRecords $livewire): bool => $livewire->getOwnerRecord()->status !== StatusPelatihan::Selesai)
-            ->action(function (ManageRelatedRecords $livewire, array $data): void {
-                $jumlah = GalatService::jalankan($this, 'Peserta belum dapat dibagi', fn () => app(KelasService::class)->bagiAcak($livewire->getOwnerRecord(), $data['cakupan'] === 'semua'));
+            ->authorize(fn (ManageKelas|ManagePembagianKelas $livewire): bool => auth()->user()->can('update', $livewire->pelatihan()))
+            ->visible(fn (ManageKelas|ManagePembagianKelas $livewire): bool => $livewire->pelatihan()->status !== StatusPelatihan::Selesai)
+            ->action(function (ManageKelas|ManagePembagianKelas $livewire, array $data): void {
+                $jumlah = GalatService::jalankan($this, 'Peserta belum dapat dibagi', fn () => app(KelasService::class)->bagiAcak($livewire->pelatihan(), $data['cakupan'] === 'semua'));
 
                 $jumlah > 0
                     ? Notification::make()->title("{$jumlah} peserta dibagi ke kelas")->success()->send()
-                    : Notification::make()->title('Tidak ada peserta yang perlu dibagi')->body('Tidak ada peserta yang perlu dibagi.')->warning()->send();
+                    : Notification::make()->title('Tidak ada peserta yang perlu dibagi')->warning()->send();
             });
     }
 }

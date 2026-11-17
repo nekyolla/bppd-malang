@@ -129,9 +129,12 @@ class Login extends BaseLogin
 
     protected function getPasswordFormComponent(): Component
     {
-        return parent::getPasswordFormComponent()
-            ->hint(null)
-            ->helperText('Lupa kata sandi? Hubungi superadmin.');
+        $sandi = parent::getPasswordFormComponent();
+
+        // Filament membuatnya sebagai TextInput: tautan "Lupa kata sandi?" bawaan diganti petunjuk.
+        return $sandi instanceof TextInput
+            ? $sandi->hint(null)->helperText('Lupa kata sandi? Hubungi superadmin.')
+            : $sandi;
     }
 
     /**

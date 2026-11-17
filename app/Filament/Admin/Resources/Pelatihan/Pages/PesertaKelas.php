@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 use App\Enums\StatusPendaftaran;
 use App\Filament\Admin\Actions\AturKelasAction;
 use App\Filament\Admin\Actions\KembaliAction;
+use App\Filament\Admin\Resources\Pelatihan\Pages\Concerns\MembacaPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Filament\Admin\Resources\Pendaftaran\PendaftaranResource;
 use App\Filament\Admin\Support\GalatService;
@@ -33,6 +34,7 @@ class PesertaKelas extends Page implements HasTable
 {
     use InteractsWithRecord;
     use InteractsWithTable;
+    use MembacaPelatihan;
 
     protected static string $resource = PelatihanResource::class;
 
@@ -46,7 +48,7 @@ class PesertaKelas extends Page implements HasTable
     public function mount(int|string $record, int|string $kelas): void
     {
         $this->record = $this->resolveRecord($record);
-        $this->kelasId = $this->getRecord()->kelas()->findOrFail($kelas)->getKey();
+        $this->kelasId = $this->pelatihan()->kelas()->findOrFail($kelas)->getKey();
     }
 
     public function kelas(): KelasPelatihan
@@ -56,7 +58,7 @@ class PesertaKelas extends Page implements HasTable
 
     public function getTitle(): string|Htmlable
     {
-        return "Kelas {$this->kelas()->nama_kelas} · {$this->getRecord()->nama_tampilan}";
+        return "Kelas {$this->kelas()->nama_kelas} · {$this->pelatihan()->nama_tampilan}";
     }
 
     public function getBreadcrumb(): string
@@ -104,7 +106,7 @@ class PesertaKelas extends Page implements HasTable
     protected function getHeaderActions(): array
     {
         return [
-            KembaliAction::ke(fn (): string => ManageKelas::getUrl(['record' => $this->getRecord()]), 'Kembali ke kelas'),
+            KembaliAction::ke(fn (): string => ManageKelas::getUrl(['record' => $this->pelatihan()]), 'Kembali ke kelas'),
             Action::make('unduhDaftarHadir')
                 ->label('Unduh daftar hadir')
                 ->icon(Heroicon::OutlinedArrowDownTray)
@@ -114,8 +116,8 @@ class PesertaKelas extends Page implements HasTable
                 ->schema([
                     CheckboxList::make('tanggal')
                         ->label('Hari')
-                        ->options(fn (): array => app(ExportService::class)->pilihanHari($this->getRecord()))
-                        ->default(fn (): array => array_key_exists(today()->toDateString(), app(ExportService::class)->pilihanHari($this->getRecord()))
+                        ->options(fn (): array => app(ExportService::class)->pilihanHari($this->pelatihan()))
+                        ->default(fn (): array => array_key_exists(today()->toDateString(), app(ExportService::class)->pilihanHari($this->pelatihan()))
                             ? [today()->toDateString()]
                             : [])
                         ->bulkToggleable()
@@ -128,7 +130,7 @@ class PesertaKelas extends Page implements HasTable
                         ->inline()
                         ->required(),
                 ])
-                ->visible(fn (): bool => auth()->user()->can('view', $this->getRecord()))
+                ->visible(fn (): bool => auth()->user()->can('view', $this->pelatihan()))
                 ->action(fn (Action $action, array $data): StreamedResponse => GalatService::jalankan(
                     $action,
                     'Daftar hadir tidak dapat diunduh',
@@ -147,7 +149,7 @@ class PesertaKelas extends Page implements HasTable
         $lembar = $service->daftarHadirKelas($kelas, $tanggal);
         // Dari lembar hasil service (sudah divalidasi & dirapikan), bukan input mentah.
         $akhiran = count($lembar) === 1 ? $lembar[0]['tanggal'] : count($lembar).' hari';
-        $nama = Str::slug("daftar-hadir {$this->getRecord()->nama_tampilan} kelas {$kelas->nama_kelas} {$akhiran}");
+        $nama = Str::slug("daftar-hadir {$this->pelatihan()->nama_tampilan} kelas {$kelas->nama_kelas} {$akhiran}");
 
         return $format === 'pdf'
             ? $service->unduhPdf($lembar, $nama, $kelas, auth()->user())

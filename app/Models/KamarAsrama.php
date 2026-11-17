@@ -34,7 +34,7 @@ class KamarAsrama extends Model
     /**
      * `{asrama}-{no_kamar}`, mis. "Anggrek-01" (DESIGN_SYSTEM §7).
      *
-     * @return Attribute<string, never>
+     * @return Attribute<non-falsy-string, never>
      */
     protected function namaTampilan(): Attribute
     {

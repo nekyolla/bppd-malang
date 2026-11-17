@@ -28,6 +28,14 @@ use UnitEnum;
 /**
  * Denah kamar per pelatihan dan penempatan peserta (FR-ASR-02–11, DESIGN_SYSTEM §6.4).
  * Semua aturan penempatan ada di AsramaService.
+ *
+ * @property-read Schema $form Dibuat InteractsWithSchemas dari method form().
+ * @property-read Pelatihan|null $pelatihanTerpilih Properti computed (#[Computed]).
+ * @property-read list<DenahAsrama> $denah Properti computed (#[Computed]).
+ *
+ * @phpstan-import-type DenahAsrama from AsramaService
+ * @phpstan-import-type KeadaanKamar from AsramaService
+ * @phpstan-import-type RingkasanTempatTidur from AsramaService
  */
 class PenempatanKamar extends Page
 {
@@ -99,7 +107,7 @@ class PenempatanKamar extends Page
     }
 
     /**
-     * @return list<array{id: int, nama: string, kamar: list<array<string, mixed>>}>
+     * @return list<DenahAsrama>
      */
     #[Computed]
     public function denah(): array
@@ -108,7 +116,7 @@ class PenempatanKamar extends Page
     }
 
     /**
-     * @return array<string, mixed>|null
+     * @return RingkasanTempatTidur|null
      */
     public function ringkasan(): ?array
     {
@@ -131,13 +139,12 @@ class PenempatanKamar extends Page
     /**
      * Badge kamar sesuai DESIGN_SYSTEM §2.4; label selalu memuat jumlah/kapasitas.
      *
-     * @param  array<string, mixed>  $kamar
+     * @param  KeadaanKamar  $kamar
      * @return array{label: string, color: string|array<int|string, string>, icon: Heroicon}
      */
     public function lencana(array $kamar): array
     {
         $jumlah = "{$kamar['jumlah']}/{$kamar['kapasitas']}";
-        /** @var TipeKamar|null $tipe */
         $tipe = $kamar['tipe'];
 
         return match (true) {
@@ -313,7 +320,7 @@ class PenempatanKamar extends Page
 
     /**
      * @param  array<string, mixed>  $arguments
-     * @return array<string, mixed>
+     * @return KeadaanKamar
      */
     private function keadaan(array $arguments): array
     {

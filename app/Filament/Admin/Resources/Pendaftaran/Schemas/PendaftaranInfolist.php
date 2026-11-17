@@ -67,7 +67,7 @@ class PendaftaranInfolist
                         TextEntry::make('alasan_batal')->label('Alasan')->columnSpanFull(),
                         TextEntry::make('dibatalkan_pada')
                             ->label('Dibatalkan')
-                            ->state(fn (PelatihanPeserta $record): ?string => $record->dibatalkan_pada?->translatedFormat('j F Y, H:i').' oleh '.$record->dibatalkanOleh?->username),
+                            ->state(fn (PelatihanPeserta $record): string => $record->dibatalkan_pada?->translatedFormat('j F Y, H:i').' oleh '.$record->dibatalkanOleh?->username),
                     ]),
                 Section::make('Berkas')
                     ->columns(3)

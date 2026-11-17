@@ -48,6 +48,8 @@ use Livewire\Component;
 
 /**
  * Form registrasi publik tanpa login (PRD §8.2, DESIGN_SYSTEM §5.2).
+ *
+ * @property-read Schema $form Dibuat InteractsWithSchemas dari method form().
  */
 #[Layout('components.layouts.publik')]
 #[Title('Registrasi Peserta Pelatihan')]
@@ -97,7 +99,7 @@ class Registrasi extends Component implements HasActions, HasSchemas
         // Galat tampil saat isian ditinggalkan, tidak menunggu tombol "Selanjutnya" (PF-12).
         $langsung = fn (Field $isian): Field => $isian
             ->live(onBlur: true)
-            ->afterStateUpdated(fn (HasSchemas $livewire, Field $component) => $livewire->validateOnly($component->getStatePath()));
+            ->afterStateUpdated(fn (self $livewire, Field $component) => $livewire->validateOnly($component->getStatePath()));
 
         return $schema
             ->statePath('data')

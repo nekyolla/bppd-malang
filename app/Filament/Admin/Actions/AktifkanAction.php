@@ -26,7 +26,7 @@ class AktifkanAction extends Action
             ->modalDescription('Data akan kembali muncul di pilihan form baru.')
             ->modalSubmitActionLabel('Aktifkan')
             ->authorize('update')
-            ->hidden(fn (Model $record): bool => $record->is_aktif)
+            ->hidden(fn (Model $record): bool => $record->getAttribute('is_aktif') === true)
             ->action(function (Model $record): void {
                 app(DataMasterService::class)->aktifkan($record);
 

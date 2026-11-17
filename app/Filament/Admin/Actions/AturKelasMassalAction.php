@@ -2,12 +2,14 @@
 
 namespace App\Filament\Admin\Actions;
 
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManageKelas;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePembagianKelas;
 use App\Models\KelasPelatihan;
+use App\Models\PelatihanPeserta;
 use App\Services\KelasService;
 use Filament\Actions\BulkAction;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -35,20 +37,27 @@ class AturKelasMassalAction extends BulkAction
             ->schema([
                 Select::make('kelas_pelatihan_id')
                     ->label('Kelas')
-                    ->options(fn (ManageRelatedRecords $livewire): array => AturKelasAction::pilihanKelas($livewire->getOwnerRecord()->getKey()))
+                    ->options(fn (ManageKelas|ManagePembagianKelas $livewire): array => AturKelasAction::pilihanKelas($livewire->pelatihan()->getKey()))
                     ->required(),
             ])
             ->authorizeIndividualRecords('aturKelas')
             ->deselectRecordsAfterCompletion()
-            ->action(function (Collection $records, array $data): void {
-                $kelas = KelasPelatihan::query()->findOrFail($data['kelas_pelatihan_id']);
-                $hasil = app(KelasService::class)->tetapkanMassal($records, $kelas);
+            ->action($this->tetapkan(...));
+    }
 
-                Notification::make()
-                    ->title("{$hasil['ditetapkan']} peserta masuk kelas {$kelas->nama_kelas}")
-                    ->body($hasil['dilewati'] > 0 ? "{$hasil['dilewati']} dilewati karena tidak berstatus terverifikasi." : null)
-                    ->success()
-                    ->send();
-            });
+    /**
+     * @param  Collection<int, PelatihanPeserta>  $records
+     * @param  array{kelas_pelatihan_id: int|string}  $data
+     */
+    private function tetapkan(Collection $records, array $data): void
+    {
+        $kelas = KelasPelatihan::query()->findOrFail($data['kelas_pelatihan_id']);
+        $hasil = app(KelasService::class)->tetapkanMassal($records, $kelas);
+
+        Notification::make()
+            ->title("{$hasil['ditetapkan']} peserta masuk kelas {$kelas->nama_kelas}")
+            ->body($hasil['dilewati'] > 0 ? "{$hasil['dilewati']} dilewati karena tidak berstatus terverifikasi." : null)
+            ->success()
+            ->send();
     }
 }

@@ -175,9 +175,9 @@ class IsianPeserta
 
         return match ($kolom) {
             'jenis_kelamin' => JenisKelamin::tryFrom((string) $nilai)?->getLabel() ?? (string) $nilai,
-            'jabatan_id' => Jabatan::find($nilai)?->nama_jabatan ?? '–',
+            'jabatan_id' => Jabatan::find($nilai)->nama_jabatan ?? '–',
             'periode_jabatan' => Peserta::PERIODE_JABATAN[(int) $nilai] ?? (string) $nilai,
-            'status_ptkp_id' => StatusPtkp::find($nilai)?->kode ?? '–',
+            'status_ptkp_id' => StatusPtkp::find($nilai)->kode ?? '–',
             'desa_id' => ($desa = Desa::with('kecamatan.kabKota')->find($nilai))
                 ? "{$desa->nama}, Kec. {$desa->kecamatan->nama}, {$desa->kecamatan->kabKota->nama}"
                 : '–',

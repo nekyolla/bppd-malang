@@ -161,12 +161,12 @@ class ManageSertifikat extends ManageRelatedRecords
 
     public function getTitle(): string|Htmlable
     {
-        return "Sertifikat {$this->getOwnerRecord()->nama_tampilan}";
+        return "Sertifikat {$this->pelatihan()->nama_tampilan}";
     }
 
     public function getSubheading(): string|Htmlable|null
     {
-        $peserta = $this->getOwnerRecord()->pendaftaran()
+        $peserta = $this->pelatihan()->pendaftaran()
             ->whereIn('status', [StatusPendaftaran::Terverifikasi, StatusPendaftaran::Selesai]);
         $jumlah = $peserta->count();
 

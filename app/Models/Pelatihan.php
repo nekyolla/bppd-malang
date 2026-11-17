@@ -18,6 +18,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Satu penyelenggaraan pelatihan (judul + tahun anggaran + batch).
  * `status` tidak fillable: hanya berubah lewat service (README aturan 3).
+ *
+ * Hitungan dari `withCount` di tabel Pelatihan, menu Pendaftaran, dan lonceng (hanya ada bila di-query):
+ *
+ * @property-read int $jumlah_aktif
+ * @property-read int $jumlah_batal
+ * @property-read int $jumlah_menunggu
  */
 #[Fillable([
     'judul_pelatihan_id', 'tahun_anggaran', 'batch_ke', 'tanggal_mulai', 'tanggal_selesai',
@@ -72,7 +78,7 @@ class Pelatihan extends Model
     /**
      * `{judul} {tahun} Batch {batch_ke}` (FR-PLT-02).
      *
-     * @return Attribute<string, never>
+     * @return Attribute<non-falsy-string, never>
      */
     protected function namaTampilan(): Attribute
     {

@@ -21,7 +21,7 @@ class ViewPendaftaran extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        $pendaftar = fn (): string => ManagePendaftar::getUrl(['record' => $this->getRecord()->pelatihan_id]);
+        $pendaftar = fn (): string => ManagePendaftar::getUrl(['record' => $this->getRecord()->getAttribute('pelatihan_id')]);
 
         return [
             KembaliAction::ke($pendaftar, 'Kembali ke pendaftar'),

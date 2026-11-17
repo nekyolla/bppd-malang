@@ -68,7 +68,7 @@ class PelatihanForm
                             ->inline()
                             ->live()
                             ->disabled(fn (?Pelatihan $record): bool => (bool) $record?->penggunaanKamar()->whereHas('penghuni')->exists())
-                            ->helperText(fn (?Pelatihan $record): ?string => $record?->penggunaanKamar()->whereHas('penghuni')->exists()
+                            ->helperText(fn (?Pelatihan $record): string => $record?->penggunaanKamar()->whereHas('penghuni')->exists()
                                 ? 'Terkunci: sudah ada peserta di kamar asrama.'
                                 : 'Asrama hanya untuk pelatihan di Balai Besar.'),
                         TextInput::make('keterangan_lokasi')

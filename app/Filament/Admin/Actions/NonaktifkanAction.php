@@ -29,7 +29,7 @@ class NonaktifkanAction extends Action
             ->modalDescription('Tetap tampil di riwayat, tapi tidak muncul di pilihan form.')
             ->modalSubmitActionLabel('Nonaktifkan')
             ->authorize('update')
-            ->visible(fn (Model $record): bool => $record->is_aktif)
+            ->visible(fn (Model $record): bool => $record->getAttribute('is_aktif') === true)
             ->action(function (Model $record): void {
                 app(DataMasterService::class)->nonaktifkan($record);
 

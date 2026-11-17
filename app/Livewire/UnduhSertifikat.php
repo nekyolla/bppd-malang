@@ -18,6 +18,8 @@ use Livewire\Component;
  * Halaman publik unduh sertifikat dengan NIK (PF-40). NIK tak dikenal dan NIK tanpa
  * sertifikat mendapat pesan yang sama. Batas per IP: pencarian gagal dibatasi ketat
  * (pola penebakan NIK), semua pencarian dibatasi longgar (satu kelas bisa berbagi IP).
+ *
+ * @property-read Schema $form Dibuat InteractsWithSchemas dari method form().
  */
 #[Layout('components.layouts.publik')]
 #[Title('Unduh Sertifikat')]

@@ -71,7 +71,7 @@ class ManagePembagianKelas extends ManageRelatedRecords
             ->filters([
                 SelectFilter::make('kelas_pelatihan_id')
                     ->label('Kelas')
-                    ->options(fn (): array => AturKelasAction::pilihanKelas($this->getOwnerRecord()->getKey())),
+                    ->options(fn (): array => AturKelasAction::pilihanKelas($this->pelatihan()->getKey())),
                 Filter::make('belum_dibagi')
                     ->label('Belum dibagi')
                     ->toggle()
@@ -93,6 +93,6 @@ class ManagePembagianKelas extends ManageRelatedRecords
 
     public function getTitle(): string|Htmlable
     {
-        return "Pembagian Kelas {$this->getOwnerRecord()->nama_tampilan}";
+        return "Pembagian Kelas {$this->pelatihan()->nama_tampilan}";
     }
 }

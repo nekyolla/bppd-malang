@@ -56,8 +56,8 @@ class ManageKelas extends ManageRelatedRecords
                     ->helperText('Misal A, B, C.')
                     ->required()
                     ->maxLength(KelasService::MAKS_NAMA)
-                    ->default(fn (): ?string => app(KelasService::class)->namaBerikutnya($this->getOwnerRecord()))
-                    ->unique(modifyRuleUsing: fn (Unique $rule): Unique => $rule->where('pelatihan_id', $this->getOwnerRecord()->getKey())),
+                    ->default(fn (): ?string => app(KelasService::class)->namaBerikutnya($this->pelatihan()))
+                    ->unique(modifyRuleUsing: fn (Unique $rule): Unique => $rule->where('pelatihan_id', $this->pelatihan()->getKey())),
             ]);
     }
 
@@ -82,20 +82,20 @@ class ManageKelas extends ManageRelatedRecords
                     ->createAnother(false)
                     ->visible(fn (): bool => $this->belumSelesai())
                     ->using(fn (array $data, Action $action): KelasPelatihan => GalatService::jalankan($action, 'Kelas tidak dapat disimpan', fn () => app(KelasService::class)
-                        ->simpan($this->getOwnerRecord(), $data['nama_kelas']))),
+                        ->simpan($this->pelatihan(), $data['nama_kelas']))),
             ])
-            ->recordUrl(fn (KelasPelatihan $record): string => PesertaKelas::getUrl(['record' => $this->getOwnerRecord(), 'kelas' => $record]))
+            ->recordUrl(fn (KelasPelatihan $record): string => PesertaKelas::getUrl(['record' => $this->pelatihan(), 'kelas' => $record]))
             ->recordActions([
                 Action::make('peserta')
                     ->label('Lihat peserta')
                     ->icon(Heroicon::OutlinedUsers)
                     ->color('gray')
-                    ->url(fn (KelasPelatihan $record): string => PesertaKelas::getUrl(['record' => $this->getOwnerRecord(), 'kelas' => $record])),
+                    ->url(fn (KelasPelatihan $record): string => PesertaKelas::getUrl(['record' => $this->pelatihan(), 'kelas' => $record])),
                 EditAction::make()
                     ->modalWidth('md')
                     ->visible(fn (): bool => $this->belumSelesai())
                     ->using(fn (KelasPelatihan $record, array $data, Action $action): KelasPelatihan => GalatService::jalankan($action, 'Kelas tidak dapat disimpan', fn () => app(KelasService::class)
-                        ->simpan($this->getOwnerRecord(), $data['nama_kelas'], $record))),
+                        ->simpan($this->pelatihan(), $data['nama_kelas'], $record))),
                 DeleteAction::make()
                     ->modalDescription(fn (KelasPelatihan $record): string => $record->jumlah_peserta > 0
                         ? "{$record->jumlah_peserta} peserta di kelas ini kembali menjadi tanpa kelas dan dapat dibagi ulang."
@@ -130,11 +130,11 @@ class ManageKelas extends ManageRelatedRecords
 
     public function getTitle(): string|Htmlable
     {
-        return "Kelas {$this->getOwnerRecord()->nama_tampilan}";
+        return "Kelas {$this->pelatihan()->nama_tampilan}";
     }
 
     private function belumSelesai(): bool
     {
-        return $this->getOwnerRecord()->status !== StatusPelatihan::Selesai;
+        return $this->pelatihan()->status !== StatusPelatihan::Selesai;
     }
 }

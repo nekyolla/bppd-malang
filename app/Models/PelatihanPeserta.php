@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * Pendaftaran satu peserta di satu pelatihan (ARCHITECTURE §5.5).
  * Status, snapshot `*_saat_pelatihan`, data verifikasi/pembatalan, dan
  * `kelas_pelatihan_id` tidak fillable: hanya diisi lewat service.
+ *
+ * @property-read bool $penempatan_kamar_exists Dari `withExists('penempatanKamar')` di AsramaService.
  */
 #[Fillable([
     'pelatihan_id', 'peserta_id', 'data_isian', 'file_surat_tugas',

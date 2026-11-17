@@ -175,7 +175,11 @@ class AuditLogResource extends Resource
      */
     public static function pengguna(Activity $activity): ?string
     {
-        return $activity->causer?->username ?? ($activity->event === 'unduh_publik' ? 'Peserta (publik)' : null);
+        if ($activity->causer instanceof User) {
+            return $activity->causer->username;
+        }
+
+        return $activity->event === 'unduh_publik' ? 'Peserta (publik)' : null;
     }
 
     /**

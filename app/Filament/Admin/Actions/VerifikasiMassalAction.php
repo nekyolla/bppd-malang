@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Actions;
 
 use App\Filament\Admin\Livewire\LoncengVerifikasi;
+use App\Models\PelatihanPeserta;
 use App\Services\PendaftaranService;
 use Filament\Actions\BulkAction;
 use Filament\Notifications\Notification;
@@ -29,14 +30,20 @@ class VerifikasiMassalAction extends BulkAction
             ->authorizeIndividualRecords('verifikasi')
             ->deselectRecordsAfterCompletion()
             ->after(LoncengVerifikasi::perbarui(...))
-            ->action(function (Collection $records): void {
-                $hasil = app(PendaftaranService::class)->verifikasiMassal($records->load('peserta'), auth()->user());
+            ->action($this->verifikasi(...));
+    }
 
-                Notification::make()
-                    ->title("{$hasil['terverifikasi']} pendaftaran terverifikasi")
-                    ->body($hasil['dilewati'] > 0 ? "{$hasil['dilewati']} dilewati: sudah diproses atau isiannya perlu diperiksa satu per satu." : null)
-                    ->success()
-                    ->send();
-            });
+    /**
+     * @param  Collection<int, PelatihanPeserta>  $records
+     */
+    private function verifikasi(Collection $records): void
+    {
+        $hasil = app(PendaftaranService::class)->verifikasiMassal($records->load('peserta'), auth()->user());
+
+        Notification::make()
+            ->title("{$hasil['terverifikasi']} pendaftaran terverifikasi")
+            ->body($hasil['dilewati'] > 0 ? "{$hasil['dilewati']} dilewati: sudah diproses atau isiannya perlu diperiksa satu per satu." : null)
+            ->success()
+            ->send();
     }
 }

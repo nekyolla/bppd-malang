@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Kelas dalam satu pelatihan (FR-KLS).
+ *
+ * @property-read int $jumlah_peserta Dari `withCount` di sub-halaman Kelas (tanpa peserta batal).
+ */
 #[Fillable(['pelatihan_id', 'nama_kelas'])]
 class KelasPelatihan extends Model
 {

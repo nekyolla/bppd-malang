@@ -168,6 +168,6 @@ class AkunResource extends Resource
 
     public static function peran(User $user): ?Peran
     {
-        return Peran::tryFrom((string) $user->roles->first()?->name);
+        return Peran::tryFrom((string) $user->getRoleNames()->first());
     }
 }

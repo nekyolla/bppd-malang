@@ -1,0 +1,17 @@
+# Analisis statis (Larastan). Jalankan: ./vendor/bin/sail php vendor/bin/phpstan analyse
+# Juga dijalankan di CI (.github/workflows/test.yml). Target: 0 galat, tanpa baseline.
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+    level: 5
+
+    # Model memakai method casts() (Laravel 11+); tanpa ini cast enum/tanggal tidak terbaca.
+    parseModelCastsMethod: true
+
+    # Action::halt() selalu melempar Halt, tetapi Filament mendeklarasikannya `void`.
+    earlyTerminatingMethodCalls:
+        Filament\Actions\Action:
+            - halt

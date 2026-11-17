@@ -70,11 +70,12 @@ Isian `.env` khusus aplikasi ini:
 ./vendor/bin/sail artisan test                 # semua test
 ./vendor/bin/sail artisan test --filter=Asrama # sebagian
 ./vendor/bin/sail pint                         # rapikan format kode
+./vendor/bin/sail php vendor/bin/phpstan analyse # analisis statis (Larastan)
 ./vendor/bin/sail npm run dev                  # Vite saat mengubah CSS/JS
 ./vendor/bin/sail artisan migrate:fresh --seed # ulang database dari nol
 ```
 
-Sebelum commit, `pint` dan seluruh test harus lolos.
+Sebelum commit, `pint`, `phpstan` (0 galat), dan seluruh test harus lolos.
 
 ## Struktur kode
 
@@ -167,6 +168,7 @@ Hal-hal ini pernah menimbulkan bug. Baca sebelum mengubah bagian terkait.
 - **`validateOnly` tidak membawa pesan khusus isian Filament.** Kembalikan `$this->form->getValidationMessages()` dari `messages()` (lihat `Registrasi`).
 - **Closure Filament diisi menurut nama parameter.** `fn ($n)` menerima `null`; pakai `$state`, `$record`, dan seterusnya.
 - **`ActionGroup` tidak punya `authorize()`.** Pakai `visible()` di grup atau `authorize()` di tiap aksi.
+- **`getRecord()`/`getOwnerRecord()` Filament hanya bertipe `Model`.** Di halaman per pelatihan pakai `$this->pelatihan()` (trait `MembacaPelatihan`), di closure beri tipe parameter (`fn (Pelatihan $record)`), dan di aksi massal tulis `@param Collection<int, PelatihanPeserta> $records` pada method bernama.
 - **Galat `CheckboxList` berkunci `tanggal.0`**, bukan `tanggal`.
 - **Unggahan di modal aksi memakai `FileUpload::storeFiles(false)`**, supaya service menerima `UploadedFile` dan menyimpannya sendiri ke disk privat.
 
@@ -191,7 +193,11 @@ Hal-hal ini pernah menimbulkan bug. Baca sebelum mengubah bagian terkait.
 - Setiap perubahan service wajib disertai test Pest.
 - Pakai factory. Jangan bergantung pada data wilayah hasil seeder.
 - Test ada di `tests/Feature` (service, panel admin di `Admin/`, halaman publik) dan `tests/Unit` (enum, format, data wilayah).
-- **Pemeriksaan otomatis (GitHub Actions):** `.github/workflows/test.yml` menjalankan `pint --test` dan seluruh test dengan MySQL 8.4 setiap push ke `main` dan setiap pull request. Bila repo dipindah dari GitHub, jalankan dua perintah itu secara manual sebelum menggabungkan perubahan.
+- **Analisis statis (Larastan, `phpstan.neon`, level 5):** menangkap salah tipe, properti/method yang tidak ada, dan kode mati sebelum dijalankan. Target 0 galat **tanpa baseline dan tanpa `@phpstan-ignore`**; perbaiki penyebabnya.
+  - Properti yang dibuat "ajaib" (`$form` Livewire, properti `#[Computed]`, hasil `withCount`) didokumentasikan dengan `@property-read` di kelasnya.
+  - Bentuk array yang dipakai lintas kelas ditulis sekali sebagai `@phpstan-type` (contoh `KeadaanKamar` di `AsramaService`) lalu diimpor dengan `@phpstan-import-type`.
+  - Langkah lanjutan bila sempat: level 6 (±17 temuan saat ditulis, kebanyakan tipe generik yang belum ditulis).
+- **Pemeriksaan otomatis (GitHub Actions):** `.github/workflows/test.yml` menjalankan `pint --test`, Larastan, dan seluruh test dengan MySQL 8.4 setiap push ke `main` dan setiap pull request. Bila repo dipindah dari GitHub, jalankan ketiga perintah itu secara manual sebelum menggabungkan perubahan.
 
 ## Konvensi
 

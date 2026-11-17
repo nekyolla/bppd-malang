@@ -85,14 +85,14 @@ class AkunService
      *
      * @throws ValidationException
      */
-    public function aturUlangKataSandi(User $user, #[SensitiveParameter] string $password): void
+    public function aturUlangKataSandi(User $user, User $oleh, #[SensitiveParameter] string $password): void
     {
         Validator::make(['password' => $password], ['password' => ['required', 'string', Password::min(8)]])->validate();
 
         $user->update(['password' => $password]);
 
         // Kata sandi tidak masuk audit log, jadi kejadiannya dicatat tersendiri.
-        activity('akun')->performedOn($user)->causedBy(auth()->user())->event('atur-ulang-sandi')->log('Mengatur ulang kata sandi');
+        activity('akun')->performedOn($user)->causedBy($oleh)->event('atur-ulang-sandi')->log('Mengatur ulang kata sandi');
     }
 
     /**

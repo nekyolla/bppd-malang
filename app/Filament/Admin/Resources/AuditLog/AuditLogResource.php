@@ -171,9 +171,6 @@ class AuditLogResource extends Resource
     }
 
     /**
-     * Kolom yang berubah, atau keterangan untuk kejadian tanpa perubahan kolom (mis. unduhan).
-     */
-    /**
      * Pelaku: username, atau "Peserta (publik)" untuk unduhan sertifikat tanpa login (PF-40).
      */
     public static function pengguna(Activity $activity): ?string
@@ -181,6 +178,9 @@ class AuditLogResource extends Resource
         return $activity->causer?->username ?? ($activity->event === 'unduh_publik' ? 'Peserta (publik)' : null);
     }
 
+    /**
+     * Kolom yang berubah, atau keterangan untuk kejadian tanpa perubahan kolom (mis. unduhan).
+     */
     public static function ringkasan(Activity $activity): string
     {
         $kolom = array_column(self::perubahan($activity), 'kolom');

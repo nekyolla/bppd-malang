@@ -67,6 +67,7 @@ class ManagePendaftar extends ManageRelatedRecords
             [$service->dataPeserta($pelatihan)],
             Str::slug("data-peserta {$pelatihan->nama_tampilan}"),
             $pelatihan,
+            auth()->user(),
             PageOrientation::LANDSCAPE,
         );
     }

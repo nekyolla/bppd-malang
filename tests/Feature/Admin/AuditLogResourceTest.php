@@ -51,7 +51,7 @@ it('menampilkan siapa, kapan, aksi, objek, dan nilai lama → baru', function ()
 it('mencatat perubahan akun tanpa hash kata sandi', function () {
     $admin = User::factory()->peran(Peran::Admin)->create();
 
-    app(AkunService::class)->aturUlangKataSandi($admin, 'rahasia-baru-123');
+    app(AkunService::class)->aturUlangKataSandi($admin, User::factory()->peran(Peran::Superadmin)->create(), 'rahasia-baru-123');
     $admin->update(['email' => 'admin.baru@bbpd.test']);
 
     $logAkun = Activity::query()->where('subject_type', $admin->getMorphClass())->where('subject_id', $admin->id)->get();

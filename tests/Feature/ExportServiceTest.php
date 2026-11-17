@@ -102,7 +102,7 @@ it('mencetak PDF tepat satu halaman per hari tanpa halaman kosong', function () 
     PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create(['kelas_pelatihan_id' => $this->kelas->id]);
     $this->actingAs(User::factory()->create());
 
-    $pdf = $this->service->unduhPdf($this->service->daftarHadirKelas($this->kelas, ['2026-11-02', '2026-11-03']), 'uji', $this->kelas);
+    $pdf = $this->service->unduhPdf($this->service->daftarHadirKelas($this->kelas, ['2026-11-02', '2026-11-03']), 'uji', $this->kelas, User::factory()->create());
 
     ob_start();
     $pdf->sendContent();
@@ -120,9 +120,8 @@ it('memasang kop surat balai di setiap lembar daftar hadir PDF (PF-39)', functio
         ->and($html)->toContain(Instansi::ALAMAT, Instansi::KONTAK)
         ->and($html)->toContain('src="data:image/png;base64,');
 
-    $this->actingAs(User::factory()->create());
     ob_start();
-    $this->service->unduhPdf($lembar, 'uji', $this->kelas)->sendContent();
+    $this->service->unduhPdf($lembar, 'uji', $this->kelas, User::factory()->create())->sendContent();
 
     expect(ob_get_clean())->toContain('/Subtype /Image')->toContain('/Count 2');
 });
@@ -177,12 +176,14 @@ it('menyusun data peserta per pelatihan dengan NIK lengkap dan snapshot jabatan 
 
 it('mengunduh data peserta sebagai Excel dan mencatatnya di audit log (PF-37)', function () {
     PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create();
-    $this->actingAs(User::factory()->create());
+    $admin = User::factory()->create();
 
-    $respons = $this->service->unduhExcel([$this->service->dataPeserta($this->pelatihan)], 'data-peserta', $this->pelatihan);
+    // Pelaku diterima sebagai parameter, tidak diambil dari sesi login.
+    $respons = $this->service->unduhExcel([$this->service->dataPeserta($this->pelatihan)], 'data-peserta', $this->pelatihan, $admin);
 
     expect($respons->headers->get('Content-Disposition'))->toContain('data-peserta.xlsx')
         ->and(Activity::query()->where('log_name', 'unduhan')->sole())
         ->subject->is($this->pelatihan)->toBeTrue()
+        ->causer->is($admin)->toBeTrue()
         ->description->toBe('Mengunduh data-peserta.xlsx');
 });

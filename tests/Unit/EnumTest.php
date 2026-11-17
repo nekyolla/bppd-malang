@@ -31,13 +31,6 @@ it('hanya mengizinkan perpindahan status pendaftaran yang sah', function (Status
     [StatusPendaftaran::Batal, StatusPendaftaran::Terdaftar, false],
 ]);
 
-it('menandai selesai dan batal sebagai status akhir', function () {
-    expect(StatusPendaftaran::Selesai->isAkhir())->toBeTrue()
-        ->and(StatusPendaftaran::Batal->isAkhir())->toBeTrue()
-        ->and(StatusPendaftaran::Terdaftar->isAkhir())->toBeFalse()
-        ->and(StatusPendaftaran::Terverifikasi->isAkhir())->toBeFalse();
-});
-
 it('menjalankan status pelatihan berurutan sampai selesai', function () {
     expect(StatusPelatihan::Draft->berikutnya())->toBe(StatusPelatihan::Dibuka)
         ->and(StatusPelatihan::Dibuka->berikutnya())->toBe(StatusPelatihan::Berjalan)

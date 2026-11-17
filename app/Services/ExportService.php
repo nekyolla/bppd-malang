@@ -6,6 +6,7 @@ use App\Enums\StatusPendaftaran;
 use App\Models\KelasPelatihan;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
+use App\Models\User;
 use App\Services\Concerns\MenolakAturan;
 use App\Support\FormatTanggal;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -194,9 +195,9 @@ class ExportService
      *
      * @param  list<DataExport>  $lembar
      */
-    public function unduhExcel(array $lembar, string $namaFile, Model $subjek, PageOrientation $orientasi = PageOrientation::PORTRAIT): StreamedResponse
+    public function unduhExcel(array $lembar, string $namaFile, Model $subjek, User $oleh, PageOrientation $orientasi = PageOrientation::PORTRAIT): StreamedResponse
     {
-        $this->catatUnduhan($subjek, "{$namaFile}.xlsx", $lembar);
+        $this->catatUnduhan($subjek, $oleh, "{$namaFile}.xlsx", $lembar);
 
         return response()->streamDownload(function () use ($lembar, $orientasi): void {
             $opsi = new Options;
@@ -234,9 +235,9 @@ class ExportService
      *
      * @param  list<DataExport>  $lembar
      */
-    public function unduhPdf(array $lembar, string $namaFile, Model $subjek): StreamedResponse
+    public function unduhPdf(array $lembar, string $namaFile, Model $subjek, User $oleh): StreamedResponse
     {
-        $this->catatUnduhan($subjek, "{$namaFile}.pdf", $lembar);
+        $this->catatUnduhan($subjek, $oleh, "{$namaFile}.pdf", $lembar);
 
         $pdf = Pdf::loadView('export.tabel', ['lembar' => $lembar, 'dicetak' => now()->locale('id')->translatedFormat('j F Y, H:i')])
             ->setPaper('a4', 'portrait');
@@ -246,15 +247,14 @@ class ExportService
 
     /**
      * Unduhan berisi data pribadi tercatat di audit log (FR-AUD-02).
-     */
-    /**
+     *
      * @param  list<DataExport>  $lembar
      */
-    private function catatUnduhan(Model $subjek, string $namaFile, array $lembar): void
+    private function catatUnduhan(Model $subjek, User $oleh, string $namaFile, array $lembar): void
     {
         activity('unduhan')
             ->performedOn($subjek)
-            ->causedBy(auth()->user())
+            ->causedBy($oleh)
             ->event('unduh')
             ->withProperties(['berkas' => $namaFile, 'lembar' => array_column($lembar, 'namaLembar')])
             ->log("Mengunduh {$namaFile}");

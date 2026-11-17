@@ -60,9 +60,4 @@ enum StatusPendaftaran: string implements HasColor, HasIcon, HasLabel
             self::Selesai, self::Batal => false,
         };
     }
-
-    public function isAkhir(): bool
-    {
-        return in_array($this, [self::Selesai, self::Batal], true);
-    }
 }

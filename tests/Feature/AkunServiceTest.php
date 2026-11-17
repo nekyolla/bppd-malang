@@ -6,6 +6,7 @@ use App\Services\AkunService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
@@ -95,9 +96,19 @@ it('menonaktifkan, mengaktifkan, dan mengatur ulang kata sandi', function () {
     expect($admin->fresh()->is_aktif)->toBeFalse();
 
     $this->service->aktifkan($admin);
-    $this->service->aturUlangKataSandi($admin, 'kataSandiBaru1');
+    $this->service->aturUlangKataSandi($admin, $this->superadmin, 'kataSandiBaru1');
 
     expect($admin->fresh()->is_aktif)->toBeTrue()
         ->and(Hash::check('kataSandiBaru1', $admin->fresh()->password))->toBeTrue()
-        ->and(galatAkun(fn () => $this->service->aturUlangKataSandi($admin, '123')))->toHaveKey('password');
+        ->and(galatAkun(fn () => $this->service->aturUlangKataSandi($admin, $this->superadmin, '123')))->toHaveKey('password');
+});
+
+it('mencatat superadmin yang mengatur ulang kata sandi sebagai pelaku, tanpa bergantung pada sesi login', function () {
+    $admin = User::factory()->peran(Peran::Admin)->create();
+
+    $this->service->aturUlangKataSandi($admin, $this->superadmin, 'kataSandiBaru1');
+
+    expect(Activity::query()->where('event', 'atur-ulang-sandi')->sole())
+        ->causer->is($this->superadmin)->toBeTrue()
+        ->subject->is($admin)->toBeTrue();
 });

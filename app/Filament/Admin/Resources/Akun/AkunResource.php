@@ -129,7 +129,7 @@ class AkunResource extends Resource
                     ])
                     ->authorize('update')
                     ->action(function (User $record, array $data, Action $action): void {
-                        GalatService::jalankan($action, 'Perubahan akun ditolak', fn () => app(AkunService::class)->aturUlangKataSandi($record, $data['password']));
+                        GalatService::jalankan($action, 'Perubahan akun ditolak', fn () => app(AkunService::class)->aturUlangKataSandi($record, auth()->user(), $data['password']));
                         Notification::make()->title('Kata sandi diperbarui')->success()->send();
                     }),
                 Action::make('nonaktifkan')

@@ -150,7 +150,7 @@ class PesertaKelas extends Page implements HasTable
         $nama = Str::slug("daftar-hadir {$this->getRecord()->nama_tampilan} kelas {$kelas->nama_kelas} {$akhiran}");
 
         return $format === 'pdf'
-            ? $service->unduhPdf($lembar, $nama, $kelas)
-            : $service->unduhExcel($lembar, $nama, $kelas);
+            ? $service->unduhPdf($lembar, $nama, $kelas, auth()->user())
+            : $service->unduhExcel($lembar, $nama, $kelas, auth()->user());
     }
 }

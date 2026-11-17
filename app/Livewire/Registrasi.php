@@ -319,15 +319,24 @@ class Registrasi extends Component implements HasActions, HasSchemas
     {
         $this->galatUmum = null;
         $kunci = $this->kunciBatasKiriman();
+        $maks = config('bbpd.registrasi.maks_per_jam');
 
-        if (RateLimiter::tooManyAttempts($kunci, config('bbpd.registrasi.maks_per_jam'))) {
-            $this->galatUmum = 'Terlalu banyak pendaftaran dari perangkat ini. Coba lagi dalam 1 jam.';
+        // Pemeriksaan awal agar perangkat yang sudah diblokir tidak perlu menunggu validasi form.
+        if (RateLimiter::tooManyAttempts($kunci, $maks)) {
+            $this->tolakKarenaBatas();
 
             return;
         }
 
         $data = $this->form->getState();
-        RateLimiter::hit($kunci, 3600);
+
+        // Jatah dipotong dan diperiksa dalam satu langkah, agar kiriman serentak dari IP yang
+        // sama tidak bersama-sama lolos pemeriksaan awal lalu melewati batas.
+        if (RateLimiter::increment($kunci, 3600) > $maks) {
+            $this->tolakKarenaBatas();
+
+            return;
+        }
 
         // Bot yang mengisi honeypot melihat halaman sukses, tetapi tidak ada yang disimpan.
         if (filled($this->website)) {
@@ -339,6 +348,11 @@ class Registrasi extends Component implements HasActions, HasSchemas
         $this->jalankanService(fn () => app(RegistrasiService::class)->daftar($data));
 
         $this->selesai();
+    }
+
+    private function tolakKarenaBatas(): void
+    {
+        $this->galatUmum = 'Terlalu banyak pendaftaran dari perangkat ini. Coba lagi dalam 1 jam.';
     }
 
     private function selesai(): void

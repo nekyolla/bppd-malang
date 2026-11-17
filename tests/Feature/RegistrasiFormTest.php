@@ -168,6 +168,25 @@ it('pura-pura berhasil tetapi tidak menyimpan apa pun jika honeypot terisi', fun
         ->and(Storage::disk('local')->allFiles())->toBeEmpty();
 });
 
+it('tetap menolak bila kiriman lain dari IP yang sama menghabiskan jatah saat form ini diperiksa', function () {
+    config(['bbpd.registrasi.maks_per_jam' => 2]);
+
+    // Dua kiriman lain tercatat sesudah pemeriksaan awal kiriman ini lolos.
+    RateLimiter::hit('registrasi:127.0.0.1', 3600);
+    RateLimiter::hit('registrasi:127.0.0.1', 3600);
+    $pembatas = Mockery::mock(app(Illuminate\Cache\RateLimiter::class));
+    $pembatas->shouldReceive('tooManyAttempts')->andReturn(false);
+    RateLimiter::swap($pembatas);
+
+    Livewire::test(Registrasi::class)
+        ->fillForm(($this->isian)())
+        ->call('daftar')
+        ->assertSet('terkirim', false)
+        ->assertSee('Terlalu banyak pendaftaran dari perangkat ini. Coba lagi dalam 1 jam.');
+
+    expect(PelatihanPeserta::count())->toBe(0);
+});
+
 it('membatasi jumlah kiriman per IP per jam', function () {
     config(['bbpd.registrasi.maks_per_jam' => 2]);
 

@@ -73,6 +73,7 @@ class AuditLogResource extends Resource
         'deleted' => 'Dihapus',
         'ganti' => 'Diganti',
         'unduh' => 'Diunduh',
+        'unduh_publik' => 'Diunduh peserta',
         'atur-ulang-sandi' => 'Atur ulang kata sandi',
     ];
 
@@ -82,7 +83,7 @@ class AuditLogResource extends Resource
             ->modifyQueryUsing(fn (Builder $query) => $query->with('causer'))
             ->columns([
                 TextColumn::make('created_at')->label('Waktu')->dateTime('j M Y, H:i:s')->sortable(),
-                TextColumn::make('causer.username')->label('Pengguna')->placeholder('Sistem'),
+                TextColumn::make('pengguna')->label('Pengguna')->state(fn (Activity $record): ?string => self::pengguna($record))->placeholder('Sistem'),
                 TextColumn::make('event')
                     ->label('Aksi')
                     ->badge()
@@ -90,7 +91,7 @@ class AuditLogResource extends Resource
                     ->color(fn (?string $state): string => match ($state) {
                         'created' => 'success',
                         'deleted' => 'danger',
-                        'unduh' => 'info',
+                        'unduh', 'unduh_publik' => 'info',
                         default => 'gray',
                     }),
                 TextColumn::make('subject_type')
@@ -133,7 +134,7 @@ class AuditLogResource extends Resource
                     ->columns(2)
                     ->schema([
                         TextEntry::make('created_at')->label('Waktu')->dateTime('j F Y, H:i:s'),
-                        TextEntry::make('causer.username')->label('Pengguna')->placeholder('Sistem'),
+                        TextEntry::make('pengguna')->label('Pengguna')->state(fn (Activity $record): ?string => self::pengguna($record))->placeholder('Sistem'),
                         TextEntry::make('event')->label('Aksi')->formatStateUsing(fn (?string $state): string => self::AKSI[$state] ?? (string) $state),
                         TextEntry::make('subject_type')->label('Objek')->formatStateUsing(fn (Activity $record): string => self::objek($record)),
                         TextEntry::make('description')->label('Keterangan')->columnSpanFull(),
@@ -172,6 +173,14 @@ class AuditLogResource extends Resource
     /**
      * Kolom yang berubah, atau keterangan untuk kejadian tanpa perubahan kolom (mis. unduhan).
      */
+    /**
+     * Pelaku: username, atau "Peserta (publik)" untuk unduhan sertifikat tanpa login (PF-40).
+     */
+    public static function pengguna(Activity $activity): ?string
+    {
+        return $activity->causer?->username ?? ($activity->event === 'unduh_publik' ? 'Peserta (publik)' : null);
+    }
+
     public static function ringkasan(Activity $activity): string
     {
         $kolom = array_column(self::perubahan($activity), 'kolom');

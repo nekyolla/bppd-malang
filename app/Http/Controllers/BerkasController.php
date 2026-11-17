@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
+use App\Models\SertifikatPeserta;
 use App\Services\RegistrasiService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -61,6 +63,31 @@ class BerkasController extends Controller
         Gate::authorize('view', $pelatihanPeserta);
 
         return $this->tampilkan($pelatihanPeserta->sertifikat?->file_sertifikat, "sertifikat-{$pelatihanPeserta->id}");
+    }
+
+    /**
+     * Unduhan sertifikat oleh peserta tanpa login (PF-40). Izin berasal dari tanda tangan
+     * tautan (middleware `signed:relative`, 15 menit) yang dibuat setelah peserta mengisi NIK.
+     */
+    public function sertifikatPublik(SertifikatPeserta $sertifikatPeserta): StreamedResponse
+    {
+        $disk = Storage::disk(RegistrasiService::DISK);
+        $path = $sertifikatPeserta->file_sertifikat;
+
+        abort_unless(filled($path) && $disk->exists($path), 404);
+
+        activity('unduhan')
+            ->performedOn($sertifikatPeserta)
+            ->event('unduh_publik')
+            ->log('Peserta mengunduh sertifikat');
+
+        $nama = Str::slug('sertifikat '.$sertifikatPeserta->pelatihanPeserta->pelatihan->nama_tampilan).'.pdf';
+
+        return $disk->download($path, $nama, [
+            'Content-Type' => 'application/pdf',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     private function tampilkan(?string $path, string $namaDasar): StreamedResponse

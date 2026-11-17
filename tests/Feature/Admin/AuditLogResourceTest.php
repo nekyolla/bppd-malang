@@ -7,6 +7,7 @@ use App\Filament\Admin\Resources\AuditLog\Pages\ListAuditLog;
 use App\Filament\Admin\Resources\AuditLog\Pages\ViewAuditLog;
 use App\Models\KelasPelatihan;
 use App\Models\PelatihanPeserta;
+use App\Models\SertifikatPeserta;
 use App\Models\User;
 use App\Services\AkunService;
 use Database\Seeders\RoleSeeder;
@@ -68,6 +69,21 @@ it('menampilkan catatan unduhan beserta nama berkasnya', function () {
         ->filterTable('event', 'unduh')
         ->assertCanSeeTableRecords([$log])
         ->assertSee('Mengunduh daftar-hadir.pdf');
+});
+
+it('menampilkan unduhan sertifikat oleh peserta tanpa akun (PF-40)', function () {
+    $sertifikat = SertifikatPeserta::factory()->create();
+    $log = activity('unduhan')->performedOn($sertifikat)->causedByAnonymous()->event('unduh_publik')->log('Peserta mengunduh sertifikat');
+
+    Livewire::test(ListAuditLog::class)
+        ->filterTable('event', 'unduh_publik')
+        ->assertCanSeeTableRecords([$log])
+        ->assertSee('Diunduh peserta')
+        ->assertSee('Peserta (publik)')
+        ->assertDontSee('Sistem');
+
+    Livewire::test(ViewAuditLog::class, ['record' => $log->getKey()])
+        ->assertSee('Peserta (publik)');
 });
 
 it('menampilkan nama kolom yang mudah dibaca', function () {

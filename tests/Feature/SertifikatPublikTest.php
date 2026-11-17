@@ -6,6 +6,8 @@ use App\Models\Peserta;
 use App\Models\SertifikatPeserta;
 use App\Services\SertifikatService;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Activity;
 
 /*
  * PF-40: peserta mengunduh sendiri sertifikatnya di halaman publik dengan NIK.
@@ -62,5 +64,44 @@ describe('pencarian', function () {
         expect($url)->toStartWith("/sertifikat/unduh/{$sertifikat->id}?")
             ->toContain('expires=')
             ->toContain('signature=');
+    });
+});
+
+describe('unduhan', function () {
+    beforeEach(function () {
+        $this->sertifikat = sertifikatUntuk(Peserta::factory()->create(['nik' => '3507000000000001']), '2026-10-05');
+        $this->url = $this->service->untukPublik('3507000000000001')['daftar'][0]['url'];
+    });
+
+    it('mengunduh sertifikat lewat tautan bertanda tangan dan mencatatnya', function () {
+        $respons = $this->get($this->url);
+
+        $respons->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        expect($respons->headers->get('Content-Disposition'))
+            ->toContain('attachment')
+            ->toContain(Str::slug('sertifikat '.$this->sertifikat->pelatihanPeserta->pelatihan->nama_tampilan).'.pdf')
+            ->and($respons->streamedContent())->toBe('%PDF-uji')
+            ->and(Activity::query()->where('event', 'unduh_publik')->sole())
+            ->causer_id->toBeNull()
+            ->subject->is($this->sertifikat)->toBeTrue();
+    });
+
+    it('menolak tautan tanpa tanda tangan atau yang kedaluwarsa', function () {
+        $this->get("/sertifikat/unduh/{$this->sertifikat->id}")->assertForbidden();
+
+        $this->travel(16)->minutes();
+        $this->get($this->url)->assertForbidden();
+
+        expect(Activity::query()->where('event', 'unduh_publik')->exists())->toBeFalse();
+    });
+
+    it('tetap sah bila diakses lewat host atau skema lain (di balik proxy)', function () {
+        $this->get('https://lain.test'.$this->url)->assertOk();
+    });
+
+    it('memberi 404 bila berkas sudah hilang', function () {
+        Storage::disk('local')->delete($this->sertifikat->file_sertifikat);
+
+        $this->get($this->url)->assertNotFound();
     });
 });

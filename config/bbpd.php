@@ -25,7 +25,7 @@ return [
     | bisa mengunduh bersamaan dari jaringan yang sama.
     */
     'sertifikat_publik' => [
-        'maks_gagal_per_jam' => (int) env('SERTIFIKAT_PUBLIK_MAKS_GAGAL_PER_JAM', 10),
+        'maks_gagal_per_jam' => (int) env('SERTIFIKAT_PUBLIK_MAKS_GAGAL_PER_JAM', 30),
         'maks_per_jam' => (int) env('SERTIFIKAT_PUBLIK_MAKS_PER_JAM', 120),
     ],
 

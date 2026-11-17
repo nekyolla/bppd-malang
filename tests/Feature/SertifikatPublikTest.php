@@ -184,7 +184,9 @@ describe('halaman /sertifikat', function () {
         expect(collect(DB::getQueryLog())->pluck('query')->filter(fn (string $q): bool => str_contains($q, '`peserta`')))->toBeEmpty();
     });
 
-    it('membatasi 10 pencarian gagal per jam per IP', function () {
+    it('membatasi pencarian gagal per jam per IP sesuai config', function () {
+        config(['bbpd.sertifikat_publik.maks_gagal_per_jam' => 10]);
+
         foreach (range(1, 10) as $i) {
             Livewire::test(UnduhSertifikat::class)->fillForm(['nik' => sprintf('35079999999999%02d', $i)])->call('cari')->assertSee($this->pesanSeragam);
         }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\BerkasController;
 use App\Http\Middleware\HeaderKeamanan;
 use App\Livewire\Registrasi;
+use App\Livewire\UnduhSertifikat;
 use Illuminate\Support\Facades\Route;
 
 // Halaman publik ditunda (PF-06); sementara beranda langsung ke form registrasi.
@@ -11,6 +12,8 @@ Route::redirect('/', '/daftar');
 Route::get('/daftar', Registrasi::class)->name('registrasi');
 
 // Unduh sertifikat oleh peserta tanpa login (PF-40): tautan relatif bertanda tangan dari halaman /sertifikat.
+Route::get('/sertifikat', UnduhSertifikat::class)->name('sertifikat.publik');
+
 Route::get('/sertifikat/unduh/{sertifikatPeserta}', [BerkasController::class, 'sertifikatPublik'])
     ->middleware(['signed:relative', 'throttle:120,60', HeaderKeamanan::class])
     ->name('sertifikat.publik.unduh');

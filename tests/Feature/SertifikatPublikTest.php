@@ -1,12 +1,18 @@
 <?php
 
+use App\Livewire\UnduhSertifikat;
+use App\Models\Desa;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
 use App\Models\SertifikatPeserta;
 use App\Services\SertifikatService;
+use App\Support\Masking;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
 /*
@@ -103,5 +109,106 @@ describe('unduhan', function () {
         Storage::disk('local')->delete($this->sertifikat->file_sertifikat);
 
         $this->get($this->url)->assertNotFound();
+    });
+});
+
+describe('halaman /sertifikat', function () {
+    beforeEach(function () {
+        RateLimiter::clear('sertifikat-publik:127.0.0.1');
+        RateLimiter::clear('sertifikat-publik-gagal:127.0.0.1');
+        $this->budi = Peserta::factory()->for(Desa::factory()->state(['nama' => 'Kedungsalam']))
+            ->create(['nik' => '3507000000000001', 'nama_lengkap' => 'Budi Santoso']);
+        $this->sertifikat = sertifikatUntuk($this->budi, '2026-10-05', '001/BBPKPD/2026');
+        $this->pesanSeragam = 'Sertifikat untuk NIK ini belum tersedia. Bila Anda sudah menyelesaikan pelatihan, hubungi panitia.';
+    });
+
+    it('dapat dibuka dan ditautkan dari halaman registrasi', function () {
+        $this->get('/sertifikat')->assertOk()->assertSee('Unduh Sertifikat');
+        $this->get('/daftar')->assertOk()->assertSee(route('sertifikat.publik'), escape: false);
+    });
+
+    it('menampilkan sertifikat dengan nama tersamar tanpa data pribadi lain', function () {
+        Livewire::test(UnduhSertifikat::class)
+            ->fillForm(['nik' => '3507000000000001'])
+            ->call('cari')
+            ->assertHasNoFormErrors()
+            ->assertSee('Bu** Sa*****')
+            ->assertSee($this->sertifikat->pelatihanPeserta->pelatihan->nama_tampilan)
+            ->assertSee('001/BBPKPD/2026')
+            ->assertSee('/sertifikat/unduh/'.$this->sertifikat->id, escape: false)
+            ->assertDontSee('Budi Santoso')
+            ->assertDontSee('Kedungsalam')
+            ->assertDontSee($this->pesanSeragam);
+    });
+
+    it('memberi pesan yang sama untuk NIK tak dikenal dan NIK tanpa sertifikat', function () {
+        $tanpa = Peserta::factory()->create(['nik' => '3507000000000002']);
+        PelatihanPeserta::factory()->for($tanpa)->create();
+
+        foreach (['3507999999999999', '3507000000000002'] as $nik) {
+            Livewire::test(UnduhSertifikat::class)
+                ->fillForm(['nik' => $nik])
+                ->call('cari')
+                ->assertSee($this->pesanSeragam)
+                ->assertDontSee($tanpa->nama_lengkap)
+                ->assertDontSee(Masking::nama($tanpa->nama_lengkap));
+        }
+    });
+
+    it('merapikan spasi dan tanda hubung pada NIK yang ditempel', function () {
+        Livewire::test(UnduhSertifikat::class)
+            ->fillForm(['nik' => '3507 0000-0000 0001'])
+            ->call('cari')
+            ->assertHasNoFormErrors()
+            ->assertSee('Bu** Sa*****');
+    });
+
+    it('memvalidasi NIK 16 angka', function () {
+        Livewire::test(UnduhSertifikat::class)
+            ->fillForm(['nik' => '35070000'])
+            ->call('cari')
+            ->assertHasFormErrors(['nik'])
+            ->assertDontSee($this->pesanSeragam);
+    });
+
+    it('tidak mencari bila honeypot terisi', function () {
+        DB::enableQueryLog();
+
+        Livewire::test(UnduhSertifikat::class)
+            ->set('website', 'http://spam.test')
+            ->fillForm(['nik' => '3507000000000001'])
+            ->call('cari')
+            ->assertSee($this->pesanSeragam)
+            ->assertDontSee('Bu** Sa*****');
+
+        expect(collect(DB::getQueryLog())->pluck('query')->filter(fn (string $q): bool => str_contains($q, '`peserta`')))->toBeEmpty();
+    });
+
+    it('membatasi 10 pencarian gagal per jam per IP', function () {
+        foreach (range(1, 10) as $i) {
+            Livewire::test(UnduhSertifikat::class)->fillForm(['nik' => sprintf('35079999999999%02d', $i)])->call('cari')->assertSee($this->pesanSeragam);
+        }
+
+        Livewire::test(UnduhSertifikat::class)
+            ->fillForm(['nik' => '3507000000000001'])
+            ->call('cari')
+            ->assertSee('Terlalu banyak percobaan. Coba lagi dalam 60 menit.')
+            ->assertDontSee('Bu** Sa*****');
+    });
+
+    it('tidak memblokir satu kelas yang mencari bersamaan dari satu jaringan', function () {
+        foreach (range(1, 11) as $i) {
+            Livewire::test(UnduhSertifikat::class)->fillForm(['nik' => '3507000000000001'])->call('cari')->assertSee('Bu** Sa*****');
+        }
+    });
+
+    it('membatasi total pencarian per jam per IP', function () {
+        config(['bbpd.sertifikat_publik.maks_per_jam' => 3]);
+
+        foreach (range(1, 3) as $i) {
+            Livewire::test(UnduhSertifikat::class)->fillForm(['nik' => '3507000000000001'])->call('cari')->assertSee('Bu** Sa*****');
+        }
+
+        Livewire::test(UnduhSertifikat::class)->fillForm(['nik' => '3507000000000001'])->call('cari')->assertSee('Terlalu banyak percobaan.');
     });
 });

@@ -60,6 +60,7 @@ Isian `.env` khusus aplikasi ini:
 | `SUPERADMIN_USERNAME`, `SUPERADMIN_PASSWORD`, `SUPERADMIN_EMAIL` | Akun superadmin pertama, dibuat seeder. Tanpa password, akun tidak dibuat |
 | `REGISTRASI_MAKS_PER_JAM` | Batas kiriman form registrasi per IP per jam (bawaan 5) |
 | `SERTIFIKAT_PUBLIK_MAKS_GAGAL_PER_JAM`, `SERTIFIKAT_PUBLIK_MAKS_PER_JAM` | Batas pencarian di `/sertifikat` per IP per jam: pencarian yang tidak menemukan apa pun (30), dan semua pencarian (120) |
+| `SERTIFIKAT_PUBLIK_MAKS_UNDUH_PER_JAM` | Batas unduhan sertifikat dari `/sertifikat` per IP per jam (120) |
 | `SESSION_BATAS_DIAM`, `SESSION_BATAS_MUTLAK` | Panitia otomatis keluar setelah diam sekian menit (30), atau setelah login sekian menit (480) |
 | `TRUSTED_PROXIES` | IP reverse proxy di depan aplikasi. Tanpa ini, semua pengunjung tampak ber-IP sama dan batas per IP berlaku untuk semua orang sekaligus |
 

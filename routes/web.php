@@ -12,10 +12,12 @@ Route::redirect('/', '/daftar');
 Route::get('/daftar', Registrasi::class)->name('registrasi');
 
 // Unduh sertifikat oleh peserta tanpa login (PF-40): tautan relatif bertanda tangan dari halaman /sertifikat.
+// Tanda tangan diperiksa di controller, bukan middleware `signed`, agar ID yang ada dan tidak ada
+// mendapat jawaban sama. Batas unduhan: limiter `sertifikat-unduh` (AppServiceProvider).
 Route::get('/sertifikat', UnduhSertifikat::class)->name('sertifikat.publik');
 
 Route::get('/sertifikat/unduh/{sertifikatPeserta}', [BerkasController::class, 'sertifikatPublik'])
-    ->middleware(['signed:relative', 'throttle:120,60', HeaderKeamanan::class])
+    ->middleware(['throttle:sertifikat-unduh', HeaderKeamanan::class])
     ->name('sertifikat.publik.unduh');
 
 Route::middleware(['auth', HeaderKeamanan::class])->group(function () {

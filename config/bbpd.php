@@ -27,6 +27,7 @@ return [
     'sertifikat_publik' => [
         'maks_gagal_per_jam' => (int) env('SERTIFIKAT_PUBLIK_MAKS_GAGAL_PER_JAM', 30),
         'maks_per_jam' => (int) env('SERTIFIKAT_PUBLIK_MAKS_PER_JAM', 120),
+        'maks_unduh_per_jam' => (int) env('SERTIFIKAT_PUBLIK_MAKS_UNDUH_PER_JAM', 120),
     ],
 
     /*

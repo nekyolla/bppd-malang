@@ -51,6 +51,13 @@
             </ul>
 
             <p class="mt-3 text-xs text-gray-500">Tautan unduh berlaku 15 menit. Bila kedaluwarsa, cari ulang.</p>
+
+            <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-gray-600">Memakai perangkat bersama? Tutup hasil setelah mengunduh.</p>
+                <x-filament::button wire:click="tutup" color="gray" outlined icon="heroicon-o-x-mark" class="shrink-0">
+                    Tutup hasil
+                </x-filament::button>
+            </div>
         @endif
     </div>
 

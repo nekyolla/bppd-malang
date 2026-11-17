@@ -10,6 +10,7 @@ use Filament\Schemas\Schema;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -32,8 +33,10 @@ class UnduhSertifikat extends Component implements HasSchemas
     /**
      * @var array{nama: string, daftar: list<array{pelatihan: string, tanggal: string, nomor: ?string, url: string}>}|null
      */
+    #[Locked]
     public ?array $hasil = null;
 
+    #[Locked]
     public bool $tidakDitemukan = false;
 
     /**
@@ -41,11 +44,15 @@ class UnduhSertifikat extends Component implements HasSchemas
      */
     public string $website = '';
 
+    #[Locked]
     public ?string $galatUmum = null;
 
     public function mount(): void
     {
         $this->form->fill();
+
+        // Dari tautan unduh yang kedaluwarsa (BerkasController::sertifikatPublik).
+        $this->galatUmum = session('galatUmum');
     }
 
     public function form(Schema $schema): Schema
@@ -108,6 +115,16 @@ class UnduhSertifikat extends Component implements HasSchemas
         }
 
         RateLimiter::decrement($kunciGagal, 3600);
+    }
+
+    /**
+     * Menutup hasil dan mengosongkan NIK, agar orang berikutnya di perangkat bersama
+     * tidak melihat sertifikat orang lain.
+     */
+    public function tutup(): void
+    {
+        $this->reset('hasil', 'tidakDitemukan', 'galatUmum');
+        $this->form->fill();
     }
 
     public function render(): View

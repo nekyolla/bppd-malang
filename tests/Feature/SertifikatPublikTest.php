@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
@@ -92,13 +93,41 @@ describe('unduhan', function () {
             ->subject->is($this->sertifikat)->toBeTrue();
     });
 
-    it('menolak tautan tanpa tanda tangan atau yang kedaluwarsa', function () {
-        $this->get("/sertifikat/unduh/{$this->sertifikat->id}")->assertForbidden();
+    it('mengarahkan tautan tanpa tanda tangan atau yang kedaluwarsa ke halaman cari ulang', function () {
+        $this->get("/sertifikat/unduh/{$this->sertifikat->id}")
+            ->assertRedirect('/sertifikat')
+            ->assertSessionHas('galatUmum', 'Tautan unduh sudah kedaluwarsa. Cari ulang sertifikat Anda.');
 
         $this->travel(16)->minutes();
-        $this->get($this->url)->assertForbidden();
+        $this->get($this->url)->assertRedirect('/sertifikat');
 
         expect(Activity::query()->where('event', 'unduh_publik')->exists())->toBeFalse();
+    });
+
+    it('memberi jawaban yang sama untuk ID sertifikat yang ada dan yang tidak ada', function () {
+        $ada = $this->get("/sertifikat/unduh/{$this->sertifikat->id}");
+        $tidakAda = $this->get('/sertifikat/unduh/999999');
+        $bukanAngka = $this->get('/sertifikat/unduh/abc');
+
+        foreach ([$tidakAda, $bukanAngka] as $respons) {
+            expect($respons->getStatusCode())->toBe($ada->getStatusCode())
+                ->and($respons->headers->get('Location'))->toBe($ada->headers->get('Location'));
+        }
+    });
+
+    it('menampilkan pesan kedaluwarsa di halaman /sertifikat', function () {
+        $this->followingRedirects()->get("/sertifikat/unduh/{$this->sertifikat->id}")
+            ->assertOk()
+            ->assertSee('Tautan unduh sudah kedaluwarsa. Cari ulang sertifikat Anda.');
+    });
+
+    it('membatasi unduhan per jam per IP sesuai config', function () {
+        RateLimiter::clear('sertifikat-unduh:127.0.0.1');
+        config(['bbpd.sertifikat_publik.maks_unduh_per_jam' => 2]);
+
+        $this->get($this->url)->assertOk();
+        $this->get($this->url)->assertOk();
+        $this->get($this->url)->assertTooManyRequests();
     });
 
     it('tetap sah bila diakses lewat host atau skema lain (di balik proxy)', function () {
@@ -137,6 +166,27 @@ describe('halaman /sertifikat', function () {
             // Hanya tampil di langkah 1: wizard mengabarkan langkahnya, kartu mendengarkan.
             ->assertSee('x-effect="$dispatch(\'langkah-registrasi\', { pertama: getStepIndex(step) <= 0 })"', escape: false)
             ->assertSee('x-on:langkah-registrasi.window="tampil = $event.detail.pertama"', escape: false);
+    });
+
+    it('menolak perubahan hasil dari browser', function (string $properti, mixed $nilai) {
+        Livewire::test(UnduhSertifikat::class)->set($properti, $nilai);
+    })->with([
+        'hasil' => ['hasil', ['nama' => 'X', 'daftar' => []]],
+        'tidak ditemukan' => ['tidakDitemukan', true],
+        'galat umum' => ['galatUmum', 'Pesan palsu'],
+    ])->throws(CannotUpdateLockedPropertyException::class);
+
+    it('dapat menutup hasil dan mengosongkan NIK untuk perangkat bersama', function () {
+        Livewire::test(UnduhSertifikat::class)
+            ->fillForm(['nik' => '3507000000000001'])
+            ->call('cari')
+            ->assertSee('Bu** Sa*****')
+            ->assertSee('Tutup hasil')
+            ->call('tutup')
+            ->assertDontSee('Bu** Sa*****')
+            ->assertDontSee('Tutup hasil')
+            ->assertSet('hasil', null)
+            ->assertSet('data.nik', null);
     });
 
     it('membatasi isian NIK 16 angka di browser', function () {

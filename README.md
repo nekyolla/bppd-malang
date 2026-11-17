@@ -190,6 +190,7 @@ Hal-hal ini pernah menimbulkan bug. Baca sebelum mengubah bagian terkait.
 - Setiap perubahan service wajib disertai test Pest.
 - Pakai factory. Jangan bergantung pada data wilayah hasil seeder.
 - Test ada di `tests/Feature` (service, panel admin di `Admin/`, halaman publik) dan `tests/Unit` (enum, format, data wilayah).
+- **Pemeriksaan otomatis (GitHub Actions):** `.github/workflows/test.yml` menjalankan `pint --test` dan seluruh test dengan MySQL 8.4 setiap push ke `main` dan setiap pull request. Bila repo dipindah dari GitHub, jalankan dua perintah itu secara manual sebelum menggabungkan perubahan.
 
 ## Konvensi
 

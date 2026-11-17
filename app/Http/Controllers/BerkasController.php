@@ -6,8 +6,11 @@ use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
 use App\Models\SertifikatPeserta;
 use App\Services\RegistrasiService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -67,10 +70,18 @@ class BerkasController extends Controller
 
     /**
      * Unduhan sertifikat oleh peserta tanpa login (PF-40). Izin berasal dari tanda tangan
-     * tautan (middleware `signed:relative`, 15 menit) yang dibuat setelah peserta mengisi NIK.
+     * tautan (15 menit) yang dibuat setelah peserta mengisi NIK. Tanda tangan diperiksa
+     * sebelum mencari sertifikat: tautan tanpa tanda tangan sah selalu dialihkan ke halaman
+     * cari ulang, sehingga ID yang ada dan tidak ada tidak dapat dibedakan.
      */
-    public function sertifikatPublik(SertifikatPeserta $sertifikatPeserta): StreamedResponse
+    public function sertifikatPublik(Request $request, string $sertifikatPeserta): StreamedResponse|RedirectResponse
     {
+        if (! URL::hasValidSignature($request, absolute: false)) {
+            return redirect()->route('sertifikat.publik')
+                ->with('galatUmum', 'Tautan unduh sudah kedaluwarsa. Cari ulang sertifikat Anda.');
+        }
+
+        $sertifikatPeserta = SertifikatPeserta::query()->findOrFail($sertifikatPeserta);
         $disk = Storage::disk(RegistrasiService::DISK);
         $path = $sertifikatPeserta->file_sertifikat;
 

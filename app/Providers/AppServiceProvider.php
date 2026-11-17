@@ -5,8 +5,11 @@ namespace App\Providers;
 use App\Policies\ActivityPolicy;
 use App\Support\Warna;
 use Filament\Support\Facades\FilamentColor;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Activitylog\Models\Activity;
 
@@ -36,5 +39,11 @@ class AppServiceProvider extends ServiceProvider
         if (filled($proxy = config('bbpd.proxy_tepercaya'))) {
             TrustProxies::at($proxy === '*' ? '*' : array_map('trim', explode(',', $proxy)));
         }
+
+        // Batas unduhan sertifikat publik per IP (PF-40). Config dibaca setiap permintaan,
+        // jadi tetap berlaku setelah `route:cache`.
+        RateLimiter::for('sertifikat-unduh', fn (Request $request): Limit => Limit::perHour(
+            config('bbpd.sertifikat_publik.maks_unduh_per_jam'),
+        )->by($request->ip()));
     }
 }

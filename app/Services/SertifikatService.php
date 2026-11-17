@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Concerns\MenolakAturan;
 use App\Support\FormatTanggal;
 use App\Support\Masking;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -26,6 +27,8 @@ use Throwable;
 class SertifikatService
 {
     use MenolakAturan;
+
+    private const PESAN_NOMOR_TERPAKAI = 'Nomor sertifikat sudah dipakai peserta lain.';
 
     /**
      * Path unik per unggahan, agar berkas lama tidak tertimpa sebelum baris tersimpan.
@@ -107,6 +110,8 @@ class SertifikatService
                 $disk->delete($path);
             }
 
+            $this->tolakBilaNomorBentrok($e);
+
             throw $e;
         }
 
@@ -164,7 +169,13 @@ class SertifikatService
         $nomor = $this->rapikanNomor($nomor);
         $this->tolakNomorTerpakai($nomor, $sertifikat->getKey());
 
-        $sertifikat->update(['nomor_sertifikat' => $nomor]);
+        try {
+            $sertifikat->update(['nomor_sertifikat' => $nomor]);
+        } catch (UniqueConstraintViolationException $e) {
+            $this->tolakBilaNomorBentrok($e);
+
+            throw $e;
+        }
     }
 
     private function rapikanNomor(?string $nomor): ?string
@@ -189,7 +200,20 @@ class SertifikatService
             ->exists();
 
         if ($terpakai) {
-            $this->tolak('nomor_sertifikat', 'Nomor sertifikat sudah dipakai peserta lain.');
+            $this->tolak('nomor_sertifikat', self::PESAN_NOMOR_TERPAKAI);
+        }
+    }
+
+    /**
+     * Pemeriksaan nomor di `tolakNomorTerpakai` dapat didahului admin lain yang menyimpan nomor
+     * yang sama bersamaan; indeks unik menangkapnya, lalu ditampilkan sebagai pesan biasa.
+     *
+     * @throws ValidationException
+     */
+    private function tolakBilaNomorBentrok(Throwable $e): void
+    {
+        if ($e instanceof UniqueConstraintViolationException && str_contains($e->getMessage(), 'nomor_sertifikat')) {
+            $this->tolak('nomor_sertifikat', self::PESAN_NOMOR_TERPAKAI);
         }
     }
 

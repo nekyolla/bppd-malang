@@ -5,6 +5,7 @@ use App\Models\SertifikatPeserta;
 use App\Models\User;
 use App\Services\SertifikatService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
@@ -167,3 +168,21 @@ it('menolak nomor sertifikat yang sudah dipakai peserta lain (PF-37)', function 
         ->toBe(['nomor_sertifikat' => ['Nomor sertifikat sudah dipakai peserta lain.']])
         ->and(Storage::disk('local')->allFiles())->toHaveCount(2);
 });
+
+it('menolak dengan pesan, bukan galat 500, bila nomor yang sama disimpan admin lain bersamaan', function (string $cara) {
+    $lain = $this->service->unggah(pendaftaranBerstatus('selesai'), ($this->pdf)(), $this->admin);
+    $sasaran = $this->service->unggah(pendaftaranBerstatus('selesai'), ($this->pdf)(), $this->admin);
+
+    // Admin lain menyimpan nomor yang sama tepat sesudah pemeriksaan awal service lolos.
+    SertifikatPeserta::saving(function () use ($lain): void {
+        DB::table('sertifikat_peserta')->where('id', $lain->id)->update(['nomor_sertifikat' => '002/BBPKPD/2026']);
+    });
+
+    $simpan = match ($cara) {
+        'ubah nomor' => fn () => $this->service->ubahNomor($sasaran, '002/BBPKPD/2026'),
+        'unggah' => fn () => $this->service->unggah(pendaftaranBerstatus('selesai'), ($this->pdf)(), $this->admin, '002/BBPKPD/2026'),
+    };
+
+    expect(galatSertifikat($simpan))->toBe(['nomor_sertifikat' => ['Nomor sertifikat sudah dipakai peserta lain.']])
+        ->and(Storage::disk('local')->allFiles())->toHaveCount(2);
+})->with(['ubah nomor', 'unggah']);

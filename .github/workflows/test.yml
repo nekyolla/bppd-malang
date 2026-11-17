@@ -35,7 +35,7 @@ jobs:
       DB_PASSWORD: password
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Server produksi wajib PHP >= 8.5.12 (tambalan PHP2Shell); ekstensi sama dengan panduan deployment.
       - uses: shivammathur/setup-php@v2
@@ -45,7 +45,7 @@ jobs:
           coverage: none
 
       - name: Cache Composer
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.composer/cache/files
           key: composer-${{ hashFiles('composer.lock') }}

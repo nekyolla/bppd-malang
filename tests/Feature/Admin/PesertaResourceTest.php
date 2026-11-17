@@ -75,6 +75,15 @@ it('menampilkan detail lengkap dengan NIK penuh, pratinjau berkas, dan tombol ke
         ->assertActionExists('kembali');
 });
 
+it('menampilkan NPWP dan status PTKP kepada admin, bukan hanya superadmin (PF-10)', function () {
+    $this->peserta->update(['npwp' => '123456789012345']);
+
+    Livewire::test(ViewPeserta::class, ['record' => $this->peserta->getRouteKey()])
+        ->assertSee('NPWP')
+        ->assertSee('123456789012345')
+        ->assertSee($this->peserta->statusPtkp->kode);
+});
+
 it('berjudul nama peserta dengan jabatan dan desa sebagai subjudul', function () {
     $this->peserta->load('jabatan', 'desa');
 

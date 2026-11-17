@@ -60,13 +60,16 @@ it('memakai label "yang mengikuti" untuk statistik (PF-36)', function () {
         ->assertSee(['Jumlah peserta', 'Kab/kota yang mengikuti', 'Desa yang telah mengikuti'])
         ->assertDontSee(['Peserta terlatih', 'Kab/kota terlatih', 'Desa terlatih', 'Desa belum terlatih']);
 
+    // Judul kolom tabel dipatahkan dua baris agar tidak terlipat sembarangan (revisi 17 Nov).
     Livewire::test(StatistikProvinsi::class)
-        ->assertSee(['Kab/kota yang mengikuti', 'Desa yang telah mengikuti', 'Desa yang belum mengikuti', 'Jumlah peserta'])
+        ->assertSeeHtml(['Kab/kota<br>yang mengikuti', 'Desa yang<br>telah mengikuti', 'Desa yang<br>belum mengikuti'])
+        ->assertSee('Jumlah peserta')
         ->assertDontSee(['Peserta terlatih', 'Kab/kota terlatih', 'Desa terlatih', 'Desa belum terlatih']);
 
     $this->get(RincianWilayah::getUrl(['provinsi' => $this->jatim->id]))
         ->assertOk()
-        ->assertSee(['Desa yang telah mengikuti', 'Desa yang belum mengikuti', 'Jumlah peserta'])
+        ->assertSee(['Desa yang<br>telah mengikuti', 'Desa yang<br>belum mengikuti'], escape: false)
+        ->assertSee('Jumlah peserta')
         ->assertDontSee('Desa terlatih');
 });
 

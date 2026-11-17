@@ -13,6 +13,7 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Number;
 use Livewire\Attributes\Url;
 use UnitEnum;
@@ -83,13 +84,13 @@ class RincianWilayah extends Page implements HasTable
                     TextColumn::make('nama')->label($this->tingkat() === 'kab_kota' ? 'Kabupaten/kota' : 'Provinsi'),
                     ...($this->tingkat() === 'provinsi' ? [
                         TextColumn::make('kab_kota_terlatih')
-                            ->label('Kab/kota yang mengikuti')
+                            ->label(new HtmlString('Kab/kota<br>yang mengikuti'))
                             ->formatStateUsing(fn ($state, array $record): string => "{$angka($state)} dari {$angka($record['total_kab_kota'])}"),
                     ] : []),
                     TextColumn::make('desa_terlatih')
-                        ->label('Desa yang telah mengikuti')
+                        ->label(new HtmlString('Desa yang<br>telah mengikuti'))
                         ->formatStateUsing(fn ($state, array $record): string => "{$angka($state)} dari {$angka($record['total_desa'])}"),
-                    TextColumn::make('desa_belum_terlatih')->label('Desa yang belum mengikuti')->formatStateUsing($angka),
+                    TextColumn::make('desa_belum_terlatih')->label(new HtmlString('Desa yang<br>belum mengikuti'))->formatStateUsing($angka),
                     TextColumn::make('peserta_terlatih')->label('Jumlah peserta')->formatStateUsing($angka),
                 ],
             })

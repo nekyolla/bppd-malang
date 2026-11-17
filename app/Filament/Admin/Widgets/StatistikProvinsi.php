@@ -8,6 +8,7 @@ use App\Services\StatistikService;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Number;
 
 /**
@@ -35,14 +36,14 @@ class StatistikProvinsi extends TableWidget
             ->columns([
                 TextColumn::make('nama')->label('Provinsi'),
                 TextColumn::make('kab_kota_terlatih')
-                    ->label('Kab/kota yang mengikuti')
+                    ->label(new HtmlString('Kab/kota<br>yang mengikuti'))
                     ->formatStateUsing(fn ($state, array $record): string => "{$angka($state)} dari {$angka($record['total_kab_kota'])}"),
                 TextColumn::make('desa_terlatih')
-                    ->label('Desa yang telah mengikuti')
+                    ->label(new HtmlString('Desa yang<br>telah mengikuti'))
                     ->formatStateUsing($angka)
                     ->alignEnd(),
                 TextColumn::make('desa_belum_terlatih')
-                    ->label('Desa yang belum mengikuti')
+                    ->label(new HtmlString('Desa yang<br>belum mengikuti'))
                     ->formatStateUsing($angka)
                     ->alignEnd(),
                 TextColumn::make('peserta_terlatih')

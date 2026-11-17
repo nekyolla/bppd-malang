@@ -18,7 +18,14 @@ class ProvinsiFactory extends Factory
     public function definition(): array
     {
         return [
-            'kode' => fake()->unique()->numerify('##'),
+            // Lewati kode yang sudah dibuat eksplisit oleh test (mis. '35'), agar tidak bentrok unik.
+            'kode' => function (): string {
+                do {
+                    $kode = fake()->unique()->numerify('##');
+                } while (Provinsi::query()->where('kode', $kode)->exists());
+
+                return $kode;
+            },
             'nama' => fake()->state(),
         ];
     }

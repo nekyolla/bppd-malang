@@ -10,6 +10,11 @@ Route::redirect('/', '/daftar');
 
 Route::get('/daftar', Registrasi::class)->name('registrasi');
 
+// Unduh sertifikat oleh peserta tanpa login (PF-40): tautan relatif bertanda tangan dari halaman /sertifikat.
+Route::get('/sertifikat/unduh/{sertifikatPeserta}', [BerkasController::class, 'sertifikatPublik'])
+    ->middleware(['signed:relative', 'throttle:120,60', HeaderKeamanan::class])
+    ->name('sertifikat.publik.unduh');
+
 Route::middleware(['auth', HeaderKeamanan::class])->group(function () {
     Route::get('/berkas/pendaftaran/{pelatihanPeserta}/{jenis}', [BerkasController::class, 'pendaftaran'])
         ->whereIn('jenis', array_keys(BerkasController::JENIS_PENDAFTARAN))

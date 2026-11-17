@@ -7,9 +7,12 @@ use App\Models\PelatihanPeserta;
 use App\Models\SertifikatPeserta;
 use App\Models\User;
 use App\Services\Concerns\MenolakAturan;
+use App\Support\FormatTanggal;
+use App\Support\Masking;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -112,6 +115,43 @@ class SertifikatService
         }
 
         return $sertifikat;
+    }
+
+    /**
+     * Sertifikat milik satu NIK untuk halaman publik (PF-40): nama tersamar dan daftar
+     * sertifikat yang sudah diunggah admin, terbaru dulu, dengan tautan unduh relatif
+     * bertanda tangan (15 menit). Null bila NIK tak dikenal atau belum punya sertifikat,
+     * agar keduanya tidak dapat dibedakan.
+     *
+     * @return array{nama: string, daftar: list<array{pelatihan: string, tanggal: string, nomor: ?string, url: string}>}|null
+     */
+    public function untukPublik(string $nik): ?array
+    {
+        $sertifikat = SertifikatPeserta::query()
+            ->whereHas('pelatihanPeserta.peserta', fn ($query) => $query->where('nik', $nik))
+            ->with(['pelatihanPeserta.pelatihan.judulPelatihan', 'pelatihanPeserta.peserta'])
+            ->get()
+            ->sortByDesc(fn (SertifikatPeserta $s) => $s->pelatihanPeserta->pelatihan->tanggal_mulai)
+            ->values();
+
+        if ($sertifikat->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'nama' => Masking::nama($sertifikat->first()->pelatihanPeserta->peserta->nama_lengkap),
+            'daftar' => $sertifikat->map(function (SertifikatPeserta $s): array {
+                $pelatihan = $s->pelatihanPeserta->pelatihan;
+
+                return [
+                    'pelatihan' => $pelatihan->nama_tampilan,
+                    'tanggal' => FormatTanggal::rentang($pelatihan->tanggal_mulai, $pelatihan->tanggal_selesai),
+                    'nomor' => $s->nomor_sertifikat,
+                    // Relatif: proxy/HTTPS server balai belum diketahui (spesifikasi PF-40).
+                    'url' => URL::temporarySignedRoute('sertifikat.publik.unduh', now()->addMinutes(15), ['sertifikatPeserta' => $s], absolute: false),
+                ];
+            })->all(),
+        ];
     }
 
     /**

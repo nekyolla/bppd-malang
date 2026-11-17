@@ -64,6 +64,17 @@ class PesertaKelas extends Page implements HasTable
         return "Kelas {$this->kelas()->nama_kelas}";
     }
 
+    /**
+     * Berawal dari menu Pendaftaran seperti sub-halaman kerja lain (PF-38, lihat
+     * `HalamanKerjaPelatihan`; trait itu bentrok dengan `InteractsWithRecord`).
+     *
+     * @return array<string>
+     */
+    public function getBreadcrumbs(): array
+    {
+        return [PendaftaranResource::getUrl('index') => 'Pendaftaran', $this->getBreadcrumb()];
+    }
+
     public function table(Table $table): Table
     {
         return $table

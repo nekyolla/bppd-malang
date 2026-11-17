@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['pelatihan_peserta_id', 'file_sertifikat', 'diupload_oleh'])]
+#[Fillable(['pelatihan_peserta_id', 'nomor_sertifikat', 'file_sertifikat', 'diupload_oleh'])]
 class SertifikatPeserta extends Model
 {
     use Diaudit;

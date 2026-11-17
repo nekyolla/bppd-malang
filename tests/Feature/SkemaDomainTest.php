@@ -83,17 +83,19 @@ it('membuat seluruh tabel domain', function () {
         ->and(Schema::hasColumn('pelatihan_peserta', 'menggantikan_id'))->toBeFalse()
         ->and(Schema::hasColumn('peserta', 'sumber_dana_default_id'))->toBeFalse();
 
+    // Nomor sertifikat kembali sebagai isian opsional untuk export (PF-37).
+    expect(Schema::hasColumn('sertifikat_peserta', 'nomor_sertifikat'))->toBeTrue();
+
     foreach (['sertifikat_peserta', 'penggunaan_kamar', 'asrama_peserta'] as $tabel) {
         expect(Schema::hasTable($tabel))->toBeTrue($tabel);
     }
 });
 
-it('tidak menyimpan presensi, nilai, maupun nomor sertifikat (PF-22, PF-26, PF-27)', function () {
+it('tidak menyimpan presensi, nilai, maupun tanggal terbit sertifikat (PF-22, PF-26, PF-27)', function () {
     expect(Schema::hasTable('presensi'))->toBeFalse()
         ->and(Schema::hasTable('lembar_presensi'))->toBeFalse()
         ->and(Schema::hasColumn('pelatihan_peserta', 'nilai_pretest'))->toBeFalse()
         ->and(Schema::hasColumn('pelatihan_peserta', 'nilai_posttest'))->toBeFalse()
-        ->and(Schema::hasColumn('sertifikat_peserta', 'nomor_sertifikat'))->toBeFalse()
         ->and(Schema::hasColumn('sertifikat_peserta', 'tanggal_terbit'))->toBeFalse();
 });
 

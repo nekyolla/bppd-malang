@@ -17,7 +17,9 @@ use Database\Seeders\RoleSeeder;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     $this->seed(RoleSeeder::class);
@@ -317,4 +319,15 @@ it('menampilkan snapshot jabatan beserta periodenya di detail pendaftaran (PF-25
     Livewire::test(ViewPendaftaran::class, ['record' => $pendaftaran->getRouteKey()])
         ->assertSee('Kepala Desa (periode ke-1)')
         ->assertSee('Periode ke-1');
+});
+
+it('mengunduh Excel data peserta dari halaman pendaftar dan mencatatnya (PF-37)', function () {
+    PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create();
+
+    Livewire::test(ManagePendaftar::class, ['record' => $this->pelatihan->getRouteKey()])
+        ->assertActionVisible('exportExcel')
+        ->callAction('exportExcel')
+        ->assertFileDownloaded(Str::slug("data-peserta {$this->pelatihan->nama_tampilan}").'.xlsx');
+
+    expect(Activity::query()->where('log_name', 'unduhan')->where('subject_id', $this->pelatihan->id)->exists())->toBeTrue();
 });

@@ -36,8 +36,8 @@ enum StatusPelatihan: string implements HasColor, HasLabel
     }
 
     /**
-     * Form registrasi publik menerima pendaftaran saat pelatihan dibuka
-     * atau sedang berjalan (PF-02).
+     * Form registrasi publik hanya menerima pendaftaran saat pelatihan dibuka;
+     * "Mulai pelatihan" sekaligus menutup pendaftaran (PF-35, mengubah PF-02).
      */
     public function menerimaPendaftaran(): bool
     {
@@ -49,7 +49,7 @@ enum StatusPelatihan: string implements HasColor, HasLabel
      */
     public static function yangMenerimaPendaftaran(): array
     {
-        return [self::Dibuka, self::Berjalan];
+        return [self::Dibuka];
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 use App\Enums\StatusPelatihan;
 use App\Enums\StatusPendaftaran;
 use App\Filament\Admin\Actions\BagiAcakKelasAction;
+use App\Filament\Admin\Resources\Pelatihan\Pages\Concerns\HalamanKerjaPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Filament\Admin\Support\GalatService;
 use App\Models\KelasPelatihan;
@@ -30,6 +31,8 @@ use Illuminate\Validation\Rules\Unique;
  */
 class ManageKelas extends ManageRelatedRecords
 {
+    use HalamanKerjaPelatihan;
+
     protected static string $resource = PelatihanResource::class;
 
     protected static string $relationship = 'kelas';

@@ -62,11 +62,6 @@ class Login extends BaseLogin
         return 'Masuk';
     }
 
-    public function getSubheading(): string
-    {
-        return 'Khusus panitia pelatihan.';
-    }
-
     public function authenticate(): ?LoginResponse
     {
         $key = $this->getUsernameRateLimitKey();

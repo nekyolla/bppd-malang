@@ -8,7 +8,6 @@ use App\Filament\Concerns\MemetakanGalatService;
 use App\Services\PelatihanService;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
-use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
 
 class EditPelatihan extends EditRecord
@@ -16,10 +15,6 @@ class EditPelatihan extends EditRecord
     use MemetakanGalatService;
 
     protected static string $resource = PelatihanResource::class;
-
-    protected static ?string $navigationLabel = 'Data pelatihan';
-
-    protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
     protected function getHeaderActions(): array
     {

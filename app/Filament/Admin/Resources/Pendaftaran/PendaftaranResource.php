@@ -2,6 +2,11 @@
 
 namespace App\Filament\Admin\Resources\Pendaftaran;
 
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManageKelas;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePembagianKelas;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManagePendaftar;
+use App\Filament\Admin\Resources\Pelatihan\Pages\ManageSertifikat;
+use App\Filament\Admin\Resources\Pelatihan\Pages\PesertaKelas;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ListPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Pages\ViewPendaftaran;
 use App\Filament\Admin\Resources\Pendaftaran\Schemas\PendaftaranInfolist;
@@ -45,6 +50,23 @@ class PendaftaranResource extends Resource
     public static function infolist(Schema $schema): Schema
     {
         return PendaftaranInfolist::configure($schema);
+    }
+
+    /**
+     * Menu Pendaftaran tetap aktif di sub-halaman kerja per pelatihan (PF-38).
+     *
+     * @return array<string>
+     */
+    public static function getNavigationItemActiveRoutePattern(): array
+    {
+        return [
+            static::getRouteBaseName().'.*',
+            ManagePendaftar::getRouteName(),
+            ManageKelas::getRouteName(),
+            PesertaKelas::getRouteName(),
+            ManagePembagianKelas::getRouteName(),
+            ManageSertifikat::getRouteName(),
+        ];
     }
 
     public static function getPages(): array

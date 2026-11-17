@@ -136,3 +136,34 @@ it('mencatat penggantian sertifikat tepat satu kali di audit log, juga oleh admi
         ->and($baru->first()->properties['old']['file_sertifikat'])->toBe($sertifikat->file_sertifikat)
         ->and($baru->first()->properties['attributes']['diupload_oleh'])->toBe($pengganti->id);
 })->with(['admin sama' => true, 'admin lain' => false]);
+
+it('menyimpan nomor sertifikat opsional saat unggah dan ganti (PF-37)', function () {
+    $pendaftaran = pendaftaranBerstatus('selesai');
+
+    expect($this->service->unggah($pendaftaran, ($this->pdf)(), $this->admin)->nomor_sertifikat)->toBeNull()
+        ->and($this->service->unggah($pendaftaran, ($this->pdf)(), $this->admin, ' 001/BBPKPD/2026 ')->nomor_sertifikat)->toBe('001/BBPKPD/2026')
+        // Ganti berkas tanpa nomor tidak menghapus nomor lama.
+        ->and($this->service->unggah($pendaftaran, ($this->pdf)(), $this->admin)->nomor_sertifikat)->toBe('001/BBPKPD/2026');
+});
+
+it('mengubah nomor sertifikat tanpa mengganti berkas (PF-37)', function () {
+    $sertifikat = $this->service->unggah(pendaftaranBerstatus('selesai'), ($this->pdf)(), $this->admin);
+    $path = $sertifikat->file_sertifikat;
+
+    $this->service->ubahNomor($sertifikat, '002/BBPKPD/2026');
+    expect($sertifikat->fresh())->nomor_sertifikat->toBe('002/BBPKPD/2026')->file_sertifikat->toBe($path);
+
+    $this->service->ubahNomor($sertifikat, '  ');
+    expect($sertifikat->fresh()->nomor_sertifikat)->toBeNull();
+});
+
+it('menolak nomor sertifikat yang sudah dipakai peserta lain (PF-37)', function () {
+    $this->service->unggah(pendaftaranBerstatus('selesai'), ($this->pdf)(), $this->admin, '001/BBPKPD/2026');
+    $lain = $this->service->unggah(pendaftaranBerstatus('selesai'), ($this->pdf)(), $this->admin);
+
+    expect(galatSertifikat(fn () => $this->service->ubahNomor($lain, '001/BBPKPD/2026')))
+        ->toBe(['nomor_sertifikat' => ['Nomor sertifikat sudah dipakai peserta lain.']])
+        ->and(galatSertifikat(fn () => $this->service->unggah(pendaftaranBerstatus('selesai'), ($this->pdf)(), $this->admin, '001/BBPKPD/2026')))
+        ->toBe(['nomor_sertifikat' => ['Nomor sertifikat sudah dipakai peserta lain.']])
+        ->and(Storage::disk('local')->allFiles())->toHaveCount(2);
+});

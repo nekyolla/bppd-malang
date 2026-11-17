@@ -76,7 +76,7 @@ class UbahStatusPelatihanAction extends Action
 
         $teks .= match ($tujuan) {
             StatusPelatihan::Dibuka => ' Pelatihan akan muncul di form registrasi peserta.',
-            StatusPelatihan::Berjalan => ' Form registrasi tetap menerima pendaftaran selama pelatihan berjalan.',
+            StatusPelatihan::Berjalan => ' Pelatihan tidak lagi muncul di form registrasi, dan status tidak dapat dikembalikan. Pastikan peserta yang mendaftar mendadak sudah masuk.',
             StatusPelatihan::Selesai => ' Semua peserta terverifikasi akan otomatis berstatus Selesai, dan status tidak dapat dikembalikan.',
             default => '',
         };

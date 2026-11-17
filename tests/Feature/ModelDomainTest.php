@@ -148,7 +148,7 @@ it('menyaring data master aktif', function () {
         ->and($this->jabatan->fresh()->is_aktif)->toBeTrue();
 });
 
-it('menampilkan pelatihan dibuka dan berjalan di form registrasi', function () {
+it('hanya menampilkan pelatihan dibuka di form registrasi (PF-35)', function () {
     $status = [StatusPelatihan::Dibuka, StatusPelatihan::Berjalan, StatusPelatihan::Selesai];
 
     foreach ($status as $i => $s) {
@@ -157,7 +157,7 @@ it('menampilkan pelatihan dibuka dan berjalan di form registrasi', function () {
         $pelatihan->save();
     }
 
-    expect(Pelatihan::menerimaPendaftaran()->orderBy('batch_ke')->pluck('batch_ke')->all())->toBe([2, 3]);
+    expect(Pelatihan::menerimaPendaftaran()->orderBy('batch_ke')->pluck('batch_ke')->all())->toBe([2]);
 });
 
 it('mengabaikan status dan snapshot dari mass assignment', function () {

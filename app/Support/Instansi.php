@@ -16,5 +16,11 @@ class Instansi
 
     public const DIREKTORAT = 'Direktorat Jenderal Bina Pemerintahan Desa';
 
-    public const APLIKASI = 'Sistem Informasi Pelatihan Aparatur Desa';
+    /** Baris alamat & kontak kop surat (PF-39). */
+    public const ALAMAT = 'Jalan Raya Langsep Nomor 7, Malang Telepon/Faksimile (0341) 564782, 572071';
+
+    public const KONTAK = 'www.kemendagri.go.id, email: bbpmd7mlg@gmail.com';
+
+    /** Nama aplikasi (PF-32). */
+    public const APLIKASI = 'Sistem Informasi Pengembangan Kapasitas Pemerintahan Desa';
 }

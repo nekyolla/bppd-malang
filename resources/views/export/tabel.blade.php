@@ -1,4 +1,4 @@
-{{-- Daftar hadir per kelas per hari (ExportService), A4 tegak, satu halaman per lembar. Tanda tangan selang-seling dua sel. --}}
+{{-- Daftar hadir per kelas per hari (ExportService), A4 tegak, satu halaman per lembar dengan kop surat balai (PF-39). Tanda tangan selang-seling dua sel. --}}
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -18,13 +18,39 @@
         td.ttd { width: 25mm; height: 30px; }
         .no { width: 18px; text-align: right; }
         .lp { width: 18px; text-align: center; }
+        /* Kop surat mengikuti contoh surat balai (PF-39); tabel karena dompdf tidak mendukung flex. */
+        table.kop { margin: 0; }
+        .kop-garis { border-top: 2px solid #111; margin: 0 0 10px; }
+        table.kop td { border: 0; padding: 0 0 6px; vertical-align: middle; text-align: center; }
+        table.kop td.lambang { width: 24mm; text-align: left; }
+        table.kop td.lambang img { width: 20mm; }
+        .kop-instansi { font-size: 12px; line-height: 1.25; }
+        .kop-balai { font-size: 14px; font-weight: bold; line-height: 1.2; }
+        .kop-alamat { font-size: 9px; margin-top: 2px; }
         .kaki { position: fixed; bottom: -10mm; left: 0; right: 0; font-size: 8px; color: #555; }
     </style>
 </head>
 <body>
+    @php($lambang = \App\Support\Logo::lambangDataUri())
     @foreach ($lembar as $data)
         @php($awalTtd = count($data['kolom']) - $data['kolomTtd'])
         <div @class(['lembar-berikutnya' => ! $loop->first])>
+            <table class="kop">
+                <tr>
+                    <td class="lambang">
+                        @if ($lambang)
+                            <img src="{{ $lambang }}" alt="">
+                        @endif
+                    </td>
+                    <td>
+                        <div class="kop-instansi">{{ Str::upper(\App\Support\Instansi::KEMENTERIAN) }}<br>REPUBLIK INDONESIA<br>{{ Str::upper(\App\Support\Instansi::DIREKTORAT) }}</div>
+                        <div class="kop-balai">{{ Str::upper(\App\Support\Instansi::NAMA) }}</div>
+                        <div class="kop-alamat">{{ \App\Support\Instansi::ALAMAT }}<br>{{ \App\Support\Instansi::KONTAK }}</div>
+                    </td>
+                    <td class="lambang"></td>
+                </tr>
+            </table>
+            <div class="kop-garis"></div>
             <h1>{{ $data['judul'] }}</h1>
             @foreach ($data['keterangan'] as $teks)
                 <p class="keterangan">{{ $teks }}</p>

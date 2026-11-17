@@ -124,6 +124,8 @@ describe('pencarian topbar', function () {
 
         $hasil = PelatihanResource::getGlobalSearchResults($pelatihan->judulPelatihan->judul);
 
-        expect($hasil->pluck('title')->all())->toContain($pelatihan->nama_tampilan);
+        expect($hasil->pluck('title')->all())->toContain($pelatihan->nama_tampilan)
+            // Hasil pencarian membuka halaman kerja (pendaftar), bukan form ubah (PF-38).
+            ->and($hasil->firstWhere('title', $pelatihan->nama_tampilan)->url)->toBe(ManagePendaftar::getUrl(['record' => $pelatihan]));
     });
 });

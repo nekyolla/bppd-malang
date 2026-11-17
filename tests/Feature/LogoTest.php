@@ -31,11 +31,11 @@ it('memakai lambang dari folder logo bila tersedia', function () {
     $this->get('/daftar')->assertOk()->assertSee('images-uji/lambang.png', escape: false);
 });
 
-it('menampilkan halaman login dua kolom dengan nama instansi dan sistem (PF-20)', function () {
+it('menampilkan halaman login dua kolom dengan nama instansi dan sistem (PF-20, PF-32, PF-33)', function () {
     $this->get('/admin/login')->assertOk()
         ->assertSee(Instansi::NAMA)
-        ->assertSee(Instansi::APLIKASI)
-        ->assertSee('Khusus panitia pelatihan.')
+        ->assertSee('Sistem Informasi Pengembangan Kapasitas Pemerintahan Desa')
+        ->assertDontSee('Khusus panitia')
         ->assertSee('fi-masuk', escape: false)
         ->assertDontSee('BBPD');
 });

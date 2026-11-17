@@ -6,6 +6,7 @@ use App\Enums\StatusPendaftaran;
 use App\Filament\Admin\Actions\AturKelasAction;
 use App\Filament\Admin\Actions\AturKelasMassalAction;
 use App\Filament\Admin\Actions\BagiAcakKelasAction;
+use App\Filament\Admin\Resources\Pelatihan\Pages\Concerns\HalamanKerjaPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Models\PelatihanPeserta;
 use App\Support\Masking;
@@ -25,6 +26,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ManagePembagianKelas extends ManageRelatedRecords
 {
+    use HalamanKerjaPelatihan;
+
     protected static string $resource = PelatihanResource::class;
 
     protected static string $relationship = 'pendaftaran';

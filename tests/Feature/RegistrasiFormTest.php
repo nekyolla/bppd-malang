@@ -66,8 +66,8 @@ it('memberi tahu jika belum ada pelatihan yang dibuka', function () {
     $this->get('/daftar')->assertSee('Saat ini belum ada pelatihan yang membuka pendaftaran.');
 });
 
-it('hanya menawarkan pelatihan dibuka/berjalan dan data master aktif', function () {
-    $berjalan = Pelatihan::factory()->berjalan()->create();
+it('hanya menawarkan pelatihan dibuka dan data master aktif (PF-35)', function () {
+    Pelatihan::factory()->berjalan()->create();
     Pelatihan::factory()->create();
     Pelatihan::factory()->selesai()->create();
     $jabatan = Jabatan::factory()->create();
@@ -76,8 +76,7 @@ it('hanya menawarkan pelatihan dibuka/berjalan dan data master aktif', function 
     StatusPtkp::factory()->nonaktif()->create();
 
     Livewire::test(Registrasi::class)
-        ->assertFormFieldExists('pelatihan_id', fn (Radio $field): bool => array_keys($field->getOptions()) === [$this->pelatihan->id, $berjalan->id]
-            || array_keys($field->getOptions()) === [$berjalan->id, $this->pelatihan->id])
+        ->assertFormFieldExists('pelatihan_id', fn (Radio $field): bool => array_keys($field->getOptions()) === [$this->pelatihan->id])
         ->assertFormFieldExists('jabatan_id', fn (Select $field): bool => array_keys($field->getOptions()) === [$jabatan->id])
         ->assertFormFieldExists('status_ptkp_id', fn (Select $field): bool => array_keys($field->getOptions()) === [$ptkp->id]);
 });

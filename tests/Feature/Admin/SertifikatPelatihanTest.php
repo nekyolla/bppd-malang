@@ -65,6 +65,44 @@ it('mengunggah dan mengganti sertifikat dari aksi baris', function () {
         ->and(SertifikatPeserta::count())->toBe(2);
 });
 
+it('mengisi nomor sertifikat saat unggah dan mengubahnya tanpa berkas baru (PF-37)', function () {
+    ($this->halaman)()
+        ->callAction(TestAction::make('unggah')->table($this->belum), [
+            'berkas' => UploadedFile::fake()->createWithContent('b.pdf', '%PDF-budi'),
+            'nomor_sertifikat' => '010/BBPKPD/2026',
+        ])
+        ->assertHasNoActionErrors()
+        ->assertSee('No. 010/BBPKPD/2026');
+
+    $path = $this->sudah->sertifikat->file_sertifikat;
+
+    ($this->halaman)()
+        ->callAction(TestAction::make('ganti')->table($this->sudah), ['nomor_sertifikat' => '011/BBPKPD/2026'])
+        ->assertHasNoActionErrors();
+
+    expect($this->sudah->sertifikat->fresh())->nomor_sertifikat->toBe('011/BBPKPD/2026')->file_sertifikat->toBe($path)
+        ->and($this->belum->sertifikat->nomor_sertifikat)->toBe('010/BBPKPD/2026');
+});
+
+it('mengosongkan nomor saat ganti berkas bila isian nomor dikosongkan (PF-37)', function () {
+    app(SertifikatService::class)->ubahNomor($this->sudah->sertifikat, '020/BBPKPD/2026');
+
+    ($this->halaman)()
+        ->callAction(TestAction::make('ganti')->table($this->sudah), [
+            'berkas' => UploadedFile::fake()->createWithContent('a.pdf', '%PDF-ani-baru'),
+            'nomor_sertifikat' => '',
+        ])
+        ->assertHasNoActionErrors();
+
+    expect($this->sudah->sertifikat->fresh()->nomor_sertifikat)->toBeNull();
+});
+
+it('mewajibkan berkas saat unggah pertama (PF-37)', function () {
+    ($this->halaman)()
+        ->callAction(TestAction::make('unggah')->table($this->belum), ['nomor_sertifikat' => '010/BBPKPD/2026'])
+        ->assertHasActionErrors(['berkas' => 'required']);
+});
+
 it('memeriksa izin ubah sertifikat untuk Ganti dan izin buat untuk Unggah', function () {
     Gate::before(fn (User $user, string $ability): ?bool => $ability === 'update' ? false : null);
 

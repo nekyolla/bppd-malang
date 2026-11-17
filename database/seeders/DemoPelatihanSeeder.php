@@ -39,7 +39,8 @@ use Illuminate\Support\Str;
  *
  * - tahun lalu, selesai: dashboard per tahun;
  * - bulan lalu, selesai: kelas, kamar, sertifikat, 2 batal;
- * - minggu ini, berjalan: kelas, kamar, 1 batal, sebagian sertifikat, pendaftar terlambat;
+ * - minggu ini, berjalan: kelas, kamar, 1 batal, sebagian sertifikat, pendaftar mendadak
+ *   (mendaftar sebelum pelatihan dimulai, masih menunggu verifikasi);
  * - bulan depan, dibuka: bahan UAT (menunggu verifikasi, NIK lama dengan isian berbeda, kepala
  *   desa, satu data iseng, terverifikasi tanpa kelas & kamar);
  * - draft di luar Balai Besar.
@@ -169,11 +170,12 @@ class DemoPelatihanSeeder extends Seeder
             return collect();
         }
 
-        $this->pada($mulai->copy()->setTime(7, 30), $admin, fn () => app(PelatihanService::class)->ubahStatus($pelatihan, StatusPelatihan::Berjalan));
-
+        // Pendaftar mendadak masuk sebelum "Mulai pelatihan" menutup form registrasi (PF-35).
         if ($opsi['terlambat'] ?? 0) {
-            $this->pendaftarBaru($pelatihan, $opsi['terlambat'], $mulai->copy()->setTime(8, 0), $this->sekarang->copy()->subMinutes(30));
+            $this->pendaftarBaru($pelatihan, $opsi['terlambat'], $mulai->copy()->subDay()->setTime(18, 0), $mulai->copy()->setTime(7, 15));
         }
+
+        $this->pada($mulai->copy()->setTime(7, 30), $admin, fn () => app(PelatihanService::class)->ubahStatus($pelatihan, StatusPelatihan::Berjalan));
 
         $aktif = $pelatihan->pendaftaran()->where('status', StatusPendaftaran::Terverifikasi)->orderBy('id')->get();
         $waktuSertifikat = $selesai->copy()->setTime(14, 0)->min($this->sekarang->copy()->subMinutes(20));

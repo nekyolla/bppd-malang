@@ -1,6 +1,6 @@
 <x-filament-widgets::widget>
     <x-filament::section
-        heading="Peta desa terlatih"
+        heading="Peta desa yang telah mengikuti"
         description="Klik provinsi untuk melihat rinciannya."
     >
         @include('filament.admin.partials.peta-wilayah', [
@@ -8,7 +8,7 @@
             'geo' => 'provinsi',
             'labelKosong' => 'Di luar wilayah kerja',
             'kunci' => 'dashboard-'.($tahun ?? 'semua'),
-            'label' => 'Peta Indonesia per provinsi, diwarnai menurut jumlah desa terlatih',
+            'label' => 'Peta Indonesia per provinsi, diwarnai menurut jumlah desa yang telah mengikuti',
         ])
     </x-filament::section>
 </x-filament-widgets::widget>

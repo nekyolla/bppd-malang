@@ -19,6 +19,23 @@ class Logo
         return self::cari('lambang');
     }
 
+    /**
+     * Lambang sebagai data URI untuk dokumen cetak (dompdf tidak mengambil berkas lewat URL).
+     * Hanya PNG/JPG; null jika belum ada.
+     */
+    public static function lambangDataUri(): ?string
+    {
+        foreach (['png' => 'image/png', 'jpg' => 'image/jpeg'] as $ekstensi => $mime) {
+            $path = public_path(config('bbpd.logo_folder')."/lambang.{$ekstensi}");
+
+            if (is_file($path)) {
+                return "data:{$mime};base64,".base64_encode((string) file_get_contents($path));
+            }
+        }
+
+        return null;
+    }
+
     public static function favicon(): ?string
     {
         return self::cari('favicon');

@@ -25,8 +25,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Export daftar hadir per kelas per hari (PF-18, PF-23), dicetak di kertas A4 tegak.
- * Presensi diisi di kertas; sistem tidak menyimpannya (PF-22). Tidak memuat NIK
- * (CLAUDE.md aturan 9) dan setiap unduhan tercatat di audit log.
+ * Presensi diisi di kertas; sistem tidak menyimpannya (PF-22). Daftar hadir tidak memuat
+ * NIK (CLAUDE.md aturan 9). Data peserta per pelatihan (PF-37) khusus internal dan memuat
+ * NIK lengkap. Setiap unduhan tercatat di audit log.
  *
  * Satu lembar = satu hari: tanggal `Y-m-d`, judul, baris keterangan, nama lembar (sheet
  * Excel), kolom, baris isi, dan jumlah kolom tanda tangan di ujung kanan.
@@ -131,17 +132,75 @@ class ExportService
     }
 
     /**
+     * Data peserta satu pelatihan untuk Excel (PF-37): pendaftaran terverifikasi dan selesai,
+     * urut nama. Jabatan, PTKP, dan pelantikan dari snapshot (CLAUDE.md aturan 6); usia per
+     * tanggal mulai pelatihan.
+     *
+     * @return DataExport
+     */
+    public function dataPeserta(Pelatihan $pelatihan): array
+    {
+        $pendaftaran = $pelatihan->pendaftaran()
+            ->whereIn('status', [StatusPendaftaran::Terverifikasi, StatusPendaftaran::Selesai])
+            ->with(['peserta', 'jabatanSaatPelatihan', 'statusPtkpSaatPelatihan', 'sumberDana', 'sertifikat'])
+            ->get()
+            ->sortBy(fn (PelatihanPeserta $p): string => mb_strtolower($p->peserta->nama_lengkap))
+            ->values();
+
+        $waktu = FormatTanggal::rentang($pelatihan->tanggal_mulai, $pelatihan->tanggal_selesai);
+
+        return [
+            'tanggal' => $pelatihan->tanggal_mulai->toDateString(),
+            'judul' => 'Data Peserta',
+            'keterangan' => [$pelatihan->nama_tampilan, $waktu],
+            'namaLembar' => 'Peserta',
+            'kolom' => [
+                'No', 'Tahun', 'Waktu pelaksanaan', 'Nama lengkap', 'NIK', 'Tempat, tanggal lahir', 'Jenis kelamin', 'Usia',
+                'Agama', 'Status PTKP', 'Alamat domisili', 'Alamat kantor desa', 'Jabatan', 'Waktu pelantikan', 'Tahun menjabat',
+                'Pendidikan terakhir', 'Nomor sertifikat', 'Nomor telepon', 'Sumber dana',
+            ],
+            'baris' => $pendaftaran->map(function (PelatihanPeserta $p, int $i) use ($pelatihan, $waktu): array {
+                $peserta = $p->peserta;
+                $pelantikan = $p->waktu_pelantikan_saat_pelatihan ?? $peserta->waktu_pelantikan;
+
+                return [
+                    $i + 1,
+                    $pelatihan->tahun_anggaran,
+                    $waktu,
+                    $peserta->nama_lengkap,
+                    $peserta->nik,
+                    "{$peserta->tempat_lahir}, ".FormatTanggal::tanggal($peserta->tanggal_lahir),
+                    $peserta->jenis_kelamin->getLabel(),
+                    (int) $peserta->tanggal_lahir->diffInYears($pelatihan->tanggal_mulai),
+                    $peserta->agama,
+                    $p->statusPtkpSaatPelatihan?->kode ?? '',
+                    $peserta->alamat_domisili,
+                    $peserta->alamat_kantor_desa,
+                    $p->jabatan_saat_pelatihan_tampilan ?? '',
+                    FormatTanggal::tanggal($pelantikan),
+                    $p->tahun_menjabat,
+                    trim("{$peserta->jenjang_pendidikan} {$peserta->jurusan_pendidikan}"),
+                    $p->sertifikat?->nomor_sertifikat ?? '',
+                    $peserta->no_hp,
+                    $p->sumberDana->nama.(filled($p->sumber_dana_keterangan) ? " ({$p->sumber_dana_keterangan})" : ''),
+                ];
+            })->all(),
+            'kolomTtd' => 0,
+        ];
+    }
+
+    /**
      * Satu berkas Excel, satu sheet per lembar.
      *
      * @param  list<DataExport>  $lembar
      */
-    public function unduhExcel(array $lembar, string $namaFile, Model $subjek): StreamedResponse
+    public function unduhExcel(array $lembar, string $namaFile, Model $subjek, PageOrientation $orientasi = PageOrientation::PORTRAIT): StreamedResponse
     {
         $this->catatUnduhan($subjek, "{$namaFile}.xlsx", $lembar);
 
-        return response()->streamDownload(function () use ($lembar): void {
+        return response()->streamDownload(function () use ($lembar, $orientasi): void {
             $opsi = new Options;
-            $opsi->setPageSetup(new PageSetup(PageOrientation::PORTRAIT, PaperSize::A4, fitToWidth: 1));
+            $opsi->setPageSetup(new PageSetup($orientasi, PaperSize::A4, fitToWidth: 1));
             $writer = new Writer($opsi);
             $writer->openToFile('php://output');
             $tebal = (new Style)->setFontBold();

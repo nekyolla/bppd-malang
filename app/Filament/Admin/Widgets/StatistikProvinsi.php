@@ -35,18 +35,18 @@ class StatistikProvinsi extends TableWidget
             ->columns([
                 TextColumn::make('nama')->label('Provinsi'),
                 TextColumn::make('kab_kota_terlatih')
-                    ->label('Kab/kota terlatih')
+                    ->label('Kab/kota yang mengikuti')
                     ->formatStateUsing(fn ($state, array $record): string => "{$angka($state)} dari {$angka($record['total_kab_kota'])}"),
                 TextColumn::make('desa_terlatih')
-                    ->label('Desa terlatih')
+                    ->label('Desa yang telah mengikuti')
                     ->formatStateUsing($angka)
                     ->alignEnd(),
                 TextColumn::make('desa_belum_terlatih')
-                    ->label('Desa belum terlatih')
+                    ->label('Desa yang belum mengikuti')
                     ->formatStateUsing($angka)
                     ->alignEnd(),
                 TextColumn::make('peserta_terlatih')
-                    ->label('Peserta terlatih')
+                    ->label('Jumlah peserta')
                     ->formatStateUsing($angka)
                     ->alignEnd(),
             ])

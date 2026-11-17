@@ -172,6 +172,14 @@ it('tidak menampilkan peringatan saat semua peserta sudah diverifikasi', functio
         ->assertMountedActionModalDontSee('menunggu verifikasi.');
 });
 
+it('menjelaskan bahwa memulai pelatihan menutup form registrasi (PF-35)', function () {
+    $pelatihan = Pelatihan::factory()->dibuka()->create();
+
+    Livewire::test(ListPelatihan::class)
+        ->mountAction(TestAction::make('ubahStatus')->table($pelatihan))
+        ->assertMountedActionModalSee('Pelatihan tidak lagi muncul di form registrasi');
+});
+
 it('membuka daftar pendaftar yang menunggu verifikasi dari tautan peringatan', function () {
     $pelatihan = Pelatihan::factory()->berjalan()->create();
     $menunggu = PelatihanPeserta::factory()->for($pelatihan)->create();
@@ -185,10 +193,10 @@ it('membuka daftar pendaftar yang menunggu verifikasi dari tautan peringatan', f
         ->assertDontSee($lain->peserta->nama_lengkap);
 });
 
-it('membuka pendaftar saat baris pelatihan diklik, dengan tombol ubah tetap tersedia', function () {
+it('tidak menautkan pendaftar dari tabel pelatihan, dengan tombol ubah tetap tersedia (PF-38)', function () {
     $pelatihan = Pelatihan::factory()->dibuka()->create();
 
     Livewire::test(ListPelatihan::class)
-        ->assertSee(ManagePendaftar::getUrl(['record' => $pelatihan]), escape: false)
+        ->assertDontSee(ManagePendaftar::getUrl(['record' => $pelatihan]), escape: false)
         ->assertActionVisible(TestAction::make('edit')->table($pelatihan));
 });

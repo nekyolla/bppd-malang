@@ -16,8 +16,9 @@ use Illuminate\Validation\ValidationException;
 use Throwable;
 
 /**
- * Sertifikat dibuat manual di luar sistem; admin mengunggah satu PDF per peserta (PF-27).
- * Berkas disimpan privat (CLAUDE.md aturan 1); peserta batal tidak mendapat sertifikat.
+ * Sertifikat dibuat manual di luar sistem; admin mengunggah satu PDF per peserta (PF-27)
+ * beserta nomornya bila ada (opsional, unik; PF-37). Berkas disimpan privat (CLAUDE.md
+ * aturan 1); peserta batal tidak mendapat sertifikat.
  */
 class SertifikatService
 {
@@ -34,10 +35,11 @@ class SertifikatService
     /**
      * Mengunggah atau mengganti sertifikat peserta terverifikasi/selesai. Berkas baru ditulis
      * ke path baru; berkas lama dihapus setelah transaksi berhasil, berkas baru dihapus bila gagal.
+     * Nomor kosong saat mengganti berarti nomor lama dipertahankan.
      *
      * @throws ValidationException
      */
-    public function unggah(PelatihanPeserta $pendaftaran, UploadedFile $berkas, User $oleh): SertifikatPeserta
+    public function unggah(PelatihanPeserta $pendaftaran, UploadedFile $berkas, User $oleh, ?string $nomor = null): SertifikatPeserta
     {
         Validator::make(['berkas' => $berkas], [
             'berkas' => ['required', 'file', 'mimetypes:application/pdf', 'max:'.RegistrasiService::MAKS_UKURAN_BERKAS_KB],
@@ -46,12 +48,15 @@ class SertifikatService
             'berkas.max' => 'Ukuran sertifikat maksimal 2 MB.',
         ])->validate();
 
+        $nomor = $this->rapikanNomor($nomor);
+        $this->tolakNomorTerpakai($nomor, $pendaftaran->sertifikat()->value('id'));
+
         $disk = Storage::disk(RegistrasiService::DISK);
         $path = null;
         $pathLama = null;
 
         try {
-            $sertifikat = DB::transaction(function () use ($pendaftaran, $berkas, $oleh, $disk, &$path, &$pathLama): SertifikatPeserta {
+            $sertifikat = DB::transaction(function () use ($pendaftaran, $berkas, $oleh, $nomor, $disk, &$path, &$pathLama): SertifikatPeserta {
                 // Kunci baris pendaftaran agar tidak bersamaan dengan pembatalan.
                 $terkunci = PelatihanPeserta::query()->lockForUpdate()->findOrFail($pendaftaran->getKey());
 
@@ -65,9 +70,13 @@ class SertifikatService
                 $sertifikat = SertifikatPeserta::query()->firstOrNew(['pelatihan_peserta_id' => $terkunci->getKey()]);
 
                 if (! $sertifikat->exists) {
-                    $sertifikat->fill(['file_sertifikat' => $path, 'diupload_oleh' => $oleh->getKey()])->save();
+                    $sertifikat->fill(['nomor_sertifikat' => $nomor, 'file_sertifikat' => $path, 'diupload_oleh' => $oleh->getKey()])->save();
 
                     return $sertifikat;
+                }
+
+                if ($nomor !== null && $nomor !== $sertifikat->nomor_sertifikat) {
+                    $sertifikat->update(['nomor_sertifikat' => $nomor]);
                 }
 
                 // Ganti dicatat sebagai satu kejadian "ganti" agar selalu tampil di audit log
@@ -103,6 +112,45 @@ class SertifikatService
         }
 
         return $sertifikat;
+    }
+
+    /**
+     * Mengubah atau mengosongkan nomor sertifikat tanpa mengganti berkas (PF-37).
+     *
+     * @throws ValidationException
+     */
+    public function ubahNomor(SertifikatPeserta $sertifikat, ?string $nomor): void
+    {
+        $nomor = $this->rapikanNomor($nomor);
+        $this->tolakNomorTerpakai($nomor, $sertifikat->getKey());
+
+        $sertifikat->update(['nomor_sertifikat' => $nomor]);
+    }
+
+    private function rapikanNomor(?string $nomor): ?string
+    {
+        $nomor = trim((string) $nomor);
+
+        if (mb_strlen($nomor) > 100) {
+            $this->tolak('nomor_sertifikat', 'Nomor sertifikat maksimal 100 karakter.');
+        }
+
+        return $nomor === '' ? null : $nomor;
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function tolakNomorTerpakai(?string $nomor, ?int $kecualiId): void
+    {
+        $terpakai = $nomor !== null && SertifikatPeserta::query()
+            ->where('nomor_sertifikat', $nomor)
+            ->when($kecualiId, fn ($query) => $query->whereKeyNot($kecualiId))
+            ->exists();
+
+        if ($terpakai) {
+            $this->tolak('nomor_sertifikat', 'Nomor sertifikat sudah dipakai peserta lain.');
+        }
     }
 
     /**

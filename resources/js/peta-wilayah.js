@@ -12,14 +12,14 @@ const WARNA = {
     light: {
         skala: ['#dbeafe', '#93c5fd', '#3b82f6', '#1d4ed8'], // blue-100, 300, 500, 700
         latar: '#f8fafc',
-        garis: '#ffffff',
+        garis: '#1e3a8a', // blue-900: batas wilayah berdata tegas (PF-34)
         garisKosong: '#94a3b8',
         sorot: '#0f172a',
     },
     dark: {
         skala: ['#1e3a8a', '#1d4ed8', '#60a5fa', '#bfdbfe'], // blue-900, 700, 400, 200
         latar: '#0f172a',
-        garis: '#0f172a',
+        garis: '#dbeafe', // blue-100
         garisKosong: '#64748b',
         sorot: '#f8fafc',
     },
@@ -112,7 +112,7 @@ window.petaWilayah = ({ data, geo = 'provinsi', labelKosong = 'Di luar wilayah k
             fillColor: w.skala[this.kelas(d.desa_terlatih)],
             fillOpacity: 1,
             color: w.garis,
-            weight: 1,
+            weight: 1.5,
             dashArray: null,
         };
     },
@@ -135,18 +135,21 @@ window.petaWilayah = ({ data, geo = 'provinsi', labelKosong = 'Di luar wilayah k
 
                 layer.bindTooltip(
                     d
-                        ? `<strong>${nama}</strong><br>${angka(d.desa_terlatih)} desa terlatih`
+                        ? `<strong>${nama}</strong><br>${angka(d.desa_terlatih)} desa telah mengikuti`
                         : `<strong>${nama}</strong><br>${keterangan ?? this.labelKosong}`,
                     { sticky: true, direction: 'top' },
                 );
 
                 layer.on({
-                    mouseover: () => d && layer.setStyle({ weight: 2.5, color: WARNA[this.mode()].sorot }),
+                    mouseover: () => d && layer.setStyle({ weight: 3, color: WARNA[this.mode()].sorot }).bringToFront(),
                     mouseout: () => this.lapisan.resetStyle(layer),
                     click: () => this.pilih(fitur.properties),
                 });
             },
         }).addTo(this.peta);
+
+        // Garis wilayah berdata digambar di atas garis putus-putus tetangganya yang kosong.
+        this.lapisan.eachLayer((layer) => this.data[layer.feature.properties.kode] && layer.bringToFront());
 
         this.pasKan();
         this.warnai();

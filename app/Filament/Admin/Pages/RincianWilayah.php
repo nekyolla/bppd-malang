@@ -27,7 +27,7 @@ class RincianWilayah extends Page implements HasTable
 
     protected static ?string $slug = 'rincian-wilayah';
 
-    protected static ?string $title = 'Rincian Wilayah Terlatih';
+    protected static ?string $title = 'Rincian Wilayah';
 
     protected static ?string $navigationLabel = 'Rincian Wilayah';
 
@@ -77,20 +77,20 @@ class RincianWilayah extends Page implements HasTable
                 'desa' => [
                     TextColumn::make('nama')->label('Desa'),
                     TextColumn::make('kecamatan')->label('Kecamatan'),
-                    TextColumn::make('peserta_terlatih')->label('Peserta terlatih')->formatStateUsing($angka),
+                    TextColumn::make('peserta_terlatih')->label('Jumlah peserta')->formatStateUsing($angka),
                 ],
                 default => [
                     TextColumn::make('nama')->label($this->tingkat() === 'kab_kota' ? 'Kabupaten/kota' : 'Provinsi'),
                     ...($this->tingkat() === 'provinsi' ? [
                         TextColumn::make('kab_kota_terlatih')
-                            ->label('Kab/kota terlatih')
+                            ->label('Kab/kota yang mengikuti')
                             ->formatStateUsing(fn ($state, array $record): string => "{$angka($state)} dari {$angka($record['total_kab_kota'])}"),
                     ] : []),
                     TextColumn::make('desa_terlatih')
-                        ->label('Desa terlatih')
+                        ->label('Desa yang telah mengikuti')
                         ->formatStateUsing(fn ($state, array $record): string => "{$angka($state)} dari {$angka($record['total_desa'])}"),
-                    TextColumn::make('desa_belum_terlatih')->label('Desa belum terlatih')->formatStateUsing($angka),
-                    TextColumn::make('peserta_terlatih')->label('Peserta terlatih')->formatStateUsing($angka),
+                    TextColumn::make('desa_belum_terlatih')->label('Desa yang belum mengikuti')->formatStateUsing($angka),
+                    TextColumn::make('peserta_terlatih')->label('Jumlah peserta')->formatStateUsing($angka),
                 ],
             })
             ->filters([
@@ -107,8 +107,8 @@ class RincianWilayah extends Page implements HasTable
                 default => null,
             })
             ->paginated(false)
-            ->emptyStateHeading('Belum ada desa terlatih')
-            ->emptyStateDescription('Desa terlatih bila minimal satu pesertanya selesai.');
+            ->emptyStateHeading('Belum ada desa yang mengikuti')
+            ->emptyStateDescription('Desa dihitung bila minimal satu pesertanya sudah selesai pelatihan.');
     }
 
     /**
@@ -131,7 +131,7 @@ class RincianWilayah extends Page implements HasTable
                 'geo' => 'provinsi',
                 'labelKosong' => 'Di luar wilayah kerja',
                 'kunci' => 'provinsi-'.($tahun ?? 'semua'),
-                'label' => 'Peta Indonesia per provinsi, diwarnai menurut jumlah desa terlatih',
+                'label' => 'Peta Indonesia per provinsi, diwarnai menurut jumlah desa yang telah mengikuti',
             ],
             'kab_kota' => ($provinsi = Provinsi::find($this->provinsi)) ? [
                 'judul' => "Peta kab/kota di {$provinsi->nama}",
@@ -141,7 +141,7 @@ class RincianWilayah extends Page implements HasTable
                 'geo' => "kab-kota/{$provinsi->kode}",
                 'labelKosong' => 'Tanpa data desa',
                 'kunci' => "kab-kota-{$provinsi->kode}-".($tahun ?? 'semua'),
-                'label' => "Peta kab/kota di {$provinsi->nama}, diwarnai menurut jumlah desa terlatih",
+                'label' => "Peta kab/kota di {$provinsi->nama}, diwarnai menurut jumlah desa yang telah mengikuti",
             ] : null,
             default => null,
         };
@@ -170,8 +170,8 @@ class RincianWilayah extends Page implements HasTable
     public function getSubheading(): ?string
     {
         return match ($this->tingkat()) {
-            'desa' => 'Desa terlatih di '.KabKota::find($this->kabKota)?->nama.'.',
-            'kab_kota' => 'Kab/kota di '.Provinsi::find($this->provinsi)?->nama.'. Klik untuk melihat desa terlatih.',
+            'desa' => 'Desa yang telah mengikuti di '.KabKota::find($this->kabKota)?->nama.'.',
+            'kab_kota' => 'Kab/kota di '.Provinsi::find($this->provinsi)?->nama.'. Klik untuk melihat desa yang telah mengikuti.',
             default => 'Klik provinsi untuk melihat rincian kab/kota.',
         };
     }

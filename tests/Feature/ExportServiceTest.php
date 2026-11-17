@@ -1,13 +1,19 @@
 <?php
 
 use App\Enums\JenisKelamin;
+use App\Models\Jabatan;
 use App\Models\KelasPelatihan;
 use App\Models\Pelatihan;
 use App\Models\PelatihanPeserta;
 use App\Models\Peserta;
+use App\Models\SertifikatPeserta;
+use App\Models\StatusPtkp;
+use App\Models\SumberDana;
 use App\Models\User;
 use App\Services\ExportService;
+use App\Support\Instansi;
 use Illuminate\Validation\ValidationException;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     $this->service = app(ExportService::class);
@@ -103,4 +109,80 @@ it('mencetak PDF tepat satu halaman per hari tanpa halaman kosong', function () 
     $isi = ob_get_clean();
 
     expect($isi)->toContain('/Count 2')->not->toContain('/Count 3');
+});
+
+it('memasang kop surat balai di setiap lembar daftar hadir PDF (PF-39)', function () {
+    $lembar = $this->service->daftarHadirKelas($this->kelas, ['2026-11-02', '2026-11-03']);
+    $html = view('export.tabel', ['lembar' => $lembar, 'dicetak' => '2 November 2026, 08:00'])->render();
+
+    expect(substr_count($html, 'class="kop"'))->toBe(2)
+        ->and($html)->toContain('KEMENTERIAN DALAM NEGERI', 'REPUBLIK INDONESIA', 'DIREKTORAT JENDERAL BINA PEMERINTAHAN DESA', 'BALAI BESAR PENGEMBANGAN KAPASITAS PEMERINTAHAN DESA')
+        ->and($html)->toContain(Instansi::ALAMAT, Instansi::KONTAK)
+        ->and($html)->toContain('src="data:image/png;base64,');
+
+    $this->actingAs(User::factory()->create());
+    ob_start();
+    $this->service->unduhPdf($lembar, 'uji', $this->kelas)->sendContent();
+
+    expect(ob_get_clean())->toContain('/Subtype /Image')->toContain('/Count 2');
+});
+
+it('menyusun data peserta per pelatihan dengan NIK lengkap dan snapshot jabatan (PF-37)', function () {
+    $peserta = Peserta::factory()->create([
+        'nama_lengkap' => 'Budi Santoso',
+        'nik' => '3507123456780001',
+        'tempat_lahir' => 'Malang',
+        'tanggal_lahir' => '1980-11-03',
+        'jenis_kelamin' => JenisKelamin::LakiLaki,
+        'agama' => 'Islam',
+        'alamat_domisili' => 'Jl. Melati 1',
+        'alamat_kantor_desa' => 'Jl. Balai Desa 2',
+        'jabatan_id' => Jabatan::factory()->create(['nama_jabatan' => 'Sekretaris Desa'])->id,
+        'periode_jabatan' => null,
+        'waktu_pelantikan' => '2020-01-15',
+        'jenjang_pendidikan' => 'S1',
+        'jurusan_pendidikan' => 'Akuntansi',
+        'no_hp' => '081234567890',
+        'status_ptkp_id' => StatusPtkp::factory()->create(['kode' => 'K/1'])->id,
+    ]);
+    $budi = PelatihanPeserta::factory()->selesai()->for($this->pelatihan)->for($peserta)->create([
+        'sumber_dana_id' => SumberDana::factory()->create(['nama' => 'Lainnya'])->id,
+        'sumber_dana_keterangan' => 'Dana desa',
+    ]);
+    SertifikatPeserta::factory()->for($budi, 'pelatihanPeserta')->create(['nomor_sertifikat' => '001/BBPKPD/2026']);
+    // Profil terkini berubah setelah pelatihan; export membaca snapshot.
+    $peserta->update(['jabatan_id' => Jabatan::factory()->create(['nama_jabatan' => 'Kepala Dusun'])->id]);
+
+    PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)
+        ->for(Peserta::factory()->state(['nama_lengkap' => 'Ani']))->create();
+    PelatihanPeserta::factory()->for($this->pelatihan)->for(Peserta::factory()->state(['nama_lengkap' => 'Menunggu']))->create();
+    PelatihanPeserta::factory()->batal()->for($this->pelatihan)->for(Peserta::factory()->state(['nama_lengkap' => 'Batal']))->create();
+
+    $lembar = $this->service->dataPeserta($this->pelatihan);
+
+    expect($lembar['kolom'])->toBe([
+        'No', 'Tahun', 'Waktu pelaksanaan', 'Nama lengkap', 'NIK', 'Tempat, tanggal lahir', 'Jenis kelamin', 'Usia',
+        'Agama', 'Status PTKP', 'Alamat domisili', 'Alamat kantor desa', 'Jabatan', 'Waktu pelantikan', 'Tahun menjabat',
+        'Pendidikan terakhir', 'Nomor sertifikat', 'Nomor telepon', 'Sumber dana',
+    ])
+        ->and($lembar['kolomTtd'])->toBe(0)
+        ->and(array_column($lembar['baris'], 3))->toBe(['Ani', 'Budi Santoso'])
+        ->and($lembar['baris'][1])->toBe([
+            2, 2026, '2–4 November 2026', 'Budi Santoso', '3507123456780001', 'Malang, 3 November 1980', 'Laki-laki', 45,
+            'Islam', 'K/1', 'Jl. Melati 1', 'Jl. Balai Desa 2', 'Sekretaris Desa', '15 Januari 2020', 7,
+            'S1 Akuntansi', '001/BBPKPD/2026', '081234567890', 'Lainnya (Dana desa)',
+        ])
+        ->and($lembar['baris'][0][16])->toBe('');
+});
+
+it('mengunduh data peserta sebagai Excel dan mencatatnya di audit log (PF-37)', function () {
+    PelatihanPeserta::factory()->terverifikasi()->for($this->pelatihan)->create();
+    $this->actingAs(User::factory()->create());
+
+    $respons = $this->service->unduhExcel([$this->service->dataPeserta($this->pelatihan)], 'data-peserta', $this->pelatihan);
+
+    expect($respons->headers->get('Content-Disposition'))->toContain('data-peserta.xlsx')
+        ->and(Activity::query()->where('log_name', 'unduhan')->sole())
+        ->subject->is($this->pelatihan)->toBeTrue()
+        ->description->toBe('Mengunduh data-peserta.xlsx');
 });

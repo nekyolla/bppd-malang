@@ -55,6 +55,21 @@ it('menawarkan filter tahun dari tahun anggaran pelatihan', function () {
         ->assertFormFieldExists('tahun', 'filtersForm', fn ($field): bool => array_keys($field->getOptions()) === [2026, 2025]);
 });
 
+it('memakai label "yang mengikuti" untuk statistik (PF-36)', function () {
+    Livewire::test(RingkasanStatistik::class)
+        ->assertSee(['Jumlah peserta', 'Kab/kota yang mengikuti', 'Desa yang telah mengikuti'])
+        ->assertDontSee(['Peserta terlatih', 'Kab/kota terlatih', 'Desa terlatih', 'Desa belum terlatih']);
+
+    Livewire::test(StatistikProvinsi::class)
+        ->assertSee(['Kab/kota yang mengikuti', 'Desa yang telah mengikuti', 'Desa yang belum mengikuti', 'Jumlah peserta'])
+        ->assertDontSee(['Peserta terlatih', 'Kab/kota terlatih', 'Desa terlatih', 'Desa belum terlatih']);
+
+    $this->get(RincianWilayah::getUrl(['provinsi' => $this->jatim->id]))
+        ->assertOk()
+        ->assertSee(['Desa yang telah mengikuti', 'Desa yang belum mengikuti', 'Jumlah peserta'])
+        ->assertDontSee('Desa terlatih');
+});
+
 it('menampilkan kartu statistik sesuai filter tahun', function () {
     Livewire::test(RingkasanStatistik::class)
         ->assertSee('Total pendaftar')
@@ -160,7 +175,7 @@ it('merinci provinsi, kab/kota, dan desa terlatih tanpa nama peserta', function 
 it('menyaring rincian wilayah per tahun', function () {
     Livewire::withQueryParams(['provinsi' => $this->jatim->id, 'kab_kota' => $this->malang->id, 'tahun' => 2026])
         ->test(RincianWilayah::class)
-        ->assertSee('Belum ada desa terlatih');
+        ->assertSee('Belum ada desa yang mengikuti');
 
     Livewire::withQueryParams(['provinsi' => $this->jatim->id, 'kab_kota' => $this->malang->id, 'tahun' => 2025])
         ->test(RincianWilayah::class)

@@ -81,7 +81,7 @@ it('membuat peserta dan pendaftaran baru untuk NIK baru', function () {
 
 it('tidak menimpa data peserta lama saat NIK yang sama mendaftar pelatihan lain', function () {
     $pertama = $this->service->daftar(($this->isian)());
-    $pelatihanLain = Pelatihan::factory()->berjalan()->create();
+    $pelatihanLain = Pelatihan::factory()->dibuka()->create();
 
     $kedua = $this->service->daftar(($this->isian)([
         'pelatihan_id' => $pelatihanLain->id,
@@ -110,12 +110,12 @@ it('menolak NIK yang sudah terdaftar di pelatihan yang sama tanpa menyisakan ber
         ->and(Storage::disk('local')->directories('pendaftaran'))->toHaveCount(1);
 });
 
-it('hanya menerima pelatihan yang sedang dibuka atau berjalan', function (string $state) {
+it('hanya menerima pelatihan yang sedang dibuka (PF-35)', function (string $state) {
     $pelatihan = ($state === 'draft' ? Pelatihan::factory() : Pelatihan::factory()->{$state}())->create();
 
     expect(galatRegistrasi(fn () => $this->service->daftar(($this->isian)(['pelatihan_id' => $pelatihan->id])))['pelatihan_id'][0])
         ->toBe('Pelatihan ini tidak sedang menerima pendaftaran.');
-})->with(['draft', 'selesai']);
+})->with(['draft', 'berjalan', 'selesai']);
 
 it('menolak data master yang dinonaktifkan', function (string $kolom, string $model) {
     $nonaktif = $model::factory()->nonaktif()->create();

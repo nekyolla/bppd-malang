@@ -69,6 +69,14 @@ class PelatihanResource extends Resource
         ];
     }
 
+    /**
+     * Hasil pencarian ⌘K membuka halaman kerja (pendaftar), bukan form ubah (PF-38).
+     */
+    public static function getGlobalSearchResultUrl(Model $record): string
+    {
+        return ManagePendaftar::getUrl(['record' => $record]);
+    }
+
     public static function getGlobalSearchEloquentQuery(): Builder
     {
         return parent::getGlobalSearchEloquentQuery()->with('judulPelatihan');
@@ -85,20 +93,35 @@ class PelatihanResource extends Resource
     }
 
     /**
-     * Sub-menu satu pelatihan (PF-17): Data · Pendaftar · Kelas · Pembagian Kelas.
-     * Penempatan kamar cukup lewat menu Asrama di sidebar.
+     * Sub-menu kerja satu pelatihan (PF-17): Pendaftar · Kelas · Pembagian Kelas · Sertifikat.
+     * Form ubah pelatihan berdiri sendiri tanpa sub-menu (PF-38). Penempatan kamar cukup
+     * lewat menu Asrama di sidebar.
      *
      * @return array<NavigationItem>
      */
     public static function getRecordSubNavigation(Page $page): array
     {
+        if ($page instanceof EditPelatihan) {
+            return [];
+        }
+
         return $page->generateNavigationItems([
-            EditPelatihan::class,
             ManagePendaftar::class,
             ManageKelas::class,
             ManagePembagianKelas::class,
             ManageSertifikat::class,
         ]);
+    }
+
+    /**
+     * Menu Pelatihan hanya aktif di daftar, buat, dan ubah; sub-halaman kerja milik menu
+     * Pendaftaran (PF-38).
+     *
+     * @return array<string>
+     */
+    public static function getNavigationItemActiveRoutePattern(): array
+    {
+        return [ListPelatihan::getRouteName(), CreatePelatihan::getRouteName(), EditPelatihan::getRouteName()];
     }
 
     public static function getPages(): array

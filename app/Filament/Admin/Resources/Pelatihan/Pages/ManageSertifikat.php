@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Resources\Pelatihan\Pages\Concerns\HalamanKerjaPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Filament\Admin\Support\GalatService;
 use App\Models\PelatihanPeserta;
@@ -13,6 +14,7 @@ use App\Support\FormatTanggal;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -27,6 +29,8 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ManageSertifikat extends ManageRelatedRecords
 {
+    use HalamanKerjaPelatihan;
+
     protected static string $resource = PelatihanResource::class;
 
     protected static string $relationship = 'pendaftaran';
@@ -66,7 +70,12 @@ class ManageSertifikat extends ManageRelatedRecords
                     ->badge()
                     ->color(fn (string $state): string => $state === 'Belum' ? 'gray' : 'success')
                     ->icon(fn (string $state): Heroicon => $state === 'Belum' ? Heroicon::OutlinedMinus : Heroicon::OutlinedDocumentCheck)
-                    ->description(fn (PelatihanPeserta $record): ?string => $record->sertifikat ? FormatTanggal::tanggal($record->sertifikat->updated_at) : null),
+                    ->description(fn (PelatihanPeserta $record): ?string => $record->sertifikat
+                        ? collect([
+                            filled($record->sertifikat->nomor_sertifikat) ? "No. {$record->sertifikat->nomor_sertifikat}" : null,
+                            FormatTanggal::tanggal($record->sertifikat->updated_at),
+                        ])->filter()->implode(' · ')
+                        : null),
             ])
             ->defaultSort('peserta.nama_lengkap')
             ->filters([
@@ -108,26 +117,45 @@ class ManageSertifikat extends ManageRelatedRecords
             ->emptyStateDescription('Sertifikat hanya untuk peserta terverifikasi atau selesai.');
     }
 
+    /**
+     * Unggah: berkas wajib. Ganti: berkas boleh kosong bila hanya mengubah nomor (PF-37).
+     */
     private function aksiUnggah(string $nama, string $label): Action
     {
+        $ganti = $nama === 'ganti';
+
         return Action::make($nama)
             ->label($label)
             ->icon(Heroicon::OutlinedArrowUpTray)
             ->modalHeading(fn (PelatihanPeserta $record): string => "{$label} sertifikat {$record->peserta->nama_lengkap}")
-            ->modalSubmitActionLabel($label)
+            ->modalSubmitActionLabel($ganti ? 'Simpan' : $label)
+            ->fillForm(fn (PelatihanPeserta $record): array => ['nomor_sertifikat' => $record->sertifikat?->nomor_sertifikat])
             ->schema([
+                TextInput::make('nomor_sertifikat')
+                    ->label('Nomor sertifikat')
+                    ->helperText('Opsional. Tampil di export data peserta.')
+                    ->maxLength(100),
                 FileUpload::make('berkas')
-                    ->label('Berkas sertifikat (PDF)')
-                    ->helperText('PDF, maksimal 2 MB.')
+                    ->label($ganti ? 'Berkas sertifikat baru (PDF)' : 'Berkas sertifikat (PDF)')
+                    ->helperText($ganti ? 'Kosongkan bila hanya mengubah nomor. PDF, maksimal 2 MB.' : 'PDF, maksimal 2 MB.')
                     ->acceptedFileTypes(['application/pdf'])
                     ->maxSize(RegistrasiService::MAKS_UKURAN_BERKAS_KB)
                     ->storeFiles(false)
-                    ->required(),
+                    ->required(! $ganti),
             ])
             ->action(fn (Action $action, PelatihanPeserta $record, array $data) => GalatService::jalankan(
                 $action,
-                'Sertifikat tidak dapat diunggah',
-                fn () => app(SertifikatService::class)->unggah($record, $data['berkas'], auth()->user()),
+                'Sertifikat tidak dapat disimpan',
+                function () use ($record, $data): void {
+                    $service = app(SertifikatService::class);
+                    $nomor = $data['nomor_sertifikat'] ?? null;
+                    $sertifikat = filled($data['berkas'] ?? null)
+                        ? $service->unggah($record, $data['berkas'], auth()->user(), $nomor)
+                        : $record->sertifikat;
+
+                    // Isian nomor di modal yang berlaku, termasuk bila dikosongkan saat ganti berkas.
+                    $service->ubahNomor($sertifikat, $nomor);
+                },
             ));
     }
 

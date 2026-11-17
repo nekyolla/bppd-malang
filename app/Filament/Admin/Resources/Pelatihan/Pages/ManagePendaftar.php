@@ -3,22 +3,31 @@
 namespace App\Filament\Admin\Resources\Pelatihan\Pages;
 
 use App\Enums\StatusPendaftaran;
+use App\Filament\Admin\Resources\Pelatihan\Pages\Concerns\HalamanKerjaPelatihan;
 use App\Filament\Admin\Resources\Pelatihan\PelatihanResource;
 use App\Filament\Admin\Resources\Pendaftaran\Tables\PendaftaranTable;
 use App\Models\Pelatihan;
+use App\Models\PelatihanPeserta;
+use App\Services\ExportService;
 use App\Services\PelatihanService;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Navigation\NavigationItem;
 use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Str;
+use OpenSpout\Writer\XLSX\Options\PageOrientation;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Pendaftar satu pelatihan (PF-17): verifikasi, batal, kembalikan, dan hapus.
  */
 class ManagePendaftar extends ManageRelatedRecords
 {
+    use HalamanKerjaPelatihan;
+
     protected static string $resource = PelatihanResource::class;
 
     protected static string $relationship = 'pendaftaran';
@@ -32,6 +41,34 @@ class ManagePendaftar extends ManageRelatedRecords
     public function getTitle(): string|Htmlable
     {
         return "Pendaftar {$this->getOwnerRecord()->nama_tampilan}";
+    }
+
+    /**
+     * Export Excel data peserta terverifikasi & selesai, NIK lengkap, khusus internal (PF-37).
+     */
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('exportExcel')
+                ->label('Export Excel')
+                ->icon(Heroicon::OutlinedArrowDownTray)
+                ->color('gray')
+                ->authorize(fn (): bool => auth()->user()->can('viewAny', PelatihanPeserta::class))
+                ->action(fn (): StreamedResponse => $this->unduhDataPeserta()),
+        ];
+    }
+
+    private function unduhDataPeserta(): StreamedResponse
+    {
+        $pelatihan = $this->getOwnerRecord();
+        $service = app(ExportService::class);
+
+        return $service->unduhExcel(
+            [$service->dataPeserta($pelatihan)],
+            Str::slug("data-peserta {$pelatihan->nama_tampilan}"),
+            $pelatihan,
+            PageOrientation::LANDSCAPE,
+        );
     }
 
     public function table(Table $table): Table

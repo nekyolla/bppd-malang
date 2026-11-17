@@ -54,7 +54,7 @@ it('memberi label tombol untuk setiap status tujuan pelatihan', function () {
 it('menerima pendaftaran saat pelatihan dibuka atau berjalan', function () {
     expect(StatusPelatihan::Draft->menerimaPendaftaran())->toBeFalse()
         ->and(StatusPelatihan::Dibuka->menerimaPendaftaran())->toBeTrue()
-        ->and(StatusPelatihan::Berjalan->menerimaPendaftaran())->toBeTrue()
+        ->and(StatusPelatihan::Berjalan->menerimaPendaftaran())->toBeFalse()
         ->and(StatusPelatihan::Selesai->menerimaPendaftaran())->toBeFalse();
 });
 

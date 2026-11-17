@@ -50,13 +50,13 @@ class RingkasanStatistik extends StatsOverviewWidget
                 ->color($r['menunggu'] > 0 ? 'warning' : 'success')
                 ->icon(Heroicon::OutlinedClock)
                 ->url(PendaftaranResource::getUrl('index')),
-            Stat::make('Peserta terlatih', $angka($r['peserta_terlatih']))
-                ->description('Berstatus selesai')
+            Stat::make('Jumlah peserta', $angka($r['peserta_terlatih']))
+                ->description('Sudah selesai pelatihan')
                 ->icon(Heroicon::OutlinedAcademicCap),
-            Stat::make('Kab/kota terlatih', $angka($r['kab_kota_terlatih']))
+            Stat::make('Kab/kota yang mengikuti', $angka($r['kab_kota_terlatih']))
                 ->description("dari {$angka($r['total_kab_kota'])} kab/kota")
                 ->icon(Heroicon::OutlinedBuildingOffice2),
-            Stat::make('Desa terlatih', $angka($r['desa_terlatih']))
+            Stat::make('Desa yang telah mengikuti', $angka($r['desa_terlatih']))
                 ->description("dari {$angka($r['total_desa'])} desa")
                 ->icon(Heroicon::OutlinedHome),
         ];

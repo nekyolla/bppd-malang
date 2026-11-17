@@ -27,10 +27,9 @@ beforeEach(function () {
     $this->pembagian = fn (?Pelatihan $pelatihan = null) => Livewire::test(ManagePembagianKelas::class, ['record' => ($pelatihan ?? $this->pelatihan)->getRouteKey()]);
 });
 
-it('menampilkan sub-menu pelatihan: data, pendaftar, kelas, pembagian kelas', function () {
-    $this->get("/admin/pelatihan/{$this->pelatihan->id}/edit")
+it('menampilkan sub-menu pelatihan: pendaftar, kelas, pembagian kelas', function () {
+    $this->get("/admin/pelatihan/{$this->pelatihan->id}/pendaftar")
         ->assertOk()
-        ->assertSee('Data pelatihan')
         ->assertSee(ManageKelas::getUrl(['record' => $this->pelatihan]), escape: false)
         ->assertSee(ManagePembagianKelas::getUrl(['record' => $this->pelatihan]), escape: false)
         ->assertSee("/admin/pelatihan/{$this->pelatihan->id}/pendaftar", escape: false);

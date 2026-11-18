@@ -46,7 +46,7 @@ class ExportService
      */
     public function pilihanHari(Pelatihan $pelatihan): array
     {
-        return collect(CarbonPeriod::create($pelatihan->tanggal_mulai, $pelatihan->tanggal_selesai))
+        return collect(CarbonPeriod::create($pelatihan->tanggal_mulai, $pelatihan->tanggal_selesai)->toArray())
             ->mapWithKeys(fn (CarbonInterface $hari): array => [$hari->toDateString() => $hari->locale('id')->translatedFormat('D, j M')])
             ->all();
     }

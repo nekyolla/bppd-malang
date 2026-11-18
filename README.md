@@ -193,10 +193,12 @@ Hal-hal ini pernah menimbulkan bug. Baca sebelum mengubah bagian terkait.
 - Setiap perubahan service wajib disertai test Pest.
 - Pakai factory. Jangan bergantung pada data wilayah hasil seeder.
 - Test ada di `tests/Feature` (service, panel admin di `Admin/`, halaman publik) dan `tests/Unit` (enum, format, data wilayah).
-- **Analisis statis (Larastan, `phpstan.neon`, level 5):** menangkap salah tipe, properti/method yang tidak ada, dan kode mati sebelum dijalankan. Target 0 galat **tanpa baseline dan tanpa `@phpstan-ignore`**; perbaiki penyebabnya.
+- **Analisis statis (Larastan, `phpstan.neon`, level 6):** menangkap salah tipe, properti/method yang tidak ada, dan kode mati sebelum dijalankan. Target 0 galat **tanpa baseline dan tanpa `@phpstan-ignore`**; perbaiki penyebabnya.
   - Properti yang dibuat "ajaib" (`$form` Livewire, properti `#[Computed]`, hasil `withCount`) didokumentasikan dengan `@property-read` di kelasnya.
   - Bentuk array yang dipakai lintas kelas ditulis sekali sebagai `@phpstan-type` (contoh `KeadaanKamar` di `AsramaService`) lalu diimpor dengan `@phpstan-import-type`.
-  - Langkah lanjutan bila sempat: level 6 (±17 temuan saat ditulis, kebanyakan tipe generik yang belum ditulis).
+  - Level 6 mewajibkan tipe di setiap parameter dan nilai kembali, termasuk isi kelas generik: scope ditulis `@param Builder<self> $query`, koleksi `@return Collection<int, Pelatihan>`, array `@param list<string> $kolom`.
+  - Bila method induk dari package tidak bertipe (contoh `Login::rateLimit`), tipe parameter ditulis di PHPDoc saja; PHP melarang subclass mempersempit tipe parameter.
+  - Langkah lanjutan bila sempat: level 7 (88 temuan saat ditulis, kebanyakan tipe union yang belum dipersempit, mis. `find()` bertipe model atau `Collection`, fungsi PHP yang bisa mengembalikan `false`).
 - **Pemeriksaan otomatis (GitHub Actions):** `.github/workflows/test.yml` menjalankan `pint --test`, Larastan, dan seluruh test dengan MySQL 8.4 setiap push ke `main` dan setiap pull request. Bila repo dipindah dari GitHub, jalankan ketiga perintah itu secara manual sebelum menggabungkan perubahan.
 
 ## Konvensi

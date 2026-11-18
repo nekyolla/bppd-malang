@@ -40,6 +40,8 @@ class PenggunaanKamar extends Model
 
     /**
      * Memuat `jumlah_penghuni` dalam satu query untuk denah kamar.
+     *
+     * @param  Builder<self>  $query
      */
     #[Scope]
     protected function denganJumlahPenghuni(Builder $query): void

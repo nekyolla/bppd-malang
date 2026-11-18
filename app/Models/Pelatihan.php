@@ -68,6 +68,8 @@ class Pelatihan extends Model
 
     /**
      * Pelatihan yang tampil di form registrasi publik (PF-02).
+     *
+     * @param  Builder<self>  $query
      */
     #[Scope]
     protected function menerimaPendaftaran(Builder $query): void

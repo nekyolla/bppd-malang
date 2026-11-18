@@ -92,7 +92,16 @@ class Login extends BaseLogin
         return $response;
     }
 
-    protected function rateLimit($maxAttempts, $decaySeconds = 60, $method = null, $component = null)
+    /**
+     * Tipe parameter hanya di PHPDoc: method induk (danharrin/livewire-rate-limiting) tidak bertipe,
+     * dan PHP melarang subclass mempersempit tipe parameter.
+     *
+     * @param  int  $maxAttempts  Diabaikan; batas per IP memakai MAKS_PERCOBAAN_PER_IP.
+     * @param  int  $decaySeconds
+     * @param  string|null  $method
+     * @param  string|null  $component
+     */
+    protected function rateLimit($maxAttempts, $decaySeconds = 60, $method = null, $component = null): void
     {
         parent::rateLimit(self::MAKS_PERCOBAAN_PER_IP, $decaySeconds, $method ?? 'authenticate', $component);
     }

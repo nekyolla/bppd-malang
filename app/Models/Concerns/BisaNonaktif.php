@@ -16,6 +16,9 @@ trait BisaNonaktif
         $this->mergeCasts(['is_aktif' => 'boolean']);
     }
 
+    /**
+     * @param  Builder<self>  $query
+     */
     #[Scope]
     protected function aktif(Builder $query): void
     {

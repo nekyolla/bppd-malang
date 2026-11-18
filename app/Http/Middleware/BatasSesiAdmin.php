@@ -81,7 +81,7 @@ class BatasSesiAdmin
             return false;
         }
 
-        $komponen = collect($request->input('components', []));
+        $komponen = $request->collect('components');
 
         return $komponen->isNotEmpty() && $komponen->every(
             fn ($k): bool => (json_decode($k['snapshot'] ?? '', true)['memo']['name'] ?? null) === LoncengVerifikasi::NAMA,

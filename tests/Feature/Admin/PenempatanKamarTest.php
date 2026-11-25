@@ -21,7 +21,9 @@ use Database\Seeders\RoleSeeder;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -150,6 +152,37 @@ it('mengeluarkan peserta dari kamar dan mengembalikan kamar menjadi kosong', fun
         ->assertSee('Kosong · 0/4');
 
     expect(AsramaPeserta::count())->toBe(0)->and(PenggunaanKamar::count())->toBe(0);
+});
+
+it('merender denah dengan jumlah query yang tidak bertambah per penghuni', function () {
+    $jumlahQuery = function (): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        ($this->halaman)();
+        DB::disableQueryLog();
+
+        return count(DB::getQueryLog());
+    };
+
+    app(AsramaService::class)->tempatkan(pesertaKamar($this->pelatihan), $this->kamar, $this->admin);
+    ($this->halaman)(); // pemanasan: render pertama mengisi cache izin (role) sekali
+    $satuPenghuni = $jumlahQuery();
+
+    foreach (range(1, 3) as $_) {
+        app(AsramaService::class)->tempatkan(pesertaKamar($this->pelatihan), $this->kamar, $this->admin);
+    }
+
+    expect($jumlahQuery())->toBe($satuPenghuni);
+});
+
+it('menolak mengeluarkan penempatan milik pelatihan lain', function () {
+    $lain = Pelatihan::factory()->dibuka()->tanggal('2026-11-02', '2026-11-05')->create();
+    $penempatan = app(AsramaService::class)->tempatkan(pesertaKamar($lain), $this->kamar, $this->admin);
+
+    expect(fn () => ($this->halaman)()->callAction(TestAction::make('keluarkan')->arguments(['penempatan' => $penempatan->id])))
+        ->toThrow(ModelNotFoundException::class);
+
+    expect(AsramaPeserta::count())->toBe(1);
 });
 
 it('mengosongkan kamar sekaligus dengan penghuni tercentang semua secara bawaan', function () {

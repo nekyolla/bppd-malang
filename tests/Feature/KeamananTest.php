@@ -39,6 +39,16 @@ describe('header keamanan', function () {
     });
 });
 
+// Browser lama tanpa header Sec-Fetch-Site mendapat 419 setelah sesi habis. Isian wizard ada di
+// snapshot Livewire, jadi halaman publik cukup mengambil token baru (layout publik), tidak memuat ulang.
+it('memasang penanganan sesi kedaluwarsa (419) di halaman publik', function (string $url) {
+    $this->get($url)
+        ->assertOk()
+        ->assertSee("Livewire.hook('request'", false)
+        ->assertSee('status !== 419', false)
+        ->assertSee('Isian Anda tetap tersimpan', false);
+})->with(['/daftar', '/sertifikat']);
+
 it('tidak membuka route /storage bawaan untuk disk privat', function () {
     expect(Route::has('storage.local'))->toBeFalse();
 });

@@ -34,6 +34,58 @@
             {{ $slot }}
         </main>
 
+        {{--
+            Sesi kedaluwarsa (419) karena halaman dibiarkan lebih lama dari SESSION_LIFETIME. Isian
+            tersimpan di snapshot Livewire di halaman, yang tidak valid hanya token CSRF-nya. Jadi
+            token baru diambil tanpa memuat ulang halaman, alih-alih dialog bawaan "This page has
+            expired" yang memuat ulang dan menghapus isian. Panel admin punya penanganan sendiri
+            (AdminPanelProvider: muat ulang ke halaman login).
+        --}}
+        <script>
+            document.addEventListener('livewire:init', () => {
+                let sedangMemperbarui = false;
+
+                Livewire.hook('request', ({ fail }) => {
+                    fail(({ status, preventDefault }) => {
+                        if (status !== 419) {
+                            return;
+                        }
+
+                        preventDefault();
+
+                        if (sedangMemperbarui) {
+                            return;
+                        }
+
+                        sedangMemperbarui = true;
+
+                        fetch(window.location.pathname, { headers: { Accept: 'text/html' } })
+                            .then((respons) => (respons.ok ? respons.text() : Promise.reject()))
+                            .then((html) => {
+                                const token = new DOMParser()
+                                    .parseFromString(html, 'text/html')
+                                    .querySelector('meta[name="csrf-token"]')?.content;
+
+                                if (! token) {
+                                    throw new Error('Token tidak ditemukan');
+                                }
+
+                                document.querySelector('meta[name="csrf-token"]').content = token;
+                                alert('Halaman ini sudah lama tidak digunakan, jadi sambungannya diperbarui. Isian Anda tetap tersimpan. Bila tombol yang baru Anda tekan belum berjalan, tekan sekali lagi.');
+                            })
+                            .catch(() => {
+                                if (confirm('Halaman ini sudah lama tidak digunakan. Muat ulang halaman sekarang? Isian yang belum dikirim perlu diisi ulang.')) {
+                                    window.location.reload();
+                                }
+                            })
+                            .finally(() => {
+                                sedangMemperbarui = false;
+                            });
+                    });
+                });
+            });
+        </script>
+
         @filamentScripts
     </body>
 </html>

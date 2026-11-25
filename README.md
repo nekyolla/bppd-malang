@@ -168,6 +168,8 @@ Hal-hal ini pernah menimbulkan bug. Baca sebelum mengubah bagian terkait.
 - **`validateOnly` tidak membawa pesan khusus isian Filament.** Kembalikan `$this->form->getValidationMessages()` dari `messages()` (lihat `Registrasi`).
 - **Closure Filament diisi menurut nama parameter.** `fn ($n)` menerima `null`; pakai `$state`, `$record`, dan seterusnya.
 - **`ActionGroup` tidak punya `authorize()`.** Pakai `visible()` di grup atau `authorize()` di tiap aksi.
+- **`authorize()` aksi dievaluasi untuk setiap tombol saat halaman dirender.** Jangan memuat record dari argumen aksi di dalamnya: satu tombol per baris berarti satu query per baris. Periksa izin di level kelas (`viewAny`) di `authorize()`, lalu izin per record di `action()` (lihat aksi Keluarkan di `PenempatanKamar`).
+- **Sesi kedaluwarsa (419).** Sejak Laravel 13, CSRF diloloskan untuk request dari origin yang sama berdasarkan header `Sec-Fetch-Site`, jadi browser modern tidak mendapat 419 walau sesi habis. Browser lama tanpa header itu (mis. Safari iOS 15 ke bawah) tetap mendapat 419. Layout publik mengambil token baru tanpa memuat ulang halaman, sehingga isian tidak hilang. Panel admin memuat ulang ke halaman login (`AdminPanelProvider`).
 - **`getRecord()`/`getOwnerRecord()` Filament hanya bertipe `Model`.** Di halaman per pelatihan pakai `$this->pelatihan()` (trait `MembacaPelatihan`), di closure beri tipe parameter (`fn (Pelatihan $record)`), dan di aksi massal tulis `@param Collection<int, PelatihanPeserta> $records` pada method bernama.
 - **Galat `CheckboxList` berkunci `tanggal.0`**, bukan `tanggal`.
 - **Unggahan di modal aksi memakai `FileUpload::storeFiles(false)`**, supaya service menerima `UploadedFile` dan menyimpannya sendiri ke disk privat.

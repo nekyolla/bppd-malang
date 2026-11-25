@@ -212,10 +212,17 @@ class PenempatanKamar extends Page
             ->modalHeading(fn (array $arguments): string => "Keluarkan {$this->penempatan($arguments)->pelatihanPeserta->peserta->nama_lengkap}?")
             ->modalDescription(fn (array $arguments): string => "Peserta keluar dari kamar {$this->penempatan($arguments)->penggunaanKamar->kamarAsrama->nama_tampilan}. Kamar yang kosong kembali netral.")
             ->modalSubmitActionLabel('Keluarkan')
-            ->authorize(fn (array $arguments): bool => auth()->user()->can('delete', $this->penempatan($arguments)))
+            // Izin per penempatan diperiksa saat aksi dijalankan, bukan di authorize(): authorize()
+            // dievaluasi untuk setiap tombol ✕ saat denah dirender, sehingga memuat penempatan
+            // beserta relasinya sekali per penghuni (6 query × jumlah penghuni). Sama dengan Kosongkan.
+            ->authorize(fn (): bool => auth()->user()->can('viewAny', AsramaPeserta::class))
             ->visible(fn (): bool => $this->bisaDiubah())
             ->action(function (array $arguments, Action $action): void {
-                GalatService::jalankan($action, 'Peserta tidak dapat dikeluarkan', fn () => app(AsramaService::class)->keluarkan($this->penempatan($arguments)));
+                $penempatan = $this->penempatan($arguments);
+
+                abort_unless(auth()->user()->can('delete', $penempatan), 403);
+
+                GalatService::jalankan($action, 'Peserta tidak dapat dikeluarkan', fn () => app(AsramaService::class)->keluarkan($penempatan));
 
                 unset($this->denah);
                 Notification::make()->title('Peserta keluar dari kamar')->success()->send();

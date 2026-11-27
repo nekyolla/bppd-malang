@@ -30,11 +30,55 @@ Hanya panitia yang bisa login, di `/admin`:
 
 ## Menjalankan di komputer sendiri
 
-Butuh Docker. Langkah pertama butuh PHP 8.5 dan Composer di komputer. Kalau tidak ada, ikuti bagian "Installing Composer Dependencies for Existing Applications" di dokumentasi Laravel Sail.
+Aplikasi ini merupakan proyek Laravel standar dan **tidak wajib memakai Docker**. Pilih salah satu cara di bawah sesuai lingkungan komputer Anda.
+
+### Opsi A — Tanpa Docker (PHP & MySQL langsung: Laragon, Herd, XAMPP, Linux, macOS)
+
+Cocok untuk staf TI / pemeriksa kode yang sudah memiliki PHP, MySQL, Composer, dan Node.js di komputer.
+
+1. Pastikan terpasang:
+   - **PHP ≥ 8.5.12** dengan ekstensi `pdo_mysql`, `mbstring`, `xml`, `intl`, `zip`, `gd`, `fileinfo`, `curl`, `openssl` *(di Windows Laragon/XAMPP: pastikan `extension=intl`, `extension=gd`, `extension=zip`, dan `extension=pdo_mysql` aktif tanpa tanda `;` di `php.ini`, serta `upload_max_filesize = 8M` dan `post_max_size = 8M`)*.
+   - **MySQL 8.0 / 8.4**, **Composer 2.x**, dan **Node.js ≥ 20.19** (atau ≥ 22.12) beserta `npm`.
+2. Buat database kosong di MySQL, misalnya bernama `bbpd`.
+3. Masuk ke folder proyek (hasil `git clone` atau ekstrak ZIP), lalu pasang dependensi dan salin konfigurasi:
+   ```bash
+   composer install
+   cp .env.example .env       # di Windows Command Prompt: copy .env.example .env
+   ```
+4. Buka berkas `.env` dan sesuaikan koneksi database serta kata sandi superadmin *(bawaan `.env.example` memakai host `mysql` untuk Docker, jadi wajib diubah ke `127.0.0.1`)*:
+   ```ini
+   APP_URL=http://127.0.0.1:8000
+
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=bbpd
+   DB_USERNAME=root           # sesuaikan dengan user MySQL lokal Anda
+   DB_PASSWORD=               # sesuaikan dengan password MySQL lokal Anda
+
+   SUPERADMIN_USERNAME=superadmin
+   SUPERADMIN_PASSWORD=SandiKuat123
+   ```
+5. Buat kunci aplikasi, jalankan migrasi beserta data awal, dan bangun aset tampilan:
+   ```bash
+   php artisan key:generate
+   php artisan migrate --seed
+   npm install
+   npm run build
+   ```
+6. Jalankan server lokal:
+   ```bash
+   php artisan serve
+   ```
+   Buka `http://127.0.0.1:8000` di browser.
+
+### Opsi B — Dengan Docker (Laravel Sail)
+
+Cocok bila di komputer sudah terpasang Docker dan ingin menyamakan lingkungan tanpa memasang MySQL/Node secara terpisah. Langkah pertama membutuhkan PHP 8.5 dan Composer di komputer (jika belum ada, lihat bagian *"Installing Composer Dependencies for Existing Applications"* di dokumentasi Laravel Sail).
 
 ```bash
 composer install
-cp .env.example .env              # isi SUPERADMIN_PASSWORD
+cp .env.example .env              # isi SUPERADMIN_PASSWORD (DB_* biarkan bawaan Sail)
 ./vendor/bin/sail up -d
 ./vendor/bin/sail artisan key:generate
 ./vendor/bin/sail artisan migrate --seed
@@ -42,16 +86,18 @@ cp .env.example .env              # isi SUPERADMIN_PASSWORD
 ./vendor/bin/sail npm run build
 ```
 
-Buka `http://localhost`. Sail melayani di port 80, bukan `:8000` seperti yang tertulis di `APP_URL`.
+Buka `http://localhost` (Sail melayani di port 80, bukan `:8000`).
 
-- `/daftar`: form registrasi.
-- `/sertifikat`: unduh sertifikat.
-- `/admin`: panel. Login dengan username dari `SUPERADMIN_USERNAME` dan password dari `SUPERADMIN_PASSWORD`.
+### Alamat halaman dan data awal (`--seed`)
 
-Isi `--seed` bergantung pada lingkungan:
+- `/daftar`: form registrasi peserta.
+- `/sertifikat`: unduh sertifikat dengan NIK.
+- `/admin`: panel panitia. Login dengan username dari `SUPERADMIN_USERNAME` dan password dari `SUPERADMIN_PASSWORD`.
 
-- **Seeder produksi:** role, akun superadmin, data wilayah seluruh Indonesia (`database/data/wilayah.csv`), status PTKP, dan sumber dana.
-- **Lingkungan `local`:** `DemoSeeder` ikut jalan, berisi pelatihan, peserta, asrama, dan akun admin contoh (password `password`). Jangan jalankan `DemoSeeder` di server produksi.
+Isi `--seed` bergantung pada nilai `APP_ENV` di `.env`:
+
+- **Lingkungan `local` (bawaan uji coba):** selain data wilayah dan master dasar, `DemoSeeder` ikut dijalankan otomatis (berisi 5 contoh pelatihan, peserta, kelas, asrama, sertifikat contoh, serta akun panitia contoh `panitia1` / `panitia2` dengan password `password`). Jangan jalankan `DemoSeeder` di server produksi.
+- **Lingkungan `production`:** hanya memasang role, akun superadmin, data wilayah Kemendagri (`database/data/wilayah.csv`), status PTKP, dan sumber dana—tanpa data contoh.
 
 Isian `.env` khusus aplikasi ini:
 
@@ -66,14 +112,18 @@ Isian `.env` khusus aplikasi ini:
 
 ## Perintah sehari-hari
 
+Tanpa Docker (langsung di terminal komputer):
+
 ```bash
-./vendor/bin/sail artisan test                 # semua test
-./vendor/bin/sail artisan test --filter=Asrama # sebagian
-./vendor/bin/sail pint                         # rapikan format kode
-./vendor/bin/sail php vendor/bin/phpstan analyse # analisis statis (Larastan)
-./vendor/bin/sail npm run dev                  # Vite saat mengubah CSS/JS
-./vendor/bin/sail artisan migrate:fresh --seed # ulang database dari nol
+php artisan test                                 # semua test (butuh database MySQL `testing`)
+php artisan test --filter=Asrama                 # sebagian test
+./vendor/bin/pint                                # rapikan format kode
+./vendor/bin/phpstan analyse --memory-limit=512M # analisis statis (Larastan)
+npm run dev                                      # Vite saat mengubah CSS/JS
+php artisan migrate:fresh --seed                 # ulang database dari nol
 ```
+
+Bila memakai Docker (Laravel Sail), awali perintah dengan `./vendor/bin/sail` (mis. `./vendor/bin/sail artisan test`, `./vendor/bin/sail pint`, `./vendor/bin/sail php vendor/bin/phpstan analyse`).
 
 Sebelum commit, `pint`, `phpstan` (0 galat), dan seluruh test harus lolos.
 

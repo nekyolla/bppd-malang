@@ -204,6 +204,23 @@ class StatistikService
     }
 
     /**
+     * Menghapus baris tabel `cache` yang sudah kedaluwarsa menggunakan indeks `expiration`.
+     * Driver database Laravel hanya menghapus kunci kedaluwarsa bila kunci yang persis sama
+     * dibaca ulang, sehingga kunci versi statistik lama dan rate limiter IP lama perlu disapu.
+     */
+    public static function hapusCacheKedaluwarsa(): int
+    {
+        if (config('cache.default') !== 'database') {
+            return 0;
+        }
+
+        return DB::connection(config('cache.stores.database.connection'))
+            ->table(config('cache.stores.database.table', 'cache'))
+            ->where('expiration', '<=', now()->getTimestamp())
+            ->delete();
+    }
+
+    /**
      * Hanya array skalar yang disimpan: cache database tidak membangun ulang objek
      * (`cache.serializable_classes = false`), sehingga Collection akan rusak saat dibaca.
      *
@@ -212,6 +229,10 @@ class StatistikService
      */
     private function ingat(string $kunci, Closure $hitung): array
     {
+        if (random_int(1, 50) === 1) {
+            self::hapusCacheKedaluwarsa();
+        }
+
         $versi = (int) Cache::get(self::KUNCI_VERSI, 0);
 
         return Cache::remember("statistik:{$versi}:{$kunci}", self::CACHE_DETIK, $hitung);

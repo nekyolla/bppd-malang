@@ -135,3 +135,23 @@ it('tetap berfungsi saat hasil dibaca kembali dari cache database', function () 
 
     expect(DB::table('cache')->where('key', 'like', '%statistik:%provinsi:%')->exists())->toBeTrue();
 });
+
+it('menyapu baris cache database yang sudah kedaluwarsa tanpa menghapus kunci aktif', function () {
+    config(['cache.default' => 'database']);
+
+    $this->service->ringkasan();
+    $this->travel(StatistikService::CACHE_DETIK + 10)->seconds();
+
+    // Naikkan versi: kunci versi lama sudah kedaluwarsa dan tidak akan pernah dibaca lagi.
+    StatistikService::bersihkanCache();
+    $this->service->ringkasan();
+
+    expect(DB::table('cache')->where('expiration', '<=', now()->getTimestamp())->exists())->toBeTrue();
+
+    $terhapus = StatistikService::hapusCacheKedaluwarsa();
+
+    expect($terhapus)->toBeGreaterThan(0)
+        ->and(DB::table('cache')->where('expiration', '<=', now()->getTimestamp())->exists())->toBeFalse()
+        ->and(DB::table('cache')->where('key', 'like', '%statistik:versi')->exists())->toBeTrue()
+        ->and($this->service->ringkasan()['desa_terlatih'])->toBe(2);
+});

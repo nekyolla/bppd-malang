@@ -13,7 +13,7 @@ class PelatihanPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(Peran::panelAdmin());
+        return $user->is_aktif && $user->hasAnyRole(Peran::panelAdmin());
     }
 
     public function view(User $user, Pelatihan $pelatihan): bool

@@ -14,7 +14,7 @@ abstract class DataMasterPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(Peran::Superadmin);
+        return $user->is_aktif && $user->hasRole(Peran::Superadmin);
     }
 
     public function view(User $user, Model $model): bool

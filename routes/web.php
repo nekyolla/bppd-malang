@@ -9,12 +9,16 @@ use Illuminate\Support\Facades\Route;
 // Halaman publik ditunda (PF-06); sementara beranda langsung ke form registrasi.
 Route::redirect('/', '/daftar');
 
-Route::get('/daftar', Registrasi::class)->name('registrasi');
+Route::get('/daftar', Registrasi::class)
+    ->middleware(HeaderKeamanan::class.':tanpa-bingkai')
+    ->name('registrasi');
 
 // Unduh sertifikat oleh peserta tanpa login (PF-40): tautan relatif bertanda tangan dari halaman /sertifikat.
 // Tanda tangan diperiksa di controller, bukan middleware `signed`, agar ID yang ada dan tidak ada
 // mendapat jawaban sama. Batas unduhan: limiter `sertifikat-unduh` (AppServiceProvider).
-Route::get('/sertifikat', UnduhSertifikat::class)->name('sertifikat.publik');
+Route::get('/sertifikat', UnduhSertifikat::class)
+    ->middleware(HeaderKeamanan::class)
+    ->name('sertifikat.publik');
 
 Route::get('/sertifikat/unduh/{sertifikatPeserta}', [BerkasController::class, 'sertifikatPublik'])
     ->middleware(['throttle:sertifikat-unduh', HeaderKeamanan::class])
